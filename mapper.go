@@ -263,8 +263,8 @@ func (hood *Hood) insertSql(model *Model) string {
 	keys, _, markers := hood.sortedKeysValuesAndMarkersForModel(model, true)
 	stmt := fmt.Sprintf(
 		"INSERT INTO %v (%v) VALUES (%v)",
-		hood.Dialect.Quote(model.Table),
-		hood.Dialect.Quote(strings.Join(keys, hood.Dialect.Quote(", "))),
+		model.Table,
+		strings.Join(keys, ", "),
 		strings.Join(markers, ", "),
 	)
 	return stmt
@@ -279,10 +279,10 @@ func (hood *Hood) updateSql(model *Model) string {
 	keys, _, markers := hood.sortedKeysValuesAndMarkersForModel(model, true)
 	stmt := fmt.Sprintf(
 		"UPDATE %v (%v) VALUES (%v) WHERE %v = %v",
-		hood.Dialect.Quote(model.Table),
-		hood.Dialect.Quote(strings.Join(keys, hood.Dialect.Quote(", "))),
+		model.Table,
+		strings.Join(keys, ", "),
 		strings.Join(markers, ", "),
-		hood.Dialect.Quote(model.Pk.Name),
+		model.Pk.Name,
 		hood.nextMarker(),
 	)
 	return stmt
@@ -292,8 +292,8 @@ func (hood *Hood) deleteSql(model *Model) string {
 	defer hood.Reset()
 	stmt := fmt.Sprintf(
 		"DELETE FROM %v WHERE %v = %v",
-		hood.Dialect.Quote(model.Table),
-		hood.Dialect.Quote(model.Pk.Name),
+		model.Table,
+		model.Pk.Name,
 		hood.nextMarker(),
 	)
 	return stmt
