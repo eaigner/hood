@@ -29,7 +29,8 @@ func (d *DialectPg) Marker(pos int) string {
 	return fmt.Sprintf("$%d", pos)
 }
 
-func (d *DialectPg) SqlType(t reflect.Type, size int, autoIncr bool) string {
+func (d *DialectPg) SqlType(f interface{}, size int, autoIncr bool) string {
+	t := reflect.TypeOf(f)
 	switch t.Kind() {
 	case reflect.Bool:
 		return "boolean"

@@ -3,7 +3,6 @@ package hood
 import (
 	"database/sql"
 	_ "github.com/bmizerany/pq"
-	"reflect"
 	"testing"
 )
 
@@ -24,34 +23,34 @@ func TestPgInsert(t *testing.T) {
 
 func TestSqlType(t *testing.T) {
 	d := &DialectPg{}
-	if x := d.SqlType(reflect.TypeOf(true), 0, false); x != "boolean" {
+	if x := d.SqlType(true, 0, false); x != "boolean" {
 		t.Fatal("wrong type", x)
 	}
-	if x := d.SqlType(reflect.TypeOf(uint32(2)), 0, false); x != "integer" {
+	if x := d.SqlType(uint32(2), 0, false); x != "integer" {
 		t.Fatal("wrong type", x)
 	}
-	if x := d.SqlType(reflect.TypeOf(int(1)), 0, true); x != "serial" {
+	if x := d.SqlType(int(1), 0, true); x != "serial" {
 		t.Fatal("wrong type", x)
 	}
-	if x := d.SqlType(reflect.TypeOf(int64(1)), 0, false); x != "bigint" {
+	if x := d.SqlType(int64(1), 0, false); x != "bigint" {
 		t.Fatal("wrong type", x)
 	}
-	if x := d.SqlType(reflect.TypeOf(int64(1)), 0, true); x != "bigserial" {
+	if x := d.SqlType(int64(1), 0, true); x != "bigserial" {
 		t.Fatal("wrong type", x)
 	}
-	if x := d.SqlType(reflect.TypeOf(1.8), 0, true); x != "double precision" {
+	if x := d.SqlType(1.8, 0, true); x != "double precision" {
 		t.Fatal("wrong type", x)
 	}
-	if x := d.SqlType(reflect.TypeOf([]byte("asdf")), 0, true); x != "bytea" {
+	if x := d.SqlType([]byte("asdf"), 0, true); x != "bytea" {
 		t.Fatal("wrong type", x)
 	}
-	if x := d.SqlType(reflect.TypeOf("astring"), 0, true); x != "text" {
+	if x := d.SqlType("astring", 0, true); x != "text" {
 		t.Fatal("wrong type", x)
 	}
-	if x := d.SqlType(reflect.TypeOf([]bool{}), 0, true); x != "varchar(255)" {
+	if x := d.SqlType([]bool{}, 0, true); x != "varchar(255)" {
 		t.Fatal("wrong type", x)
 	}
-	if x := d.SqlType(reflect.TypeOf([]bool{}), 128, true); x != "varchar(128)" {
+	if x := d.SqlType([]bool{}, 128, true); x != "varchar(128)" {
 		t.Fatal("wrong type", x)
 	}
 }
