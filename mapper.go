@@ -60,7 +60,7 @@ func (hood *Hood) Reset() {
 	hood.selector = ""
 	hood.where = ""
 	hood.params = []interface{}{}
-	hood.paramNum = hood.Dialect.MarkerStartPos()
+	hood.paramNum = 0
 	hood.limit = ""
 	hood.offset = ""
 	hood.orderBy = ""

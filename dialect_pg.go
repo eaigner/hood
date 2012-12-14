@@ -20,12 +20,8 @@ func (d *DialectPg) Quote(s string) string {
 	return strings.Join([]string{q, s, q}, "")
 }
 
-func (d *DialectPg) MarkerStartPos() int {
-	return 1
-}
-
 func (d *DialectPg) Marker(pos int) string {
-	return fmt.Sprintf("$%d", pos)
+	return fmt.Sprintf("$%d", pos+1)
 }
 
 func (d *DialectPg) SqlType(f interface{}, size int, autoIncr bool) string {
