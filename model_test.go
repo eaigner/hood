@@ -25,7 +25,7 @@ func TestInterfaceToModel(t *testing.T) {
 		LastName:  "Aigner",
 		Address:   "Nowhere 7",
 	}
-	m, err := interfaceToModel(model)
+	m, err := interfaceToModel(model, &DialectPg{})
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}

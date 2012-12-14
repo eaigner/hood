@@ -55,6 +55,14 @@ func (d *DialectPg) SqlType(f interface{}, size int, autoIncr bool) string {
 	return fmt.Sprintf("varchar(%d)", size)
 }
 
+func (d *DialectPg) ScanOnInsert() bool {
+	return true
+}
+
+func (d *DialectPg) StmtInsert(query string, model *Model) string {
+	return fmt.Sprintf("%v RETURNING %v", query, model.Pk.Name)
+}
+
 func (d *DialectPg) StmtNotNull() string {
 	return "NOT NULL"
 }

@@ -25,6 +25,7 @@ type Hood struct {
 
 type qo interface {
 	Prepare(query string) (*sql.Stmt, error)
+	QueryRow(query string, args ...interface{}) *sql.Row
 }
 
 type (
@@ -178,16 +179,15 @@ func (hood *Hood) Find(out []interface{}) error {
 		return err
 	}
 	for rows.Next() {
-		err = hood.scanRowIntoStruct(rows, cols, out)
+		values := make([]interface{}, len(cols))
+		err := rows.Scan(values...)
 		if err != nil {
 			return err
 		}
+		for i, v := range values {
+			fmt.Printf("%d: %v\n", i, v)
+		}
 	}
-	return nil
-}
-
-func (hood *Hood) scanRowIntoStruct(rows *sql.Rows, cols []string, out []interface{}) error {
-	// TODO: implement
 	return nil
 }
 
@@ -207,11 +207,22 @@ func (hood *Hood) Exec(query string, args ...interface{}) (sql.Result, error) {
 		return nil, err
 	}
 	defer stmt.Close()
+	if hood.Log {
+		fmt.Println(args...)
+	}
 	result, err := stmt.Exec(args...)
 	if err != nil {
 		return nil, err
 	}
 	return result, nil
+}
+
+func (hood *Hood) QueryRow(query string, args ...interface{}) *sql.Row {
+	if hood.Log {
+		fmt.Println(query)
+		fmt.Println(args...)
+	}
+	return hood.qo.QueryRow(query, args...)
 }
 
 func (hood *Hood) Save(model interface{}) (Id, error) {
@@ -229,11 +240,18 @@ func (hood *Hood) SaveAll(models []interface{}) ([]Id, error) {
 			id  Id
 			err error
 		)
-		model, err := interfaceToModel(v)
+		model, err := interfaceToModel(v, hood.Dialect)
 		if err != nil {
 			return nil, err
 		}
+		update := false
 		if model.Pk != nil {
+			// FIXME: 0 is valid key!
+			if v, ok := model.Pk.Value.(int); ok && v > 0 {
+				update = true
+			}
+		}
+		if update {
 			id, err = hood.update(model)
 		} else {
 			id, err = hood.insert(model)
@@ -259,26 +277,8 @@ func (hood *Hood) DestroyAll(model []interface{}) ([]Id, error) {
 	return nil, nil
 }
 
-func (hood *Hood) CreateDatabase(db string) error {
-	defer hood.Reset()
-	_, err := hood.Exec(fmt.Sprintf("CREATE DATABASE %v", db))
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (hood *Hood) DropDatabase(db string) error {
-	defer hood.Reset()
-	_, err := hood.Exec(fmt.Sprintf("DROP DATABASE %v", db))
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func (hood *Hood) CreateTable(table interface{}) error {
-	model, err := interfaceToModel(table)
+	model, err := interfaceToModel(table, hood.Dialect)
 	if err != nil {
 		return err
 	}
@@ -290,7 +290,7 @@ func (hood *Hood) CreateTable(table interface{}) error {
 }
 
 func (hood *Hood) DropTable(table interface{}) error {
-	model, err := interfaceToModel(table)
+	model, err := interfaceToModel(table, hood.Dialect)
 	if err != nil {
 		return err
 	}
@@ -304,19 +304,34 @@ func (hood *Hood) DropTable(table interface{}) error {
 // Private /////////////////////////////////////////////////////////////////////
 
 func (hood *Hood) insert(model *Model) (Id, error) {
-	return 0, nil
+	query, values := hood.insertSql(model)
+	query = hood.Dialect.StmtInsert(query, model)
+	if hood.Dialect.ScanOnInsert() {
+		var id int64
+		hood.QueryRow(query, values...).Scan(&id)
+		return Id(id), nil
+	}
+	result, err := hood.Exec(query, values...)
+	if err != nil {
+		return -1, err
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return -1, err
+	}
+	return Id(id), nil
 }
 
-func (hood *Hood) insertSql(model *Model) string {
+func (hood *Hood) insertSql(model *Model) (string, []interface{}) {
 	defer hood.Reset()
-	keys, _, markers := hood.keysValuesAndMarkersForModel(model, true)
+	keys, values, markers := hood.keysValuesAndMarkersForModel(model, true)
 	stmt := fmt.Sprintf(
 		"INSERT INTO %v (%v) VALUES (%v)",
 		model.Table,
 		strings.Join(keys, ", "),
 		strings.Join(markers, ", "),
 	)
-	return stmt
+	return stmt, values
 }
 
 func (hood *Hood) update(model *Model) (Id, error) {
@@ -409,11 +424,11 @@ func (hood *Hood) keysValuesAndMarkersForModel(model *Model, excludePrimary bool
 	values := make([]interface{}, 0, max)
 	markers := make([]string, 0, max)
 	for _, field := range model.Fields {
-		if !(excludePrimary && field.Name == model.Pk.Name) {
+		if !(excludePrimary && model.Pk != nil && field.Name == model.Pk.Name) {
 			keys = append(keys, field.Name)
 			markers = append(markers, hood.nextMarker())
+			values = append(values, field.Value)
 		}
-		values = append(values, field.Name)
 	}
 	return keys, values, markers
 }
