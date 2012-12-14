@@ -194,7 +194,17 @@ func (hood *Hood) FindOne(out interface{}) error {
 }
 
 func (hood *Hood) Exec(query string, args ...interface{}) (sql.Result, error) {
-	return nil, nil
+	defer hood.Reset()
+	stmt, err := hood.Qo.Prepare(hood.substituteMarkers(query))
+	if err != nil {
+		return nil, err
+	}
+	defer stmt.Close()
+	result, err := stmt.Exec(args...)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 func (hood *Hood) Save(model interface{}) (Id, error) {
