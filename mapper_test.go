@@ -20,7 +20,7 @@ var data1 *sampleModel = &sampleModel{
 
 func TestInsertSQL(t *testing.T) {
 	hood := New(nil, &DialectPg{})
-	model, _ := modelMap(data1)
+	model, _ := interfaceToModel(data1)
 	sql := hood.insertSql(model)
 	if sql != `INSERT INTO "sample_model" ("amount", "first", "last") VALUES ($0, $1, $2)` {
 		t.Fatalf("invalid sql: '%v'", sql)
@@ -29,7 +29,7 @@ func TestInsertSQL(t *testing.T) {
 
 func TestUpdateSQL(t *testing.T) {
 	hood := New(nil, &DialectPg{})
-	model, _ := modelMap(data1)
+	model, _ := interfaceToModel(data1)
 	sql := hood.updateSql(model)
 	if sql != `UPDATE "sample_model" ("amount", "first", "last") VALUES ($0, $1, $2) WHERE "prim" = $3` {
 		t.Fatalf("invalid sql: '%v'", sql)
@@ -38,7 +38,7 @@ func TestUpdateSQL(t *testing.T) {
 
 func TestDeleteSQL(t *testing.T) {
 	hood := New(nil, &DialectPg{})
-	model, _ := modelMap(data1)
+	model, _ := interfaceToModel(data1)
 	sql := hood.deleteSql(model)
 	if sql != `DELETE FROM "sample_model" WHERE "prim" = $0` {
 		t.Fatalf("invalid sql: '%v'", sql)

@@ -5,19 +5,19 @@ import (
 	"reflect"
 )
 
-func modelFieldOrTableName(i interface{}) string {
+func snakeCaseName(i interface{}) string {
 	return snakeCase(reflect.TypeOf(i).Elem().Name())
 }
 
-func modelMap(model interface{}) (*Model, error) {
-	v := reflect.Indirect(reflect.ValueOf(model))
+func interfaceToModel(f interface{}) (*Model, error) {
+	v := reflect.Indirect(reflect.ValueOf(f))
 	if v.Kind() != reflect.Struct {
 		return nil, errors.New("model is not a struct")
 	}
 	t := v.Type()
 	m := &Model{
 		Pk:     nil,
-		Table:  modelFieldOrTableName(model),
+		Table:  snakeCaseName(f),
 		Fields: make(map[string]interface{}),
 	}
 	for i := 0; i < t.NumField(); i++ {

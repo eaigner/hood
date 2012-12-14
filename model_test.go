@@ -12,21 +12,21 @@ type SampleModel struct {
 	Address   string
 }
 
-func TestModelFieldOrTableName(t *testing.T) {
-	name := modelFieldOrTableName(&SampleModel{})
+func TestSnakeCaseName(t *testing.T) {
+	name := snakeCaseName(&SampleModel{})
 	if name != "sample_model" {
 		t.Fatal("wrong table name", name)
 	}
 }
 
-func TestModelMap(t *testing.T) {
+func TestInterfaceToModel(t *testing.T) {
 	model := &SampleModel{
 		PrimKey:   6,
 		FirstName: "Erik",
 		LastName:  "Aigner",
 		Address:   "Nowhere 7",
 	}
-	m, err := modelMap(model)
+	m, err := interfaceToModel(model)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}

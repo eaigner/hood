@@ -76,7 +76,7 @@ func (hood *Hood) Select(selector string, table interface{}) *Hood {
 	case string:
 		from = f
 	case interface{}:
-		from = modelFieldOrTableName(f)
+		from = snakeCaseName(f)
 	}
 	if from == "" {
 		panic("FROM cannot be empty")
@@ -167,7 +167,7 @@ func (hood *Hood) SaveAll(models []interface{}) ([]Id, error) {
 			id  Id
 			err error
 		)
-		model, err := modelMap(v)
+		model, err := interfaceToModel(v)
 		if err != nil {
 			return nil, err
 		}
