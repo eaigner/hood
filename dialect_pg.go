@@ -45,12 +45,12 @@ func (d *DialectPg) SqlType(f interface{}, size int, autoIncr bool) string {
 	return fmt.Sprintf("varchar(%d)", size)
 }
 
-func (d *DialectPg) ScanOnInsert() bool {
-	return true
-}
+func (d *DialectPg) Insert(hood *Hood, model *Model, query string, args ...interface{}) (Id, error, bool) {
+	query = fmt.Sprintf("%v RETURNING %v", query, model.Pk.Name)
+	var id int64
+	err := hood.QueryRow(query, args...).Scan(&id)
 
-func (d *DialectPg) StmtInsert(query string, model *Model) string {
-	return fmt.Sprintf("%v RETURNING %v", query, model.Pk.Name)
+	return Id(id), err, true
 }
 
 func (d *DialectPg) StmtNotNull() string {

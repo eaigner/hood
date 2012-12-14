@@ -305,11 +305,9 @@ func (hood *Hood) DropTable(table interface{}) error {
 
 func (hood *Hood) insert(model *Model) (Id, error) {
 	query, values := hood.insertSql(model)
-	query = hood.Dialect.StmtInsert(query, model)
-	if hood.Dialect.ScanOnInsert() {
-		var id int64
-		hood.QueryRow(query, values...).Scan(&id)
-		return Id(id), nil
+	// check if dialect requires custom insert (like PostgreSQL)
+	if id, err, ok := hood.Dialect.Insert(hood, model, query, values...); ok {
+		return id, err
 	}
 	result, err := hood.Exec(query, values...)
 	if err != nil {
