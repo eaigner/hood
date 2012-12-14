@@ -9,19 +9,19 @@ import (
 )
 
 type Hood struct {
-	Db         *sql.DB
-	Dialect    Dialect
-	Qo         Qo // the query object
-	where      string
-	params     []interface{}
-	paramNum   int
-	limit      int
-	offset     int
-	orderBy    string
-	selectCols string
-	joins      []string
-	groupBy    string
-	having     string
+	Db       *sql.DB
+	Dialect  Dialect
+	Qo       Qo // the query object
+	selector string
+	where    string
+	params   []interface{}
+	paramNum int
+	limit    string
+	offset   string
+	orderBy  string
+	joins    []string
+	groupBy  string
+	having   string
 }
 
 type Qo interface {
@@ -67,39 +67,59 @@ func (hood *Hood) Commit() error {
 	return nil
 }
 
+func (hood *Hood) Select(selector string, table interface{}) *Hood {
+	if selector == "" {
+		selector = "*"
+	}
+	from := ""
+	switch f := table.(type) {
+	case string:
+		from = f
+	case interface{}:
+		from = modelFieldOrTableName(f)
+	}
+	if from == "" {
+		panic("FROM cannot be empty")
+	}
+	hood.selector = fmt.Sprintf("SELECT %v FROM %v", selector, from)
+
+	return hood
+}
+
 func (hood *Hood) Where(query interface{}, args ...interface{}) *Hood {
+	where := ""
 	switch typedQuery := query.(type) {
 	case string: // custom query
-		hood.where = hood.substituteMarkers(typedQuery)
+		where = hood.substituteMarkers(typedQuery)
 		hood.params = args
 	case int: // id provided
-		hood.where = fmt.Sprintf(
+		where = fmt.Sprintf(
 			"%v = %v",
 			hood.Dialect.Quote(hood.Dialect.Pk()),
 			hood.nextMarker(),
 		)
 		hood.params = []interface{}{typedQuery}
 	}
+	if where == "" {
+		panic("WHERE cannot be empty")
+	}
+	hood.where = fmt.Sprintf("WHERE %v", where)
+
 	return hood
 }
 
 func (hood *Hood) Limit(limit int) *Hood {
-	hood.limit = limit
+	hood.limit = fmt.Sprintf("LIMIT %v", limit)
 	return hood
 }
 
 func (hood *Hood) Offset(offset int) *Hood {
-	hood.offset = offset
+	hood.offset = fmt.Sprintf("OFFSET %v", offset)
 	return hood
 }
 
-func (hood *Hood) OrderBy(order string) *Hood {
-	hood.orderBy = order
-	return hood
-}
-
-func (hood *Hood) Select(columns string) *Hood {
-	hood.selectCols = columns
+func (hood *Hood) OrderBy(key string) *Hood {
+	hood.orderBy = fmt.Sprintf("ORDER BY %v", key)
 	return hood
 }
 
@@ -224,14 +244,43 @@ func (hood *Hood) deleteSql(model *Model) string {
 	return stmt
 }
 
+func (hood *Hood) querySql() string {
+	query := make([]string, 0, 20)
+	if hood.selector != "" {
+		query = append(query, hood.selector)
+	}
+	for _, join := range hood.joins {
+		query = append(query, join)
+	}
+	if x := hood.where; x != "" {
+		query = append(query, x)
+	}
+	if x := hood.groupBy; x != "" {
+		query = append(query, x)
+	}
+	if x := hood.having; x != "" {
+		query = append(query, x)
+	}
+	if x := hood.orderBy; x != "" {
+		query = append(query, x)
+	}
+	if x := hood.limit; x != "" {
+		query = append(query, x)
+	}
+	if x := hood.offset; x != "" {
+		query = append(query, x)
+	}
+	return strings.Join(query, " ")
+}
+
 func (hood *Hood) reset() {
+	hood.selector = ""
 	hood.where = ""
 	hood.params = []interface{}{}
 	hood.paramNum = 0
-	hood.limit = 0
-	hood.offset = 0
+	hood.limit = ""
+	hood.offset = ""
 	hood.orderBy = ""
-	hood.selectCols = ""
 	hood.joins = []string{}
 	hood.groupBy = ""
 	hood.having = ""

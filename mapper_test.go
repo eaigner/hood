@@ -44,3 +44,19 @@ func TestDeleteSQL(t *testing.T) {
 		t.Fatalf("invalid sql: '%v'", sql)
 	}
 }
+
+func TestQuerySQL(t *testing.T) {
+	hood := New(nil, &DialectPg{})
+	hood.Select("*", &sampleModel{})
+	hood.Where(3)
+	hood.Join("INNER", "orders", "users.id == orders.id")
+	hood.GroupBy("name")
+	hood.Having("SUM(price) < 2000")
+	hood.OrderBy("first_name")
+	hood.Offset(3)
+	hood.Limit(10)
+	sql := hood.querySql()
+	if sql != `SELECT * FROM sample_model INNER JOIN orders ON users.id == orders.id WHERE "id" = $0 GROUP BY name HAVING SUM(price) < 2000 ORDER BY first_name LIMIT 10 OFFSET 3` {
+		t.Fatalf("invalid sql: '%v'", sql)
+	}
+}
