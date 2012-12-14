@@ -199,6 +199,20 @@ func (hood *Hood) update(model *Model) (Id, error) {
 	return 0, nil
 }
 
+func (hood *Hood) updateSql(model *Model) string {
+	defer hood.reset()
+	keys, _, markers := hood.sortedKeysValuesAndMarkersForModel(model, true)
+	stmt := fmt.Sprintf(
+		"UPDATE %v (%v) VALUES (%v) WHERE %v = %v",
+		hood.Dialect.Quote(model.Table),
+		hood.Dialect.Quote(strings.Join(keys, hood.Dialect.Quote(", "))),
+		strings.Join(markers, ", "),
+		hood.Dialect.Quote(model.Pk.Name),
+		hood.nextMarker(),
+	)
+	return stmt
+}
+
 func (hood *Hood) reset() {
 	hood.where = ""
 	hood.params = []interface{}{}
