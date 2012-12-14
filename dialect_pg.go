@@ -2,7 +2,6 @@ package hood
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 )
 
@@ -30,27 +29,24 @@ func (d *DialectPg) Marker(pos int) string {
 }
 
 func (d *DialectPg) SqlType(f interface{}, size int, autoIncr bool) string {
-	t := reflect.TypeOf(f)
-	switch t.Kind() {
-	case reflect.Bool:
+	switch f.(type) {
+	case bool:
 		return "boolean"
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32:
+	case int, int8, int16, int32, uint, uint8, uint16, uint32:
 		if autoIncr {
 			return "serial"
 		}
 		return "integer"
-	case reflect.Int64, reflect.Uint64:
+	case int64, uint64:
 		if autoIncr {
 			return "bigserial"
 		}
 		return "bigint"
-	case reflect.Float32, reflect.Float64:
+	case float32, float64:
 		return "double precision"
-	case reflect.Slice:
-		if t.Elem().Kind() == reflect.Uint8 {
-			return "bytea"
-		}
-	case reflect.String:
+	case []byte:
+		return "bytea"
+	case string:
 		return "text"
 	}
 	if size < 1 {
