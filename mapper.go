@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 )
 
@@ -33,7 +34,11 @@ type (
 		Name string
 		Type reflect.Type
 	}
-	Model map[string]interface{}
+	Model struct {
+		Pk     *Pk
+		Table  string
+		Fields map[string]interface{}
+	}
 )
 
 func New(database *sql.DB, dialect Dialect) *Hood {
@@ -69,10 +74,8 @@ func (hood *Hood) Where(query interface{}, args ...interface{}) *Hood {
 		hood.params = args
 	case int: // id provided
 		hood.where = fmt.Sprintf(
-			"%v%v%v = %v",
-			hood.Dialect.Quote(),
-			hood.Dialect.Pk(),
-			hood.Dialect.Quote(),
+			"%v = %v",
+			hood.Dialect.Quote(hood.Dialect.Pk()),
 			hood.nextMarker(),
 		)
 		hood.params = []interface{}{typedQuery}
@@ -137,9 +140,28 @@ func (hood *Hood) Save(model interface{}) (Id, error) {
 	return ids[0], err
 }
 
-func (hood *Hood) SaveAll(model []interface{}) ([]Id, error) {
-	// TODO: implement
-	return nil, nil
+func (hood *Hood) SaveAll(models []interface{}) ([]Id, error) {
+	ids := make([]Id, 0, len(models))
+	for _, v := range models {
+		var (
+			id  Id
+			err error
+		)
+		model, err := modelMap(v)
+		if err != nil {
+			return nil, err
+		}
+		if model.Pk != nil {
+			id, err = hood.update(model)
+		} else {
+			id, err = hood.insert(model)
+		}
+		if err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, nil
 }
 
 func (hood *Hood) Destroy(model interface{}) (Id, error) {
@@ -155,6 +177,59 @@ func (hood *Hood) DestroyAll(model []interface{}) ([]Id, error) {
 	return nil, nil
 }
 
+// Private /////////////////////////////////////////////////////////////////////
+
+func (hood *Hood) insert(model *Model) (Id, error) {
+	return 0, nil
+}
+
+func (hood *Hood) insertSql(model *Model) string {
+	defer hood.reset()
+	keys, _, markers := hood.sortedKeysValuesAndMarkersForModel(model, true)
+	stmt := fmt.Sprintf(
+		"INSERT INTO %v (%v) VALUES (%v)",
+		hood.Dialect.Quote(model.Table),
+		hood.Dialect.Quote(strings.Join(keys, hood.Dialect.Quote(", "))),
+		strings.Join(markers, ", "),
+	)
+	return stmt
+}
+
+func (hood *Hood) update(model *Model) (Id, error) {
+	return 0, nil
+}
+
+func (hood *Hood) reset() {
+	hood.where = ""
+	hood.params = []interface{}{}
+	hood.paramNum = 0
+	hood.limit = 0
+	hood.offset = 0
+	hood.orderBy = ""
+	hood.selectCols = ""
+	hood.joins = []string{}
+	hood.groupBy = ""
+	hood.having = ""
+}
+
+func (hood *Hood) sortedKeysValuesAndMarkersForModel(model *Model, excludePrimary bool) ([]string, []interface{}, []string) {
+	max := len(model.Fields)
+	keys := make([]string, 0, max)
+	values := make([]interface{}, 0, max)
+	markers := make([]string, 0, max)
+	for k, _ := range model.Fields {
+		if !(excludePrimary && k == model.Pk.Name) {
+			keys = append(keys, k)
+			markers = append(markers, hood.nextMarker())
+		}
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		values = append(values, model.Fields[k])
+	}
+	return keys, values, markers
+}
+
 func (hood *Hood) substituteMarkers(query string) string {
 	// in order to use a uniform marker syntax, substitute
 	// all question marks with the dialect marker
@@ -167,6 +242,7 @@ func (hood *Hood) substituteMarkers(query string) string {
 }
 
 func (hood *Hood) nextMarker() string {
+	marker := hood.Dialect.Marker(hood.paramNum)
 	hood.paramNum++
-	return hood.Dialect.Marker(hood.paramNum)
+	return marker
 }
