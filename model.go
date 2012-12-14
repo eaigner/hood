@@ -27,7 +27,7 @@ func interfaceToModel(f interface{}) (*Model, error) {
 			Pk:      isPk,
 			Name:    snakeCase(field.Name),
 			Value:   v.FieldByName(field.Name).Interface(),
-			Null:    (field.Tag.Get("null") == "true"),
+			NotNull: (field.Tag.Get("notnull") == "true"),
 			Auto:    (field.Tag.Get("auto") == "true"),
 			Default: field.Tag.Get("default"),
 		}

@@ -6,7 +6,14 @@ import (
 	"testing"
 )
 
-func TestPgInsert(t *testing.T) {
+type PgDialectModel struct {
+	Prim   int    `pk:"true"auto:"true"`
+	First  string `null:"true"`
+	Last   string `default:"'defaultValue'"`
+	Amount int
+}
+
+func setupDb(t *testing.T) (*Hood, string) {
 	db, err := sql.Open("postgres", "user=hood sslmode=disable")
 	if err != nil {
 		t.Fatal("could not open db", err)
@@ -18,7 +25,15 @@ func TestPgInsert(t *testing.T) {
 	if err != nil {
 		t.Fatal("could not create db", err)
 	}
+
+	return hood, dbName
+}
+
+func TestPgInsert(t *testing.T) {
+	hood, dbName := setupDb(t)
 	defer hood.DropDatabase(dbName)
+
+	// TODO: complete
 }
 
 func TestSqlType(t *testing.T) {
@@ -56,5 +71,33 @@ func TestSqlType(t *testing.T) {
 	}
 	if x := d.SqlType([]bool{}, 128, true); x != "varchar(128)" {
 		t.Fatal("wrong type", x)
+	}
+}
+
+func TestCreateTableSql(t *testing.T) {
+	hood, dbName := setupDb(t)
+	defer hood.DropDatabase(dbName)
+
+	model, _ := interfaceToModel(&PgDialectModel{})
+	query := hood.createTableSql(model)
+	if query != `CREATE TABLE pg_dialect_model ( prim serial PRIMARY KEY, first text, last text DEFAULT 'defaultValue', amount integer )` {
+		t.Fatal("wrong query", query)
+	}
+}
+
+func TestCreateTable(t *testing.T) {
+	hood, dbName := setupDb(t)
+	defer hood.DropDatabase(dbName)
+
+	table := &PgDialectModel{}
+
+	hood.DropTable(table)
+	err := hood.CreateTable(table)
+	if err != nil {
+		t.Fatal("error not nil", err)
+	}
+	err = hood.DropTable(table)
+	if err != nil {
+		t.Fatal("error not nil", err)
 	}
 }

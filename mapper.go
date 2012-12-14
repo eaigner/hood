@@ -38,7 +38,7 @@ type (
 		Pk      bool
 		Name    string      // column name
 		Value   interface{} // value
-		Null    bool        // null allowed
+		NotNull bool        // null allowed
 		Auto    bool        // auto increment
 		Default string      // default value
 	}
@@ -278,12 +278,26 @@ func (hood *Hood) DropDatabase(db string) error {
 }
 
 func (hood *Hood) CreateTable(table interface{}) error {
-	// TODO: implement
+	model, err := interfaceToModel(table)
+	if err != nil {
+		return err
+	}
+	_, err = hood.Exec(hood.createTableSql(model))
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
 func (hood *Hood) DropTable(table interface{}) error {
-	// TODO: implement
+	model, err := interfaceToModel(table)
+	if err != nil {
+		return err
+	}
+	_, err = hood.Exec(fmt.Sprintf("DROP TABLE %v", model.Table))
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -361,6 +375,57 @@ func (hood *Hood) querySql() string {
 		query = append(query, x)
 	}
 	return strings.Join(query, " ")
+}
+
+func (hood *Hood) createTableSql(model *Model) string {
+	a := []string{"CREATE TABLE ", model.Table, " ( "}
+	for i, field := range model.Fields {
+		b := []string{field.Name, hood.Dialect.SqlType(field.Value, 0, field.Auto)}
+		if incStmt := hood.Dialect.StmtAutoIncrement(); field.Auto && incStmt != "" {
+			b = append(b, incStmt)
+		}
+		if field.NotNull {
+			b = append(b, hood.Dialect.StmtNotNull())
+		}
+		if field.Default != "" {
+			b = append(b, hood.Dialect.StmtDefault(field.Default))
+		}
+		if field.Pk {
+			b = append(b, hood.Dialect.StmtPrimaryKey())
+		}
+		a = append(a, strings.Join(b, " "))
+		if i < len(model.Fields)-1 {
+			a = append(a, ", ")
+		}
+	}
+	a = append(a, " )")
+
+	return strings.Join(a, "")
+
+	// 	CREATE TABLE films (
+	//     code        char(5) CONSTRAINT firstkey PRIMARY KEY,
+	//     title       varchar(40) NOT NULL,
+	//     did         integer NOT NULL,
+	//     date_prod   date,
+	//     kind        varchar(10),
+	//     len         interval hour to minute
+	// );
+
+	// TODO: implement
+
+	// 	Model struct {
+	// 	Pk     *Field
+	// 	Table  string
+	// 	Fields []*Field
+	// }
+	// Field struct {
+	// 	Pk      bool
+	// 	Name    string      // column name
+	// 	Value   interface{} // value
+	// 	Null    bool        // null allowed
+	// 	Auto    bool        // auto increment
+	// 	Default string      // default value
+	// }
 }
 
 func (hood *Hood) keysValuesAndMarkersForModel(model *Model, excludePrimary bool) ([]string, []interface{}, []string) {

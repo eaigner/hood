@@ -54,3 +54,20 @@ func (d *DialectPg) SqlType(f interface{}, size int, autoIncr bool) string {
 	}
 	return fmt.Sprintf("varchar(%d)", size)
 }
+
+func (d *DialectPg) StmtNotNull() string {
+	return "NOT NULL"
+}
+
+func (d *DialectPg) StmtDefault(s string) string {
+	return fmt.Sprintf("DEFAULT %v", s)
+}
+
+func (d *DialectPg) StmtPrimaryKey() string {
+	return "PRIMARY KEY"
+}
+
+func (d *DialectPg) StmtAutoIncrement() string {
+	// postgres has not auto increment statement, uses SERIAL type
+	return ""
+}

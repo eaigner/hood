@@ -7,4 +7,8 @@ type Dialect interface {
 	MarkerStartPos() int                                   // index for first marker
 	Marker(pos int) string                                 // marker for a prepared statement, e.g. $1 or ?
 	SqlType(f interface{}, size int, autoIncr bool) string // maps a go type to a db column type
+	StmtNotNull() string
+	StmtDefault(s string) string
+	StmtPrimaryKey() string
+	StmtAutoIncrement() string
 }

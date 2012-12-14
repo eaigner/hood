@@ -6,7 +6,7 @@ import (
 
 type SampleModel struct {
 	PrimKey   int    `pk:"true"auto:"true"`
-	FirstName string `null:"true"`
+	FirstName string `notnull:"true"`
 	LastName  string `default:"last"`
 	Address   string
 }
@@ -52,7 +52,7 @@ func TestInterfaceToModel(t *testing.T) {
 	if x := f.Value; x != "Erik" {
 		t.Fatal("wrong first name", x)
 	}
-	if f.Null != true {
+	if f.NotNull != true {
 		t.Fatal("should have null tag set")
 	}
 	f = m.Fields[2]
