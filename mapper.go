@@ -119,7 +119,7 @@ func (hood *Hood) Where(query interface{}, args ...interface{}) *Hood {
 		panic("WHERE cannot be empty")
 	}
 	hood.where = fmt.Sprintf("WHERE %v", where)
-	hood.params = args
+	hood.params = append(hood.params, args)
 
 	return hood
 }
