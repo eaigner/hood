@@ -35,3 +35,12 @@ func TestUpdateSQL(t *testing.T) {
 		t.Fatalf("invalid sql: '%v'", sql)
 	}
 }
+
+func TestDeleteSQL(t *testing.T) {
+	hood := New(nil, &DialectPg{})
+	model, _ := modelMap(data1)
+	sql := hood.deleteSql(model)
+	if sql != `DELETE FROM "sample_model" WHERE "prim" = $0` {
+		t.Fatalf("invalid sql: '%v'", sql)
+	}
+}

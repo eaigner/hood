@@ -213,6 +213,17 @@ func (hood *Hood) updateSql(model *Model) string {
 	return stmt
 }
 
+func (hood *Hood) deleteSql(model *Model) string {
+	defer hood.reset()
+	stmt := fmt.Sprintf(
+		"DELETE FROM %v WHERE %v = %v",
+		hood.Dialect.Quote(model.Table),
+		hood.Dialect.Quote(model.Pk.Name),
+		hood.nextMarker(),
+	)
+	return stmt
+}
+
 func (hood *Hood) reset() {
 	hood.where = ""
 	hood.params = []interface{}{}
