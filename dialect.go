@@ -5,5 +5,5 @@ type Dialect interface {
 	Pk() string            // primary key
 	Quote(s string) string // quote string
 	MarkerStartPos() int   // index for first marker
-	Marker(pos int) string // marker for a prepared statement, e.g. $0 or ?
+	Marker(pos int) string // marker for a prepared statement, e.g. $1 or ?
 }
