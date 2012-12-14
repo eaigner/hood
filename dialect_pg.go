@@ -2,6 +2,7 @@ package hood
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 )
 
@@ -26,4 +27,33 @@ func (d *DialectPg) MarkerStartPos() int {
 
 func (d *DialectPg) Marker(pos int) string {
 	return fmt.Sprintf("$%d", pos)
+}
+
+func (d *DialectPg) SqlType(t reflect.Type, size int, autoIncr bool) string {
+	switch t.Kind() {
+	case reflect.Bool:
+		return "boolean"
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32:
+		if autoIncr {
+			return "serial"
+		}
+		return "integer"
+	case reflect.Int64, reflect.Uint64:
+		if autoIncr {
+			return "bigserial"
+		}
+		return "bigint"
+	case reflect.Float32, reflect.Float64:
+		return "double precision"
+	case reflect.Slice:
+		if t.Elem().Kind() == reflect.Uint8 {
+			return "bytea"
+		}
+	case reflect.String:
+		return "text"
+	}
+	if size < 1 {
+		size = 255
+	}
+	return fmt.Sprintf("varchar(%d)", size)
 }
