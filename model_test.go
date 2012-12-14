@@ -12,8 +12,8 @@ type SampleModel struct {
 	Address   string
 }
 
-func TestModelTableName(t *testing.T) {
-	name := modelTableName(&SampleModel{})
+func TestModelFieldOrTableName(t *testing.T) {
+	name := modelFieldOrTableName(&SampleModel{})
 	if name != "sample_model" {
 		t.Fatal("wrong table name", name)
 	}

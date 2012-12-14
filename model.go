@@ -5,8 +5,8 @@ import (
 	"reflect"
 )
 
-func modelTableName(model interface{}) string {
-	return snakeCase(reflect.TypeOf(model).Elem().Name())
+func modelFieldOrTableName(i interface{}) string {
+	return snakeCase(reflect.TypeOf(i).Elem().Name())
 }
 
 func modelMap(model interface{}) (Model, *Pk, error) {
