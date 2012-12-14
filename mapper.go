@@ -46,6 +46,7 @@ func New(database *sql.DB, dialect Dialect) *Hood {
 	hood := &Hood{
 		Db:      database,
 		Dialect: dialect,
+		Qo:      database,
 	}
 	hood.Reset()
 
@@ -195,7 +196,11 @@ func (hood *Hood) FindOne(out interface{}) error {
 
 func (hood *Hood) Exec(query string, args ...interface{}) (sql.Result, error) {
 	defer hood.Reset()
-	stmt, err := hood.Qo.Prepare(hood.substituteMarkers(query))
+	query = hood.substituteMarkers(query)
+	if hood.Log {
+		fmt.Println(query)
+	}
+	stmt, err := hood.Qo.Prepare(query)
 	if err != nil {
 		return nil, err
 	}
@@ -250,6 +255,34 @@ func (hood *Hood) Destroy(model interface{}) (Id, error) {
 func (hood *Hood) DestroyAll(model []interface{}) ([]Id, error) {
 	// TODO: implement
 	return nil, nil
+}
+
+func (hood *Hood) CreateDatabase(db string) error {
+	defer hood.Reset()
+	_, err := hood.Exec(fmt.Sprintf("CREATE DATABASE %v", db))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (hood *Hood) DropDatabase(db string) error {
+	defer hood.Reset()
+	_, err := hood.Exec(fmt.Sprintf("DROP DATABASE %v", db))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (hood *Hood) CreateTable(table interface{}) error {
+	// TODO: implement
+	return nil
+}
+
+func (hood *Hood) DropTable(table interface{}) error {
+	// TODO: implement
+	return nil
 }
 
 // Private /////////////////////////////////////////////////////////////////////
