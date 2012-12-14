@@ -26,6 +26,10 @@ func TestSqlType(t *testing.T) {
 	if x := d.SqlType(true, 0, false); x != "boolean" {
 		t.Fatal("wrong type", x)
 	}
+	var indirect interface{} = true
+	if x := d.SqlType(indirect, 0, false); x != "boolean" {
+		t.Fatal("wrong type", x)
+	}
 	if x := d.SqlType(uint32(2), 0, false); x != "integer" {
 		t.Fatal("wrong type", x)
 	}
