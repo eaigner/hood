@@ -9,7 +9,7 @@ import (
 type Hood struct {
 	Db       *sql.DB
 	Dialect  Dialect
-	Qo       Qo // the query object
+	qo       qo // the query object
 	Log      bool
 	selector string
 	where    string
@@ -23,7 +23,7 @@ type Hood struct {
 	having   string
 }
 
-type Qo interface {
+type qo interface {
 	Prepare(query string) (*sql.Stmt, error)
 }
 
@@ -48,7 +48,7 @@ func New(database *sql.DB, dialect Dialect) *Hood {
 	hood := &Hood{
 		Db:      database,
 		Dialect: dialect,
-		Qo:      database,
+		qo:      database,
 	}
 	hood.Reset()
 
@@ -75,13 +75,13 @@ func (hood *Hood) Begin() *Hood {
 	if err != nil {
 		panic(err)
 	}
-	c.Qo = q
+	c.qo = q
 
 	return c
 }
 
 func (hood *Hood) Commit() error {
-	if v, ok := hood.Qo.(*sql.Tx); ok {
+	if v, ok := hood.qo.(*sql.Tx); ok {
 		return v.Commit()
 	}
 	return nil
@@ -163,7 +163,7 @@ func (hood *Hood) Find(out []interface{}) error {
 	if hood.Log {
 		fmt.Println(query)
 	}
-	stmt, err := hood.Qo.Prepare(query)
+	stmt, err := hood.qo.Prepare(query)
 	if err != nil {
 		return err
 	}
@@ -202,7 +202,7 @@ func (hood *Hood) Exec(query string, args ...interface{}) (sql.Result, error) {
 	if hood.Log {
 		fmt.Println(query)
 	}
-	stmt, err := hood.Qo.Prepare(query)
+	stmt, err := hood.qo.Prepare(query)
 	if err != nil {
 		return nil, err
 	}
