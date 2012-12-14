@@ -3,8 +3,6 @@ package hood
 import (
 	"database/sql"
 	"fmt"
-	"reflect"
-	"sort"
 	"strings"
 )
 
@@ -30,15 +28,19 @@ type Qo interface {
 }
 
 type (
-	Id int64
-	Pk struct {
-		Name string
-		Type reflect.Type
-	}
+	Id    int64
 	Model struct {
-		Pk     *Pk
+		Pk     *Field
 		Table  string
-		Fields map[string]interface{}
+		Fields []*Field
+	}
+	Field struct {
+		Pk      bool
+		Name    string      // column name
+		Value   interface{} // value
+		Null    bool        // null allowed
+		Auto    bool        // auto increment
+		Default string      // default value
 	}
 )
 
@@ -293,7 +295,7 @@ func (hood *Hood) insert(model *Model) (Id, error) {
 
 func (hood *Hood) insertSql(model *Model) string {
 	defer hood.Reset()
-	keys, _, markers := hood.sortedKeysValuesAndMarkersForModel(model, true)
+	keys, _, markers := hood.keysValuesAndMarkersForModel(model, true)
 	stmt := fmt.Sprintf(
 		"INSERT INTO %v (%v) VALUES (%v)",
 		model.Table,
@@ -309,7 +311,7 @@ func (hood *Hood) update(model *Model) (Id, error) {
 
 func (hood *Hood) updateSql(model *Model) string {
 	defer hood.Reset()
-	keys, _, markers := hood.sortedKeysValuesAndMarkersForModel(model, true)
+	keys, _, markers := hood.keysValuesAndMarkersForModel(model, true)
 	stmt := fmt.Sprintf(
 		"UPDATE %v (%v) VALUES (%v) WHERE %v = %v",
 		model.Table,
@@ -361,20 +363,17 @@ func (hood *Hood) querySql() string {
 	return strings.Join(query, " ")
 }
 
-func (hood *Hood) sortedKeysValuesAndMarkersForModel(model *Model, excludePrimary bool) ([]string, []interface{}, []string) {
+func (hood *Hood) keysValuesAndMarkersForModel(model *Model, excludePrimary bool) ([]string, []interface{}, []string) {
 	max := len(model.Fields)
 	keys := make([]string, 0, max)
 	values := make([]interface{}, 0, max)
 	markers := make([]string, 0, max)
-	for k, _ := range model.Fields {
-		if !(excludePrimary && k == model.Pk.Name) {
-			keys = append(keys, k)
+	for _, field := range model.Fields {
+		if !(excludePrimary && field.Name == model.Pk.Name) {
+			keys = append(keys, field.Name)
 			markers = append(markers, hood.nextMarker())
 		}
-	}
-	sort.Strings(keys)
-	for _, k := range keys {
-		values = append(values, model.Fields[k])
+		values = append(values, field.Name)
 	}
 	return keys, values, markers
 }

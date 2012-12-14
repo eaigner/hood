@@ -1,14 +1,13 @@
 package hood
 
 import (
-	"reflect"
 	"testing"
 )
 
 type SampleModel struct {
-	PrimKey   int `PK`
-	FirstName string
-	LastName  string
+	PrimKey   int    `pk:"true"auto:"true"`
+	FirstName string `null:"true"`
+	LastName  string `default:"last"`
 	Address   string
 }
 
@@ -36,22 +35,34 @@ func TestInterfaceToModel(t *testing.T) {
 	if m.Pk.Name != "prim_key" {
 		t.Fatal("wrong pk name", m.Pk.Name)
 	}
-	if m.Pk.Type.Kind() != reflect.Int {
-		t.Fatal("wrong pk type", m.Pk.Type.String())
+	if m.Pk.Auto != true {
+		t.Fatal("pk should have auto flag set")
 	}
 	if x := len(m.Fields); x != 4 {
 		t.Fatal("should have 4 fields, has", x)
 	}
-	if x := m.Fields["prim_key"]; x != 6 {
+	f := m.Fields[0]
+	if x := f.Value; x != 6 {
 		t.Fatal("wrong primary key", x)
 	}
-	if x := m.Fields["first_name"]; x != "Erik" {
+	if f.Auto != true {
+		t.Fatal("should be autoincrement")
+	}
+	f = m.Fields[1]
+	if x := f.Value; x != "Erik" {
 		t.Fatal("wrong first name", x)
 	}
-	if x := m.Fields["last_name"]; x != "Aigner" {
+	if f.Null != true {
+		t.Fatal("should have null tag set")
+	}
+	f = m.Fields[2]
+	if x := f.Value; x != "Aigner" {
 		t.Fatal("wrong last name", x)
 	}
-	if x := m.Fields["address"]; x != "Nowhere 7" {
+	if f.Default != "last" {
+		t.Fatal("should have default set")
+	}
+	if x := m.Fields[3].Value; x != "Nowhere 7" {
 		t.Fatal("wrong address", x)
 	}
 }

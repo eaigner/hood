@@ -18,18 +18,23 @@ func interfaceToModel(f interface{}) (*Model, error) {
 	m := &Model{
 		Pk:     nil,
 		Table:  snakeCaseName(f),
-		Fields: make(map[string]interface{}),
+		Fields: []*Field{},
 	}
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
-		if field.Tag == "PK" {
-			m.Pk = &Pk{
-				Name: snakeCase(string(field.Name)),
-				Type: field.Type,
-			}
+		isPk := field.Tag.Get("pk") == "true"
+		fd := &Field{
+			Pk:      isPk,
+			Name:    snakeCase(field.Name),
+			Value:   v.FieldByName(field.Name).Interface(),
+			Null:    (field.Tag.Get("null") == "true"),
+			Auto:    (field.Tag.Get("auto") == "true"),
+			Default: field.Tag.Get("default"),
 		}
-		key := snakeCase(field.Name)
-		m.Fields[key] = v.FieldByName(field.Name).Interface()
+		if isPk {
+			m.Pk = fd
+		}
+		m.Fields = append(m.Fields, fd)
 	}
 	return m, nil
 }
