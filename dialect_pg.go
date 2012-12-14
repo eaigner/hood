@@ -20,6 +20,10 @@ func (d *DialectPg) Quote(s string) string {
 	return strings.Join([]string{q, s, q}, "")
 }
 
+func (d *DialectPg) MarkerStartPos() int {
+	return 1
+}
+
 func (d *DialectPg) Marker(pos int) string {
 	return fmt.Sprintf("$%d", pos)
 }

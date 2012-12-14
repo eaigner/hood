@@ -42,10 +42,26 @@ type (
 )
 
 func New(database *sql.DB, dialect Dialect) *Hood {
-	return &Hood{
+	hood := &Hood{
 		Db:      database,
 		Dialect: dialect,
 	}
+	hood.Reset()
+
+	return hood
+}
+
+func (hood *Hood) Reset() {
+	hood.selector = ""
+	hood.where = ""
+	hood.params = []interface{}{}
+	hood.paramNum = hood.Dialect.MarkerStartPos()
+	hood.limit = ""
+	hood.offset = ""
+	hood.orderBy = ""
+	hood.joins = []string{}
+	hood.groupBy = ""
+	hood.having = ""
 }
 
 func (hood *Hood) Begin() *Hood {
@@ -91,19 +107,19 @@ func (hood *Hood) Where(query interface{}, args ...interface{}) *Hood {
 	switch typedQuery := query.(type) {
 	case string: // custom query
 		where = hood.substituteMarkers(typedQuery)
-		hood.params = args
 	case int: // id provided
 		where = fmt.Sprintf(
 			"%v = %v",
-			hood.Dialect.Quote(hood.Dialect.Pk()),
+			hood.Dialect.Pk(),
 			hood.nextMarker(),
 		)
-		hood.params = []interface{}{typedQuery}
+		args = []interface{}{typedQuery}
 	}
 	if where == "" {
 		panic("WHERE cannot be empty")
 	}
 	hood.where = fmt.Sprintf("WHERE %v", where)
+	hood.params = args
 
 	return hood
 }
@@ -204,7 +220,7 @@ func (hood *Hood) insert(model *Model) (Id, error) {
 }
 
 func (hood *Hood) insertSql(model *Model) string {
-	defer hood.reset()
+	defer hood.Reset()
 	keys, _, markers := hood.sortedKeysValuesAndMarkersForModel(model, true)
 	stmt := fmt.Sprintf(
 		"INSERT INTO %v (%v) VALUES (%v)",
@@ -220,7 +236,7 @@ func (hood *Hood) update(model *Model) (Id, error) {
 }
 
 func (hood *Hood) updateSql(model *Model) string {
-	defer hood.reset()
+	defer hood.Reset()
 	keys, _, markers := hood.sortedKeysValuesAndMarkersForModel(model, true)
 	stmt := fmt.Sprintf(
 		"UPDATE %v (%v) VALUES (%v) WHERE %v = %v",
@@ -234,7 +250,7 @@ func (hood *Hood) updateSql(model *Model) string {
 }
 
 func (hood *Hood) deleteSql(model *Model) string {
-	defer hood.reset()
+	defer hood.Reset()
 	stmt := fmt.Sprintf(
 		"DELETE FROM %v WHERE %v = %v",
 		hood.Dialect.Quote(model.Table),
@@ -273,19 +289,6 @@ func (hood *Hood) querySql() string {
 	return strings.Join(query, " ")
 }
 
-func (hood *Hood) reset() {
-	hood.selector = ""
-	hood.where = ""
-	hood.params = []interface{}{}
-	hood.paramNum = 0
-	hood.limit = ""
-	hood.offset = ""
-	hood.orderBy = ""
-	hood.joins = []string{}
-	hood.groupBy = ""
-	hood.having = ""
-}
-
 func (hood *Hood) sortedKeysValuesAndMarkersForModel(model *Model, excludePrimary bool) ([]string, []interface{}, []string) {
 	max := len(model.Fields)
 	keys := make([]string, 0, max)
@@ -307,10 +310,13 @@ func (hood *Hood) sortedKeysValuesAndMarkersForModel(model *Model, excludePrimar
 func (hood *Hood) substituteMarkers(query string) string {
 	// in order to use a uniform marker syntax, substitute
 	// all question marks with the dialect marker
-	chunks := []string{}
-	for _, v := range strings.Split(query, "?") {
-		hood.paramNum++
-		chunks = append(chunks, v, hood.nextMarker())
+	chunks := make([]string, 0, len(query)*2)
+	for _, v := range query {
+		if v == '?' {
+			chunks = append(chunks, hood.nextMarker())
+		} else {
+			chunks = append(chunks, string(v))
+		}
 	}
 	return strings.Join(chunks, "")
 }
