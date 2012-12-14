@@ -12,6 +12,7 @@ type Hood struct {
 	Db       *sql.DB
 	Dialect  Dialect
 	Qo       Qo // the query object
+	Log      bool
 	selector string
 	where    string
 	params   []interface{}
@@ -154,12 +155,40 @@ func (hood *Hood) Having(condition string) *Hood {
 	return hood
 }
 
-func (hood *Hood) Find(out interface{}) error {
+func (hood *Hood) Find(out []interface{}) error {
+	query := hood.querySql()
+	if hood.Log {
+		fmt.Println(query)
+	}
+	stmt, err := hood.Qo.Prepare(query)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+	rows, err := stmt.Query(hood.params)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	cols, err := rows.Columns()
+	if err != nil {
+		return err
+	}
+	for rows.Next() {
+		err = hood.scanRowIntoStruct(rows, cols, out)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (hood *Hood) scanRowIntoStruct(rows *sql.Rows, cols []string, out []interface{}) error {
 	// TODO: implement
 	return nil
 }
 
-func (hood *Hood) FindAll(out []interface{}) error {
+func (hood *Hood) FindOne(out interface{}) error {
 	// TODO: implement
 	return nil
 }
