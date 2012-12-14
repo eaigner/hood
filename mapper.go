@@ -401,31 +401,6 @@ func (hood *Hood) createTableSql(model *Model) string {
 	a = append(a, " )")
 
 	return strings.Join(a, "")
-
-	// 	CREATE TABLE films (
-	//     code        char(5) CONSTRAINT firstkey PRIMARY KEY,
-	//     title       varchar(40) NOT NULL,
-	//     did         integer NOT NULL,
-	//     date_prod   date,
-	//     kind        varchar(10),
-	//     len         interval hour to minute
-	// );
-
-	// TODO: implement
-
-	// 	Model struct {
-	// 	Pk     *Field
-	// 	Table  string
-	// 	Fields []*Field
-	// }
-	// Field struct {
-	// 	Pk      bool
-	// 	Name    string      // column name
-	// 	Value   interface{} // value
-	// 	Null    bool        // null allowed
-	// 	Auto    bool        // auto increment
-	// 	Default string      // default value
-	// }
 }
 
 func (hood *Hood) keysValuesAndMarkersForModel(model *Model, excludePrimary bool) ([]string, []interface{}, []string) {
