@@ -246,11 +246,6 @@ func (hood *Hood) Find(out interface{}) error {
 	return nil
 }
 
-func (hood *Hood) FindOne(out interface{}) error {
-	// TODO: implement
-	return nil
-}
-
 func (hood *Hood) Exec(query string, args ...interface{}) (sql.Result, error) {
 	defer hood.Reset()
 	query = hood.substituteMarkers(query)
