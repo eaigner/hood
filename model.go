@@ -36,7 +36,7 @@ func interfaceToModel(f interface{}, dialect Dialect) (*Model, error) {
 		}
 		m.Fields = append(m.Fields, fd)
 	}
-	// if a primary key wasn't specified, add implicitly
+	// TODO: remove this! no implicit keys!
 	if m.Pk == nil {
 		m.Pk = &Field{
 			Pk:    true,
