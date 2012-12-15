@@ -11,8 +11,8 @@ import (
 type Hood struct {
 	Db       *sql.DB
 	Dialect  Dialect
-	qo       qo // the query object
 	Log      bool
+	qo       qo // the query object
 	selector string
 	where    string
 	args     []interface{}
