@@ -18,11 +18,10 @@ type PgDialectModel struct {
 }
 
 func setupDb(t *testing.T) *Hood {
-	db, err := sql.Open("postgres", "user=hood dbname=hood_test sslmode=disable")
+	hood, err := Open("postgres", "user=hood dbname=hood_test sslmode=disable")
 	if err != nil {
 		t.Fatal("could not open db", err)
 	}
-	hood := New(db, &Postgres{})
 	hood.Log = true
 
 	return hood
@@ -65,7 +64,7 @@ func TestTransaction(t *testing.T) {
 		t.Fatal("error not nil", err)
 	}
 
-	var out []pgTxModel
+	var out []*pgTxModel
 	err = hood.Find(&out)
 	if err != nil {
 		t.Fatal("error not nil", err)
@@ -209,7 +208,7 @@ func TestPgSaveAllDeleteAll(t *testing.T) {
 
 func TestPgFind(t *testing.T) {
 	if disableLiveTests {
-		// return
+		return
 	}
 	hood := setupDb(t)
 

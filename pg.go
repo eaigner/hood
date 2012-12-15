@@ -2,13 +2,14 @@ package hood
 
 import (
 	"fmt"
+	_ "github.com/bmizerany/pq"
 )
 
-type Postgres struct{}
-
-func (d *Postgres) Name() string {
-	return "postgres"
+func init() {
+	RegisterDialect("postgres", &Postgres{})
 }
+
+type Postgres struct{}
 
 func (d *Postgres) Pk() string {
 	return "id"

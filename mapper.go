@@ -43,6 +43,8 @@ type (
 	}
 )
 
+var registeredDialects map[string]Dialect = make(map[string]Dialect)
+
 func (f *Field) IsPrimaryKey() bool {
 	_, ok := f.Value.(Id)
 	return ok
@@ -57,6 +59,22 @@ func New(database *sql.DB, dialect Dialect) *Hood {
 	hood.Reset()
 
 	return hood
+}
+
+func Open(driverName, dataSourceName string) (*Hood, error) {
+	database, err := sql.Open(driverName, dataSourceName)
+	if err != nil {
+		return nil, err
+	}
+	dialect := registeredDialects[driverName]
+	if dialect == nil {
+		return nil, errors.New("no dialect registered for driver name")
+	}
+	return New(database, dialect), nil
+}
+
+func RegisterDialect(name string, dialect Dialect) {
+	registeredDialects[name] = dialect
 }
 
 func (hood *Hood) Reset() {
