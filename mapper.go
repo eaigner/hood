@@ -219,13 +219,21 @@ func (hood *Hood) Find(out interface{}) error {
 				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 					field.SetInt(value.Elem().Int())
 				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-					field.SetUint(value.Elem().Uint())
+					// reading uint from int value causes panic
+					switch value.Elem().Kind() {
+					case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+						field.SetUint(uint64(value.Elem().Int()))
+					default:
+						field.SetUint(value.Elem().Uint())
+					}
 				case reflect.Float32, reflect.Float64:
 					field.SetFloat(value.Elem().Float())
 				case reflect.String:
 					field.SetString(string(value.Elem().Bytes()))
 				case reflect.Slice:
-					field.Set(value.Elem())
+					if reflect.TypeOf(value.Interface()).Elem().Kind() == reflect.Uint8 {
+						field.SetBytes(value.Elem().Bytes())
+					}
 				}
 			}
 		}

@@ -80,14 +80,37 @@ func TestPgFind(t *testing.T) {
 	hood := setupDb(t)
 
 	type pgFindModel struct {
-		First  string
-		Last   string
-		Amount int
+		Id int `pk:"true"auto:"true"`
+		A  string
+		B  int
+		C  int8
+		D  int16
+		E  int32
+		F  int64
+		G  uint
+		H  uint8
+		I  uint16
+		J  uint32
+		K  uint64
+		L  float32
+		M  float64
+		N  []byte
 	}
 	model1 := &pgFindModel{
-		"erik",
-		"aigner",
-		5,
+		A: "string!",
+		B: -1,
+		C: -2,
+		D: -3,
+		E: -4,
+		F: -5,
+		G: 6,
+		H: 7,
+		I: 8,
+		J: 9,
+		K: 10,
+		L: 11.5,
+		M: 12.6,
+		N: []byte("bytes!"),
 	}
 
 	hood.DropTable(model1)
@@ -98,7 +121,7 @@ func TestPgFind(t *testing.T) {
 	}
 
 	var out []pgFindModel
-	err = hood.Where("first = ? AND amount = ?", "erik", 5).Find(&out)
+	err = hood.Where("A = ? AND J = ?", "string!", 9).Find(&out)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -114,7 +137,7 @@ func TestPgFind(t *testing.T) {
 		t.Fatal("wrong id", id)
 	}
 
-	err = hood.Where("first = ? AND amount = ?", "erik", 5).Find(&out)
+	err = hood.Where("A = ? AND J = ?", "string!", 9).Find(&out)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -125,14 +148,47 @@ func TestPgFind(t *testing.T) {
 		t.Fatal("invalid output length", x)
 	}
 	for _, v := range out {
-		if x := v.Amount; x != 5 {
-			t.Fatal("invalid amount", x)
+		if x := v.A; x != "string!" {
+			t.Fatal("invalid value", x)
 		}
-		if x := v.First; x != "erik" {
-			t.Fatal("invalid first", x)
+		if x := v.B; x != -1 {
+			t.Fatal("invalid value", x)
 		}
-		if x := v.Last; x != "aigner" {
-			t.Fatal("invalid last", x)
+		if x := v.C; x != -2 {
+			t.Fatal("invalid value", x)
+		}
+		if x := v.D; x != -3 {
+			t.Fatal("invalid value", x)
+		}
+		if x := v.E; x != -4 {
+			t.Fatal("invalid value", x)
+		}
+		if x := v.F; x != -5 {
+			t.Fatal("invalid value", x)
+		}
+		if x := v.G; x != 6 {
+			t.Fatal("invalid value", x)
+		}
+		if x := v.H; x != 7 {
+			t.Fatal("invalid value", x)
+		}
+		if x := v.I; x != 8 {
+			t.Fatal("invalid value", x)
+		}
+		if x := v.J; x != 9 {
+			t.Fatal("invalid value", x)
+		}
+		if x := v.K; x != 10 {
+			t.Fatal("invalid value", x)
+		}
+		if x := v.L; x != 11.5 {
+			t.Fatal("invalid value", x)
+		}
+		if x := v.M; x != 12.6 {
+			t.Fatal("invalid value", x)
+		}
+		if x := v.N; string(x) != "bytes!" {
+			t.Fatal("invalid value", x)
 		}
 	}
 }
