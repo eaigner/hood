@@ -8,24 +8,23 @@ import (
 	"strings"
 )
 
-type Hood struct {
-	Db       *sql.DB
-	Dialect  Dialect
-	Log      bool
-	qo       qo // the query object
-	selector string
-	where    string
-	args     []interface{}
-	argCount int
-	limit    string
-	offset   string
-	orderBy  string
-	joins    []string
-	groupBy  string
-	having   string
-}
-
 type (
+	Hood struct {
+		Db       *sql.DB
+		Dialect  Dialect
+		Log      bool
+		qo       qo // the query object
+		selector string
+		where    string
+		args     []interface{}
+		argCount int
+		limit    string
+		offset   string
+		orderBy  string
+		joins    []string
+		groupBy  string
+		having   string
+	}
 	Id    int64
 	Model struct {
 		Pk     *Field
