@@ -25,11 +25,6 @@ type Hood struct {
 	having   string
 }
 
-type qo interface {
-	Prepare(query string) (*sql.Stmt, error)
-	QueryRow(query string, args ...interface{}) *sql.Row
-}
-
 type (
 	Id    int64
 	Model struct {
@@ -37,14 +32,17 @@ type (
 		Table  string
 		Fields []*Field
 	}
+	Field struct {
+		Name    string      // column name
+		Value   interface{} // value
+		NotNull bool        // null allowed
+		Default string      // default value
+	}
+	qo interface {
+		Prepare(query string) (*sql.Stmt, error)
+		QueryRow(query string, args ...interface{}) *sql.Row
+	}
 )
-
-type Field struct {
-	Name    string      // column name
-	Value   interface{} // value
-	NotNull bool        // null allowed
-	Default string      // default value
-}
 
 func (f *Field) IsPrimaryKey() bool {
 	_, ok := f.Value.(Id)
