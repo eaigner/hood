@@ -175,7 +175,7 @@ func (hood *Hood) Find(out interface{}) error {
 	if sliceType.Kind() != reflect.Struct {
 		return invalidInputErr
 	}
-	// infer the select statement from the type if none set
+	// infer the select statement from the type if not set
 	if hood.selector == "" {
 		hood.Select("*", sliceValue.Interface())
 	}
