@@ -188,6 +188,9 @@ func (hood *Hood) Find(out interface{}) error {
 		return err
 	}
 	defer stmt.Close()
+	if hood.Log {
+		fmt.Println(hood.args)
+	}
 	rows, err := stmt.Query(hood.args...)
 	if err != nil {
 		return err

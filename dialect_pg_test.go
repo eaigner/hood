@@ -121,7 +121,7 @@ func TestPgFind(t *testing.T) {
 	}
 
 	var out []pgFindModel
-	err = hood.Where("A = ? AND J = ?", "string!", 9).Find(&out)
+	err = hood.Where("a = ? AND j = ?", "string!", 9).Find(&out)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -137,7 +137,7 @@ func TestPgFind(t *testing.T) {
 		t.Fatal("wrong id", id)
 	}
 
-	err = hood.Where("A = ? AND J = ?", "string!", 9).Find(&out)
+	err = hood.Where("a = ? AND j = ?", "string!", 9).Find(&out)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -193,6 +193,34 @@ func TestPgFind(t *testing.T) {
 		if x := v.N; string(x) != "bytes!" {
 			t.Fatal("invalid value", x)
 		}
+	}
+
+	model1.A = "row2"
+
+	id, err = hood.Save(model1)
+	if err != nil {
+		t.Fatal("error not nil", err)
+	}
+	if id != 2 {
+		t.Fatal("wrong id", id)
+	}
+
+	out = nil
+	err = hood.Where("a = ? AND j = ?", "string!", 9).Find(&out)
+	if err != nil {
+		t.Fatal("error not nil", err)
+	}
+	if x := len(out); x != 1 {
+		t.Fatal("invalid output length", x)
+	}
+
+	out = nil
+	err = hood.Where("j = ?", 9).Find(&out)
+	if err != nil {
+		t.Fatal("error not nil", err)
+	}
+	if x := len(out); x != 2 {
+		t.Fatal("invalid output length", x)
 	}
 }
 
