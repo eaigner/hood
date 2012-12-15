@@ -94,6 +94,13 @@ func (hood *Hood) Commit() error {
 	return nil
 }
 
+func (hood *Hood) Rollback() error {
+	if v, ok := hood.qo.(*sql.Tx); ok {
+		return v.Rollback()
+	}
+	return nil
+}
+
 func (hood *Hood) Select(selector string, table interface{}) *Hood {
 	if selector == "" {
 		selector = "*"
