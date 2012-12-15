@@ -442,23 +442,23 @@ func (hood *Hood) delete(model *Model) (Id, error) {
 	if model.Pk == nil {
 		panic("no primary key field")
 	}
-	query := hood.deleteSql(model)
-	_, err := hood.Exec(query)
+	query, values := hood.deleteSql(model)
+	_, err := hood.Exec(query, values...)
 	if err != nil {
 		return -1, err
 	}
 	return model.Pk.Value.(Id), nil
 }
 
-func (hood *Hood) deleteSql(model *Model) string {
+func (hood *Hood) deleteSql(model *Model) (string, []interface{}) {
 	defer hood.Reset()
 	stmt := fmt.Sprintf(
 		"DELETE FROM %v WHERE %v = %v",
 		model.Table,
 		model.Pk.Name,
-		fmt.Sprintf("%v", model.Pk.Value),
+		hood.nextMarker(),
 	)
-	return stmt
+	return stmt, []interface{}{model.Pk.Value}
 }
 
 func (hood *Hood) querySql() string {

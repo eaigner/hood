@@ -39,9 +39,9 @@ func TestUpdateSQL(t *testing.T) {
 func TestDeleteSQL(t *testing.T) {
 	hood := New(nil, &DialectPg{})
 	model, _ := interfaceToModel(data1, hood.Dialect)
-	sql := hood.deleteSql(model)
-	if sql != `DELETE FROM sample_model WHERE prim = 3` {
-		t.Fatalf("invalid sql: '%v'", sql)
+	query, _ := hood.deleteSql(model)
+	if query != `DELETE FROM sample_model WHERE prim = $1` {
+		t.Fatalf("invalid sql: '%v'", query)
 	}
 }
 
