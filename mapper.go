@@ -173,21 +173,25 @@ func (hood *Hood) Having(condition string, args ...interface{}) *Hood {
 
 func (hood *Hood) Find(out interface{}) error {
 	defer hood.Reset()
-	invalidInputErr := errors.New("expected input to be a struct slice pointer")
+	panicMsg := errors.New("expected input to be []*struct")
 	if x := reflect.TypeOf(out).Kind(); x != reflect.Ptr {
-		return invalidInputErr
+		panic(panicMsg)
 	}
-	sliceValue := reflect.Indirect(reflect.ValueOf(out))
-	if x := sliceValue.Kind(); x != reflect.Slice {
-		return invalidInputErr
+	slicePtrValue := reflect.Indirect(reflect.ValueOf(out))
+	if x := slicePtrValue.Kind(); x != reflect.Slice {
+		panic(panicMsg)
 	}
-	sliceType := sliceValue.Type().Elem()
-	if sliceType.Kind() != reflect.Struct {
-		return invalidInputErr
+	ptrType := slicePtrValue.Type().Elem()
+	if x := ptrType.Kind(); x != reflect.Ptr {
+		panic(panicMsg)
+	}
+	sliceType := ptrType.Elem()
+	if x := sliceType.Kind(); x != reflect.Struct {
+		panic(panicMsg)
 	}
 	// infer the select statement from the type if not set
 	if hood.selector == "" {
-		hood.Select("*", sliceValue.Interface())
+		hood.Select("*", out)
 	}
 	query := hood.querySql()
 	if hood.Log {
@@ -221,12 +225,12 @@ func (hood *Hood) Find(out interface{}) error {
 			return err
 		}
 		// create a new row and fill
-		rowType := reflect.New(sliceType)
+		rowValue := reflect.New(sliceType)
 		for i, v := range containers {
 			key := cols[i]
 			value := reflect.Indirect(reflect.ValueOf(v))
 			name := snakeToUpperCamelCase(key)
-			field := rowType.Elem().FieldByName(name)
+			field := rowValue.Elem().FieldByName(name)
 			if field.IsValid() {
 				switch field.Type().Kind() {
 				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -251,7 +255,7 @@ func (hood *Hood) Find(out interface{}) error {
 			}
 		}
 		// append to output
-		sliceValue.Set(reflect.Append(sliceValue, reflect.Indirect(reflect.ValueOf(rowType.Interface()))))
+		slicePtrValue.Set(reflect.Append(slicePtrValue, rowValue))
 	}
 	return nil
 }

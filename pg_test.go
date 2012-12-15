@@ -209,7 +209,7 @@ func TestPgSaveAllDeleteAll(t *testing.T) {
 
 func TestPgFind(t *testing.T) {
 	if disableLiveTests {
-		return
+		// return
 	}
 	hood := setupDb(t)
 
@@ -254,7 +254,7 @@ func TestPgFind(t *testing.T) {
 		t.Fatal("error not nil", err)
 	}
 
-	var out []pgFindModel
+	var out []*pgFindModel
 	err = hood.Where("a = ? AND j = ?", "string!", 9).Find(&out)
 	if err != nil {
 		t.Fatal("error not nil", err)
