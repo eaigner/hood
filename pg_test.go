@@ -93,23 +93,23 @@ func TestPgSaveAndDelete(t *testing.T) {
 	}
 }
 
-func TestPgSaveAll(t *testing.T) {
+func TestPgSaveAllDeleteAll(t *testing.T) {
 	if disableLiveTests {
 		return
 	}
-	type pgSaveAll struct {
+	type pgSaveAllDeleteAll struct {
 		Id Id
 		A  string
 	}
 
 	hood := setupDb(t)
-	hood.DropTable(&pgSaveAll{})
+	hood.DropTable(&pgSaveAllDeleteAll{})
 
-	models := []*pgSaveAll{
-		&pgSaveAll{A: "A"},
-		&pgSaveAll{A: "B"},
+	models := []*pgSaveAllDeleteAll{
+		&pgSaveAllDeleteAll{A: "A"},
+		&pgSaveAllDeleteAll{A: "B"},
 	}
-	err := hood.CreateTable(&pgSaveAll{})
+	err := hood.CreateTable(&pgSaveAllDeleteAll{})
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -126,6 +126,17 @@ func TestPgSaveAll(t *testing.T) {
 	}
 	if x := ids[1]; x != 2 {
 		t.Fatal("wrong id", x)
+	}
+	if x := models[0].Id; x != 1 {
+		t.Fatal("wrong id", x)
+	}
+	if x := models[1].Id; x != 2 {
+		t.Fatal("wrong id", x)
+	}
+
+	_, err = hood.DeleteAll(models)
+	if err != nil {
+		t.Fatal("error not nil", err)
 	}
 }
 

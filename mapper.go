@@ -315,7 +315,7 @@ func (hood *Hood) Save(f interface{}) (Id, error) {
 	return id, err
 }
 
-func (hood *Hood) SaveAll(f interface{}) ([]Id, error) {
+func (hood *Hood) doAll(f interface{}, doFunc func(f2 interface{}) (Id, error)) ([]Id, error) {
 	if reflect.TypeOf(f).Kind() != reflect.Slice {
 		panic("expected slice")
 	}
@@ -323,7 +323,7 @@ func (hood *Hood) SaveAll(f interface{}) ([]Id, error) {
 	sliceLen := sliceValue.Len()
 	ids := make([]Id, 0, sliceLen)
 	for i := 0; i < sliceLen; i++ {
-		id, err := hood.Save(sliceValue.Index(i).Interface())
+		id, err := doFunc(sliceValue.Index(i).Interface())
 		if err != nil {
 			return nil, err
 		}
@@ -332,29 +332,28 @@ func (hood *Hood) SaveAll(f interface{}) ([]Id, error) {
 	return ids, nil
 }
 
-func (hood *Hood) Delete(model interface{}) (Id, error) {
-	ids, err := hood.DeleteAll([]interface{}{model})
+func (hood *Hood) SaveAll(f interface{}) ([]Id, error) {
+	return hood.doAll(f, func(f2 interface{}) (Id, error) {
+		return hood.Save(f2)
+	})
+}
+
+func (hood *Hood) Delete(f interface{}) (Id, error) {
+	model, err := interfaceToModel(f, hood.Dialect)
 	if err != nil {
 		return -1, err
 	}
-	return ids[0], err
+	id, err := hood.delete(model)
+	if err != nil {
+		return -1, err
+	}
+	return id, err
 }
 
-// TODO: change, so that a slice of structs can be passed in
-func (hood *Hood) DeleteAll(models []interface{}) ([]Id, error) {
-	ids := make([]Id, 0, len(models))
-	for _, v := range models {
-		model, err := interfaceToModel(v, hood.Dialect)
-		if err != nil {
-			return nil, err
-		}
-		id, err := hood.delete(model)
-		if err != nil {
-			return nil, err
-		}
-		ids = append(ids, id)
-	}
-	return ids, nil
+func (hood *Hood) DeleteAll(f interface{}) ([]Id, error) {
+	return hood.doAll(f, func(f2 interface{}) (Id, error) {
+		return hood.Delete(f2)
+	})
 }
 
 func (hood *Hood) CreateTable(table interface{}) error {
@@ -380,8 +379,6 @@ func (hood *Hood) DropTable(table interface{}) error {
 	}
 	return nil
 }
-
-// Private /////////////////////////////////////////////////////////////////////
 
 func (hood *Hood) insert(model *Model) (Id, error) {
 	if model.Pk == nil {
