@@ -30,7 +30,7 @@ func setupDb(t *testing.T) *Hood {
 
 func TestPgSaveAndDelete(t *testing.T) {
 	if disableLiveTests {
-		// return
+		return
 	}
 	hood := setupDb(t)
 
@@ -89,7 +89,7 @@ func TestPgFind(t *testing.T) {
 	hood := setupDb(t)
 
 	type pgFindModel struct {
-		Id int `pk:"true"auto:"true"`
+		Id Id
 		A  string
 		B  int
 		C  int8
