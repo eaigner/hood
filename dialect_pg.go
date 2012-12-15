@@ -14,23 +14,23 @@ func (d *DialectPg) Pk() string {
 	return "id"
 }
 
+func (d *DialectPg) Quote(s string) string {
+	return `"` + s + `"`
+}
+
 func (d *DialectPg) Marker(pos int) string {
 	return fmt.Sprintf("$%d", pos+1)
 }
 
-func (d *DialectPg) SqlType(f interface{}, size int, autoIncr bool) string {
+func (d *DialectPg) SqlType(f interface{}, size int) string {
 	switch f.(type) {
+	case Id:
+		return "serial"
 	case bool:
 		return "boolean"
 	case int, int8, int16, int32, uint, uint8, uint16, uint32:
-		if autoIncr {
-			return "serial"
-		}
 		return "integer"
 	case int64, uint64:
-		if autoIncr {
-			return "bigserial"
-		}
 		return "bigint"
 	case float32, float64:
 		return "double precision"

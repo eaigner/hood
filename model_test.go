@@ -5,7 +5,7 @@ import (
 )
 
 type SampleModel struct {
-	PrimKey   int    `pk:"true"auto:"true"`
+	PrimKey   Id
 	FirstName string `notnull:"true"`
 	LastName  string `default:"last"`
 	Address   string
@@ -35,18 +35,12 @@ func TestInterfaceToModel(t *testing.T) {
 	if m.Pk.Name != "prim_key" {
 		t.Fatal("wrong pk name", m.Pk.Name)
 	}
-	if m.Pk.Auto != true {
-		t.Fatal("pk should have auto flag set")
-	}
 	if x := len(m.Fields); x != 4 {
 		t.Fatal("should have 4 fields, has", x)
 	}
 	f := m.Fields[0]
-	if x := f.Value; x != 6 {
+	if x, ok := f.Value.(Id); ok && x != 6 {
 		t.Fatal("wrong primary key", x)
-	}
-	if f.Auto != true {
-		t.Fatal("should be autoincrement")
 	}
 	f = m.Fields[1]
 	if x := f.Value; x != "Erik" {

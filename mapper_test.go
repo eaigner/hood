@@ -5,14 +5,14 @@ import (
 )
 
 type sampleModel struct {
-	Prim   string `pk:"true"auto:"false"`
+	Prim   Id
 	First  string `null:"true"`
 	Last   string `default:"DEFVAL"`
 	Amount int
 }
 
 var data1 *sampleModel = &sampleModel{
-	Prim:   "prim",
+	Prim:   3,
 	First:  "Erik",
 	Last:   "Aigner",
 	Amount: 0,
@@ -40,7 +40,7 @@ func TestDeleteSQL(t *testing.T) {
 	hood := New(nil, &DialectPg{})
 	model, _ := interfaceToModel(data1, hood.Dialect)
 	sql := hood.deleteSql(model)
-	if sql != `DELETE FROM sample_model WHERE prim = $1` {
+	if sql != `DELETE FROM sample_model WHERE prim = 3` {
 		t.Fatalf("invalid sql: '%v'", sql)
 	}
 }

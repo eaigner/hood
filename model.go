@@ -9,6 +9,7 @@ func snakeCaseName(i interface{}) string {
 	return snakeCase(reflect.TypeOf(i).Elem().Name())
 }
 
+// TODO: move to mapper.go
 func interfaceToModel(f interface{}, dialect Dialect) (*Model, error) {
 	v := reflect.Indirect(reflect.ValueOf(f))
 	if v.Kind() != reflect.Struct {
@@ -22,29 +23,17 @@ func interfaceToModel(f interface{}, dialect Dialect) (*Model, error) {
 	}
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
-		isPk := field.Tag.Get("pk") == "true"
+		isPk := field.Type.Name() == reflect.TypeOf(Id(0)).Name()
 		fd := &Field{
-			Pk:      isPk,
 			Name:    snakeCase(field.Name),
 			Value:   v.FieldByName(field.Name).Interface(),
 			NotNull: (field.Tag.Get("notnull") == "true"),
-			Auto:    (field.Tag.Get("auto") == "true"),
 			Default: field.Tag.Get("default"),
 		}
 		if isPk {
 			m.Pk = fd
 		}
 		m.Fields = append(m.Fields, fd)
-	}
-	// TODO: remove this! no implicit keys!
-	if m.Pk == nil {
-		m.Pk = &Field{
-			Pk:    true,
-			Name:  dialect.Pk(),
-			Auto:  true,
-			Value: int(0),
-		}
-		m.Fields = append([]*Field{m.Pk}, m.Fields...)
 	}
 	return m, nil
 }

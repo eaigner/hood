@@ -37,15 +37,19 @@ type (
 		Table  string
 		Fields []*Field
 	}
-	Field struct {
-		Pk      bool
-		Name    string      // column name
-		Value   interface{} // value
-		NotNull bool        // null allowed
-		Auto    bool        // auto increment
-		Default string      // default value
-	}
 )
+
+type Field struct {
+	Name    string      // column name
+	Value   interface{} // value
+	NotNull bool        // null allowed
+	Default string      // default value
+}
+
+func (f *Field) IsPrimaryKey() bool {
+	_, ok := f.Value.(Id)
+	return ok
+}
 
 func New(database *sql.DB, dialect Dialect) *Hood {
 	hood := &Hood{
@@ -296,7 +300,6 @@ func (hood *Hood) SaveAll(models []interface{}) ([]Id, error) {
 		}
 		update := false
 		if model.Pk != nil {
-			// FIXME: 0 is valid key!
 			if v, ok := model.Pk.Value.(int); ok && v > 0 {
 				update = true
 			}
@@ -314,17 +317,28 @@ func (hood *Hood) SaveAll(models []interface{}) ([]Id, error) {
 	return ids, nil
 }
 
-func (hood *Hood) Destroy(model interface{}) (Id, error) {
-	ids, err := hood.DestroyAll([]interface{}{model})
+func (hood *Hood) Delete(model interface{}) (Id, error) {
+	ids, err := hood.DeleteAll([]interface{}{model})
 	if err != nil {
 		return -1, err
 	}
 	return ids[0], err
 }
 
-func (hood *Hood) DestroyAll(model []interface{}) ([]Id, error) {
-	// TODO: implement
-	return nil, nil
+func (hood *Hood) DeleteAll(models []interface{}) ([]Id, error) {
+	ids := make([]Id, 0, len(models))
+	for _, v := range models {
+		model, err := interfaceToModel(v, hood.Dialect)
+		if err != nil {
+			return nil, err
+		}
+		id, err := hood.delete(model)
+		if err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, nil
 }
 
 func (hood *Hood) CreateTable(table interface{}) error {
@@ -354,6 +368,9 @@ func (hood *Hood) DropTable(table interface{}) error {
 // Private /////////////////////////////////////////////////////////////////////
 
 func (hood *Hood) insert(model *Model) (Id, error) {
+	if model.Pk == nil {
+		panic("no primary key field")
+	}
 	query, values := hood.insertSql(model)
 	// check if dialect requires custom insert (like PostgreSQL)
 	if id, err, ok := hood.Dialect.Insert(hood, model, query, values...); ok {
@@ -372,7 +389,7 @@ func (hood *Hood) insert(model *Model) (Id, error) {
 
 func (hood *Hood) insertSql(model *Model) (string, []interface{}) {
 	defer hood.Reset()
-	keys, values, markers := hood.keysValuesAndMarkersForModel(model, true)
+	keys, values, markers := hood.keysValuesAndMarkersForModel(model)
 	stmt := fmt.Sprintf(
 		"INSERT INTO %v (%v) VALUES (%v)",
 		model.Table,
@@ -383,12 +400,13 @@ func (hood *Hood) insertSql(model *Model) (string, []interface{}) {
 }
 
 func (hood *Hood) update(model *Model) (Id, error) {
+	// TODO: implement
 	return 0, nil
 }
 
 func (hood *Hood) updateSql(model *Model) string {
 	defer hood.Reset()
-	keys, _, markers := hood.keysValuesAndMarkersForModel(model, true)
+	keys, _, markers := hood.keysValuesAndMarkersForModel(model)
 	stmt := fmt.Sprintf(
 		"UPDATE %v (%v) VALUES (%v) WHERE %v = %v",
 		model.Table,
@@ -400,13 +418,23 @@ func (hood *Hood) updateSql(model *Model) string {
 	return stmt
 }
 
+func (hood *Hood) delete(model *Model) (Id, error) {
+	query := hood.deleteSql(model)
+	_, err := hood.Exec(query)
+	if err != nil {
+		return -1, err
+	}
+	// TODO: return correct id
+	return 0, nil
+}
+
 func (hood *Hood) deleteSql(model *Model) string {
 	defer hood.Reset()
 	stmt := fmt.Sprintf(
 		"DELETE FROM %v WHERE %v = %v",
 		model.Table,
 		model.Pk.Name,
-		hood.nextMarker(),
+		fmt.Sprintf("%v", model.Pk.Value),
 	)
 	return stmt
 }
@@ -443,8 +471,11 @@ func (hood *Hood) querySql() string {
 func (hood *Hood) createTableSql(model *Model) string {
 	a := []string{"CREATE TABLE ", model.Table, " ( "}
 	for i, field := range model.Fields {
-		b := []string{field.Name, hood.Dialect.SqlType(field.Value, 0, field.Auto)}
-		if incStmt := hood.Dialect.StmtAutoIncrement(); field.Auto && incStmt != "" {
+		b := []string{
+			field.Name,
+			hood.Dialect.SqlType(field.Value, 0),
+		}
+		if incStmt := hood.Dialect.StmtAutoIncrement(); field.IsPrimaryKey() && incStmt != "" {
 			b = append(b, incStmt)
 		}
 		if field.NotNull {
@@ -453,7 +484,7 @@ func (hood *Hood) createTableSql(model *Model) string {
 		if field.Default != "" {
 			b = append(b, hood.Dialect.StmtDefault(field.Default))
 		}
-		if field.Pk {
+		if field.IsPrimaryKey() {
 			b = append(b, hood.Dialect.StmtPrimaryKey())
 		}
 		a = append(a, strings.Join(b, " "))
@@ -466,13 +497,13 @@ func (hood *Hood) createTableSql(model *Model) string {
 	return strings.Join(a, "")
 }
 
-func (hood *Hood) keysValuesAndMarkersForModel(model *Model, excludePrimary bool) ([]string, []interface{}, []string) {
+func (hood *Hood) keysValuesAndMarkersForModel(model *Model) ([]string, []interface{}, []string) {
 	max := len(model.Fields)
 	keys := make([]string, 0, max)
 	values := make([]interface{}, 0, max)
 	markers := make([]string, 0, max)
 	for _, field := range model.Fields {
-		if !(excludePrimary && model.Pk != nil && field.Name == model.Pk.Name) {
+		if !field.IsPrimaryKey() {
 			keys = append(keys, field.Name)
 			markers = append(markers, hood.nextMarker())
 			values = append(values, field.Value)

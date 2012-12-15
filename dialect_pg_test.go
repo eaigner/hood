@@ -28,26 +28,24 @@ func setupDb(t *testing.T) *Hood {
 	return hood
 }
 
-func TestPgSave(t *testing.T) {
+func TestPgSaveAndDelete(t *testing.T) {
 	if disableLiveTests {
-		return
+		// return
 	}
 	hood := setupDb(t)
 
 	type pgSaveModel struct {
-		First  string
-		Last   string
-		Amount int
+		Id Id
+		A  string
+		B  int
 	}
 	model1 := &pgSaveModel{
-		"erik",
-		"aigner",
-		5,
+		A: "banana",
+		B: 5,
 	}
 	model2 := &pgSaveModel{
-		"markus",
-		"schumacher",
-		4,
+		A: "orange",
+		B: 4,
 	}
 
 	hood.DropTable(model1)
@@ -71,6 +69,16 @@ func TestPgSave(t *testing.T) {
 	if id != 2 {
 		t.Fatal("wrong id", id)
 	}
+
+	_, err = hood.Delete(model2)
+	if err != nil {
+		t.Fatal("error not nil", err)
+	}
+	// if id != id2 {
+	// 	t.Fatal("wrong id", id2)
+	// }
+
+	// TODO: return correct id
 }
 
 func TestPgFind(t *testing.T) {
@@ -226,38 +234,38 @@ func TestPgFind(t *testing.T) {
 
 func TestSqlType(t *testing.T) {
 	d := &DialectPg{}
-	if x := d.SqlType(true, 0, false); x != "boolean" {
+	if x := d.SqlType(true, 0); x != "boolean" {
 		t.Fatal("wrong type", x)
 	}
 	var indirect interface{} = true
-	if x := d.SqlType(indirect, 0, false); x != "boolean" {
+	if x := d.SqlType(indirect, 0); x != "boolean" {
 		t.Fatal("wrong type", x)
 	}
-	if x := d.SqlType(uint32(2), 0, false); x != "integer" {
+	if x := d.SqlType(uint32(2), 0); x != "integer" {
 		t.Fatal("wrong type", x)
 	}
-	if x := d.SqlType(int(1), 0, true); x != "serial" {
+	if x := d.SqlType(Id(1), 0); x != "serial" {
 		t.Fatal("wrong type", x)
 	}
-	if x := d.SqlType(int64(1), 0, false); x != "bigint" {
+	if x := d.SqlType(int64(1), 0); x != "bigint" {
 		t.Fatal("wrong type", x)
 	}
-	if x := d.SqlType(int64(1), 0, true); x != "bigserial" {
+	// if x := d.SqlType(Id(1), 0); x != "bigserial" {
+	// 	t.Fatal("wrong type", x)
+	// }
+	if x := d.SqlType(1.8, 0); x != "double precision" {
 		t.Fatal("wrong type", x)
 	}
-	if x := d.SqlType(1.8, 0, true); x != "double precision" {
+	if x := d.SqlType([]byte("asdf"), 0); x != "bytea" {
 		t.Fatal("wrong type", x)
 	}
-	if x := d.SqlType([]byte("asdf"), 0, true); x != "bytea" {
+	if x := d.SqlType("astring", 0); x != "text" {
 		t.Fatal("wrong type", x)
 	}
-	if x := d.SqlType("astring", 0, true); x != "text" {
+	if x := d.SqlType([]bool{}, 0); x != "varchar(255)" {
 		t.Fatal("wrong type", x)
 	}
-	if x := d.SqlType([]bool{}, 0, true); x != "varchar(255)" {
-		t.Fatal("wrong type", x)
-	}
-	if x := d.SqlType([]bool{}, 128, true); x != "varchar(128)" {
+	if x := d.SqlType([]bool{}, 128); x != "varchar(128)" {
 		t.Fatal("wrong type", x)
 	}
 }
@@ -279,11 +287,11 @@ func TestCreateTableSql(t *testing.T) {
 		t.Fatal("error not nil", err)
 	}
 	query := hood.createTableSql(model)
-	if query != `CREATE TABLE without_pk ( id serial PRIMARY KEY, first text, last text, amount integer )` {
+	if query != `CREATE TABLE without_pk ( first text, last text, amount integer )` {
 		t.Fatal("wrong query", query)
 	}
 	type withPk struct {
-		Primary int `pk:"true"auto:"true"`
+		Primary Id
 		First   string
 		Last    string
 		Amount  int
