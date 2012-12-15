@@ -51,10 +51,16 @@ func TestSubstituteMarkers(t *testing.T) {
 	if s != "name = $1" {
 		t.Fatalf("wrong substitution: '%v'", s)
 	}
+	if x := hood.argCount; x != 1 {
+		t.Fatal("wrong arg count", x)
+	}
 	hood.Reset()
 	s = hood.substituteMarkers("name = ?, balance = ?")
 	if s != "name = $1, balance = $2" {
 		t.Fatalf("wrong substitution: '%v'", s)
+	}
+	if x := hood.argCount; x != 2 {
+		t.Fatal("wrong arg count", x)
 	}
 }
 
@@ -64,12 +70,12 @@ func TestQuerySQL(t *testing.T) {
 	hood.Where("id = ?", "erik")
 	hood.Join("INNER", "orders", "users.id == orders.id")
 	hood.GroupBy("name")
-	hood.Having("SUM(price) < 2000")
+	hood.Having("SUM(price) < ?", 2000)
 	hood.OrderBy("first_name")
 	hood.Offset(3)
 	hood.Limit(10)
 	sql := hood.querySql()
-	if sql != `SELECT * FROM sample_model INNER JOIN orders ON users.id == orders.id WHERE id = $1 GROUP BY name HAVING SUM(price) < 2000 ORDER BY first_name LIMIT 10 OFFSET 3` {
+	if sql != `SELECT * FROM sample_model INNER JOIN orders ON users.id == orders.id WHERE id = $1 GROUP BY name HAVING SUM(price) < $2 ORDER BY first_name LIMIT $3 OFFSET $4` {
 		t.Fatalf("invalid sql: '%v'", sql)
 	}
 }

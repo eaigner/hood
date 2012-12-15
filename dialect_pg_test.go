@@ -215,6 +215,7 @@ func TestPgFind(t *testing.T) {
 		}
 	}
 
+	model1.Id = 0 // force insert, would update otherwise
 	model1.A = "row2"
 
 	id, err = hood.Save(model1)
@@ -226,7 +227,7 @@ func TestPgFind(t *testing.T) {
 	}
 
 	out = nil
-	err = hood.Where("a = ? AND j = ?", "string!", 9).Find(&out)
+	err = hood.Where("a = ? AND j = ?", "row2", 9).Find(&out)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}

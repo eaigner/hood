@@ -117,12 +117,11 @@ func (hood *Hood) Where(query interface{}, args ...interface{}) *Hood {
 	where := ""
 	switch typedQuery := query.(type) {
 	case string: // custom query
-		where = hood.substituteMarkers(typedQuery)
+		where = typedQuery
 	case int: // id provided
 		where = fmt.Sprintf(
-			"%v = %v",
+			"%v = ?",
 			hood.Dialect.Pk(),
-			hood.nextMarker(),
 		)
 		args = []interface{}{typedQuery}
 	}
@@ -136,12 +135,14 @@ func (hood *Hood) Where(query interface{}, args ...interface{}) *Hood {
 }
 
 func (hood *Hood) Limit(limit int) *Hood {
-	hood.limit = fmt.Sprintf("LIMIT %v", limit)
+	hood.limit = "LIMIT ?"
+	hood.args = append(hood.args, limit)
 	return hood
 }
 
 func (hood *Hood) Offset(offset int) *Hood {
-	hood.offset = fmt.Sprintf("OFFSET %v", offset)
+	hood.offset = "OFFSET ?"
+	hood.args = append(hood.args, offset)
 	return hood
 }
 
@@ -160,8 +161,9 @@ func (hood *Hood) GroupBy(key string) *Hood {
 	return hood
 }
 
-func (hood *Hood) Having(condition string) *Hood {
+func (hood *Hood) Having(condition string, args ...interface{}) *Hood {
 	hood.having = fmt.Sprintf("HAVING %v", condition)
+	hood.args = append(hood.args, args...)
 	return hood
 }
 
@@ -487,7 +489,7 @@ func (hood *Hood) querySql() string {
 	if x := hood.offset; x != "" {
 		query = append(query, x)
 	}
-	return strings.Join(query, " ")
+	return hood.substituteMarkers(strings.Join(query, " "))
 }
 
 func (hood *Hood) createTableSql(model *Model) string {
