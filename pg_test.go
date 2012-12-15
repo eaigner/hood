@@ -28,6 +28,73 @@ func setupDb(t *testing.T) *Hood {
 	return hood
 }
 
+func TestTransaction(t *testing.T) {
+	if disableLiveTests {
+		return
+	}
+	hood := setupDb(t)
+
+	type pgTxModel struct {
+		Id Id
+		A  string
+	}
+
+	table := &pgTxModel{
+		A: "A",
+	}
+
+	hood.DropTable(table)
+	err := hood.CreateTable(table)
+	if err != nil {
+		t.Fatal("error not nil", err)
+	}
+
+	tx := hood.Begin()
+	if _, ok := hood.qo.(*sql.DB); !ok {
+		t.Fatal("wrong type")
+	}
+	if _, ok := tx.qo.(*sql.Tx); !ok {
+		t.Fatal("wrong type")
+	}
+	_, err = tx.Save(table)
+	if err != nil {
+		t.Fatal("error not nil", err)
+	}
+	err = tx.Rollback()
+	if err != nil {
+		t.Fatal("error not nil", err)
+	}
+
+	var out []pgTxModel
+	err = hood.Find(&out)
+	if err != nil {
+		t.Fatal("error not nil", err)
+	}
+	if x := len(out); x > 0 {
+		t.Fatal("wrong length", x)
+	}
+
+	tx = hood.Begin()
+	table.Id = 0 // force insert by resetting id
+	_, err = tx.Save(table)
+	if err != nil {
+		t.Fatal("error not nil", err)
+	}
+	err = tx.Commit()
+	if err != nil {
+		t.Fatal("error not nil", err)
+	}
+
+	out = nil
+	err = hood.Find(&out)
+	if err != nil {
+		t.Fatal("error not nil", err)
+	}
+	if x := len(out); x != 1 {
+		t.Fatal("wrong length", x)
+	}
+}
+
 func TestPgSaveAndDelete(t *testing.T) {
 	if disableLiveTests {
 		return
