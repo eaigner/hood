@@ -148,6 +148,9 @@ func TestPgFind(t *testing.T) {
 		t.Fatal("invalid output length", x)
 	}
 	for _, v := range out {
+		if x := v.Id; x != 1 {
+			t.Fatal("invalid value", x)
+		}
 		if x := v.A; x != "string!" {
 			t.Fatal("invalid value", x)
 		}
