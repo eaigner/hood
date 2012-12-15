@@ -301,7 +301,7 @@ func (hood *Hood) SaveAll(models []interface{}) ([]Id, error) {
 		}
 		update := false
 		if model.Pk != nil {
-			if v, ok := model.Pk.Value.(int); ok && v > 0 {
+			if v, ok := model.Pk.Value.(Id); ok && v > 0 {
 				update = true
 			}
 		}
@@ -410,22 +410,32 @@ func (hood *Hood) insertSql(model *Model) (string, []interface{}) {
 }
 
 func (hood *Hood) update(model *Model) (Id, error) {
-	// TODO: implement
-	return 0, nil
+	if model.Pk == nil {
+		panic("no primary key field")
+	}
+	query, values := hood.updateSql(model)
+	_, err := hood.Exec(query, values...)
+	if err != nil {
+		return -1, err
+	}
+	return model.Pk.Value.(Id), nil
 }
 
-func (hood *Hood) updateSql(model *Model) string {
+func (hood *Hood) updateSql(model *Model) (string, []interface{}) {
 	defer hood.Reset()
-	keys, _, markers := hood.keysValuesAndMarkersForModel(model)
+	keys, values, markers := hood.keysValuesAndMarkersForModel(model)
+	pairs := make([]string, 0, len(keys))
+	for i, key := range keys {
+		pairs = append(pairs, fmt.Sprintf("%v = %v", key, markers[i]))
+	}
 	stmt := fmt.Sprintf(
-		"UPDATE %v (%v) VALUES (%v) WHERE %v = %v",
+		"UPDATE %v SET %v WHERE %v = %v",
 		model.Table,
-		strings.Join(keys, ", "),
-		strings.Join(markers, ", "),
+		strings.Join(pairs, ", "),
 		model.Pk.Name,
 		hood.nextMarker(),
 	)
-	return stmt
+	return stmt, append(values, model.Pk.Value)
 }
 
 func (hood *Hood) delete(model *Model) (Id, error) {

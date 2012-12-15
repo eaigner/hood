@@ -62,6 +62,17 @@ func TestPgSaveAndDelete(t *testing.T) {
 		t.Fatal("wrong id", id)
 	}
 
+	model1.A = "grape"
+	model1.B = 9
+
+	id, err = hood.Save(model1)
+	if err != nil {
+		t.Fatal("error not nil", err)
+	}
+	if id != 1 {
+		t.Fatal("wrong id", id)
+	}
+
 	id, err = hood.Save(model2)
 	if err != nil {
 		t.Fatal("error not nil", err)

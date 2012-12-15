@@ -30,9 +30,9 @@ func TestInsertSQL(t *testing.T) {
 func TestUpdateSQL(t *testing.T) {
 	hood := New(nil, &DialectPg{})
 	model, _ := interfaceToModel(data1, hood.Dialect)
-	sql := hood.updateSql(model)
-	if sql != `UPDATE sample_model (first, last, amount) VALUES ($1, $2, $3) WHERE prim = $4` {
-		t.Fatalf("invalid sql: '%v'", sql)
+	query, _ := hood.updateSql(model)
+	if query != `UPDATE sample_model SET first = $1, last = $2, amount = $3 WHERE prim = $4` {
+		t.Fatalf("invalid sql: '%v'", query)
 	}
 }
 
