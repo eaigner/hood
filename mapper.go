@@ -312,6 +312,14 @@ func (hood *Hood) SaveAll(models []interface{}) ([]Id, error) {
 		if err != nil {
 			return nil, err
 		}
+		// update model id after save
+		structValue := reflect.Indirect(reflect.ValueOf(v))
+		for i := 0; i < structValue.NumField(); i++ {
+			field := structValue.Field(i)
+			if field.Type().String() == reflect.TypeOf(Id(0)).String() {
+				field.SetInt(int64(id))
+			}
+		}
 		ids = append(ids, id)
 	}
 	return ids, nil
@@ -419,13 +427,15 @@ func (hood *Hood) updateSql(model *Model) string {
 }
 
 func (hood *Hood) delete(model *Model) (Id, error) {
+	if model.Pk == nil {
+		panic("no primary key field")
+	}
 	query := hood.deleteSql(model)
 	_, err := hood.Exec(query)
 	if err != nil {
 		return -1, err
 	}
-	// TODO: return correct id
-	return 0, nil
+	return model.Pk.Value.(Id), nil
 }
 
 func (hood *Hood) deleteSql(model *Model) string {

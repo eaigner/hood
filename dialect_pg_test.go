@@ -69,16 +69,17 @@ func TestPgSaveAndDelete(t *testing.T) {
 	if id != 2 {
 		t.Fatal("wrong id", id)
 	}
+	if model2.Id != id {
+		t.Fatal("id should have been copied", model2.Id)
+	}
 
-	_, err = hood.Delete(model2)
+	id2, err := hood.Delete(model2)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
-	// if id != id2 {
-	// 	t.Fatal("wrong id", id2)
-	// }
-
-	// TODO: return correct id
+	if id != id2 {
+		t.Fatal("wrong id", id, id2)
+	}
 }
 
 func TestPgFind(t *testing.T) {
