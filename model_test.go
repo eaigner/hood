@@ -16,6 +16,10 @@ func TestSnakeCaseName(t *testing.T) {
 	if name != "sample_model" {
 		t.Fatal("wrong table name", name)
 	}
+	name = snakeCaseName(SampleModel{})
+	if name != "sample_model" {
+		t.Fatal("wrong table name", name)
+	}
 }
 
 func TestInterfaceToModel(t *testing.T) {

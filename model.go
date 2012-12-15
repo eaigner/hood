@@ -5,8 +5,20 @@ import (
 	"reflect"
 )
 
-func snakeCaseName(i interface{}) string {
-	return snakeCase(reflect.TypeOf(i).Elem().Name())
+func snakeCaseName(f interface{}) string {
+	t := reflect.TypeOf(f)
+	for {
+		c := false
+		switch t.Kind() {
+		case reflect.Array, reflect.Chan, reflect.Map, reflect.Ptr, reflect.Slice:
+			t = t.Elem()
+			c = true
+		}
+		if !c {
+			break
+		}
+	}
+	return snakeCase(t.Name())
 }
 
 // TODO: move to mapper.go
