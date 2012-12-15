@@ -11,7 +11,7 @@ const (
 )
 
 type PgDialectModel struct {
-	Prim   int    `pk:"true"auto:"true"`
+	Prim   Id
 	First  string `null:"true"`
 	Last   string `default:"'defaultValue'"`
 	Amount int
