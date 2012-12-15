@@ -11,14 +11,6 @@ func init() {
 
 type Postgres struct{}
 
-func (d *Postgres) Pk() string {
-	return "id"
-}
-
-func (d *Postgres) Quote(s string) string {
-	return `"` + s + `"`
-}
-
 func (d *Postgres) Marker(pos int) string {
 	return fmt.Sprintf("$%d", pos+1)
 }

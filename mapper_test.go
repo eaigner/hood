@@ -90,7 +90,7 @@ func TestQuerySQLWhere(t *testing.T) {
 	}
 	hood.Reset()
 	hood.Select("*", &sampleModel{})
-	hood.Where(3)
+	hood.Where("id = ?", 3)
 	sql = hood.querySql()
 	if sql != `SELECT * FROM sample_model WHERE id = $1` {
 		t.Fatalf("invalid sql: '%v'", sql)

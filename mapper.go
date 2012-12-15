@@ -135,22 +135,8 @@ func (hood *Hood) Select(selector string, table interface{}) *Hood {
 	return hood
 }
 
-func (hood *Hood) Where(query interface{}, args ...interface{}) *Hood {
-	where := ""
-	switch typedQuery := query.(type) {
-	case string: // custom query
-		where = typedQuery
-	case int: // id provided
-		where = fmt.Sprintf(
-			"%v = ?",
-			hood.Dialect.Pk(),
-		)
-		args = []interface{}{typedQuery}
-	}
-	if where == "" {
-		panic("WHERE cannot be empty")
-	}
-	hood.where = fmt.Sprintf("WHERE %v", where)
+func (hood *Hood) Where(query string, args ...interface{}) *Hood {
+	hood.where = fmt.Sprintf("WHERE %v", query)
 	hood.args = append(hood.args, args...)
 
 	return hood
