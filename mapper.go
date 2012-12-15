@@ -281,47 +281,51 @@ func (hood *Hood) QueryRow(query string, args ...interface{}) *sql.Row {
 	return hood.qo.QueryRow(query, args...)
 }
 
-func (hood *Hood) Save(model interface{}) (Id, error) {
-	ids, err := hood.SaveAll([]interface{}{model})
+func (hood *Hood) Save(f interface{}) (Id, error) {
+	var (
+		id  Id
+		err error
+	)
+	model, err := interfaceToModel(f, hood.Dialect)
 	if err != nil {
 		return -1, err
 	}
-	return ids[0], err
+	update := false
+	if model.Pk != nil {
+		if v, ok := model.Pk.Value.(Id); ok && v > 0 {
+			update = true
+		}
+	}
+	if update {
+		id, err = hood.update(model)
+	} else {
+		id, err = hood.insert(model)
+	}
+	if err != nil {
+		return -1, err
+	}
+	// update model id after save
+	structValue := reflect.Indirect(reflect.ValueOf(f))
+	for i := 0; i < structValue.NumField(); i++ {
+		field := structValue.Field(i)
+		if field.Type().String() == reflect.TypeOf(Id(0)).String() {
+			field.SetInt(int64(id))
+		}
+	}
+	return id, err
 }
 
-// TODO: change, so that a slice of structs can be passed in
-func (hood *Hood) SaveAll(models []interface{}) ([]Id, error) {
-	ids := make([]Id, 0, len(models))
-	for _, v := range models {
-		var (
-			id  Id
-			err error
-		)
-		model, err := interfaceToModel(v, hood.Dialect)
+func (hood *Hood) SaveAll(f interface{}) ([]Id, error) {
+	if reflect.TypeOf(f).Kind() != reflect.Slice {
+		panic("expected slice")
+	}
+	sliceValue := reflect.ValueOf(f)
+	sliceLen := sliceValue.Len()
+	ids := make([]Id, 0, sliceLen)
+	for i := 0; i < sliceLen; i++ {
+		id, err := hood.Save(sliceValue.Index(i).Interface())
 		if err != nil {
 			return nil, err
-		}
-		update := false
-		if model.Pk != nil {
-			if v, ok := model.Pk.Value.(Id); ok && v > 0 {
-				update = true
-			}
-		}
-		if update {
-			id, err = hood.update(model)
-		} else {
-			id, err = hood.insert(model)
-		}
-		if err != nil {
-			return nil, err
-		}
-		// update model id after save
-		structValue := reflect.Indirect(reflect.ValueOf(v))
-		for i := 0; i < structValue.NumField(); i++ {
-			field := structValue.Field(i)
-			if field.Type().String() == reflect.TypeOf(Id(0)).String() {
-				field.SetInt(int64(id))
-			}
 		}
 		ids = append(ids, id)
 	}
