@@ -125,7 +125,7 @@ func (hood *Hood) Select(selector string, table interface{}) *Hood {
 	case string:
 		from = f
 	case interface{}:
-		from = snakeCaseName(f)
+		from = interfaceToSnake(f)
 	}
 	if from == "" {
 		panic("FROM cannot be empty")
@@ -233,7 +233,7 @@ func (hood *Hood) Find(out interface{}) error {
 		for i, v := range containers {
 			key := cols[i]
 			value := reflect.Indirect(reflect.ValueOf(v))
-			name := snakeToUpperCamelCase(key)
+			name := snakeToUpperCamel(key)
 			field := rowValue.Elem().FieldByName(name)
 			if field.IsValid() {
 				switch field.Type().Kind() {
@@ -577,14 +577,14 @@ func (hood *Hood) interfaceToModel(f interface{}) (*Model, error) {
 	t := v.Type()
 	m := &Model{
 		Pk:     nil,
-		Table:  snakeCaseName(f),
+		Table:  interfaceToSnake(f),
 		Fields: []*Field{},
 	}
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
 		isPk := field.Type.Name() == reflect.TypeOf(Id(0)).Name()
 		fd := &Field{
-			Name:    snakeCase(field.Name),
+			Name:    toSnake(field.Name),
 			Value:   v.FieldByName(field.Name).Interface(),
 			NotNull: (field.Tag.Get("notnull") == "true"),
 			Default: field.Tag.Get("default"),

@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func snakeCase(s string) string {
+func toSnake(s string) string {
 	buf := bytes.NewBufferString("")
 	for i, v := range s {
 		if i > 0 && v >= 'A' && v <= 'Z' {
@@ -17,7 +17,7 @@ func snakeCase(s string) string {
 	return strings.ToLower(buf.String())
 }
 
-func snakeCaseName(f interface{}) string {
+func interfaceToSnake(f interface{}) string {
 	t := reflect.TypeOf(f)
 	for {
 		c := false
@@ -30,10 +30,10 @@ func snakeCaseName(f interface{}) string {
 			break
 		}
 	}
-	return snakeCase(t.Name())
+	return toSnake(t.Name())
 }
 
-func snakeToUpperCamelCase(s string) string {
+func snakeToUpperCamel(s string) string {
 	buf := bytes.NewBufferString("")
 	for _, v := range strings.Split(s, "_") {
 		if len(v) > 0 {
