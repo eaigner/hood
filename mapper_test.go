@@ -19,7 +19,7 @@ var data1 *sampleModel = &sampleModel{
 }
 
 func TestInsertSQL(t *testing.T) {
-	hood := New(nil, &DialectPg{})
+	hood := New(nil, &Postgres{})
 	model, _ := interfaceToModel(data1, hood.Dialect)
 	sql, _ := hood.insertSql(model)
 	if sql != `INSERT INTO sample_model (first, last, amount) VALUES ($1, $2, $3)` {
@@ -28,7 +28,7 @@ func TestInsertSQL(t *testing.T) {
 }
 
 func TestUpdateSQL(t *testing.T) {
-	hood := New(nil, &DialectPg{})
+	hood := New(nil, &Postgres{})
 	model, _ := interfaceToModel(data1, hood.Dialect)
 	query, _ := hood.updateSql(model)
 	if query != `UPDATE sample_model SET first = $1, last = $2, amount = $3 WHERE prim = $4` {
@@ -37,7 +37,7 @@ func TestUpdateSQL(t *testing.T) {
 }
 
 func TestDeleteSQL(t *testing.T) {
-	hood := New(nil, &DialectPg{})
+	hood := New(nil, &Postgres{})
 	model, _ := interfaceToModel(data1, hood.Dialect)
 	query, _ := hood.deleteSql(model)
 	if query != `DELETE FROM sample_model WHERE prim = $1` {
@@ -46,7 +46,7 @@ func TestDeleteSQL(t *testing.T) {
 }
 
 func TestSubstituteMarkers(t *testing.T) {
-	hood := New(nil, &DialectPg{})
+	hood := New(nil, &Postgres{})
 	s := hood.substituteMarkers("name = ?")
 	if s != "name = $1" {
 		t.Fatalf("wrong substitution: '%v'", s)
@@ -65,7 +65,7 @@ func TestSubstituteMarkers(t *testing.T) {
 }
 
 func TestQuerySQL(t *testing.T) {
-	hood := New(nil, &DialectPg{})
+	hood := New(nil, &Postgres{})
 	hood.Select("*", &sampleModel{})
 	hood.Where("id = ?", "erik")
 	hood.Join("INNER", "orders", "users.id == orders.id")
@@ -81,7 +81,7 @@ func TestQuerySQL(t *testing.T) {
 }
 
 func TestQuerySQLWhere(t *testing.T) {
-	hood := New(nil, &DialectPg{})
+	hood := New(nil, &Postgres{})
 	hood.Select("*", &sampleModel{})
 	hood.Where("name = ?", "erik")
 	sql := hood.querySql()

@@ -4,25 +4,25 @@ import (
 	"fmt"
 )
 
-type DialectPg struct{}
+type Postgres struct{}
 
-func (d *DialectPg) Name() string {
+func (d *Postgres) Name() string {
 	return "postgres"
 }
 
-func (d *DialectPg) Pk() string {
+func (d *Postgres) Pk() string {
 	return "id"
 }
 
-func (d *DialectPg) Quote(s string) string {
+func (d *Postgres) Quote(s string) string {
 	return `"` + s + `"`
 }
 
-func (d *DialectPg) Marker(pos int) string {
+func (d *Postgres) Marker(pos int) string {
 	return fmt.Sprintf("$%d", pos+1)
 }
 
-func (d *DialectPg) SqlType(f interface{}, size int) string {
+func (d *Postgres) SqlType(f interface{}, size int) string {
 	switch f.(type) {
 	case Id:
 		return "bigserial"
@@ -45,7 +45,7 @@ func (d *DialectPg) SqlType(f interface{}, size int) string {
 	return fmt.Sprintf("varchar(%d)", size)
 }
 
-func (d *DialectPg) Insert(hood *Hood, model *Model, query string, args ...interface{}) (Id, error, bool) {
+func (d *Postgres) Insert(hood *Hood, model *Model, query string, args ...interface{}) (Id, error, bool) {
 	query = fmt.Sprintf("%v RETURNING %v", query, model.Pk.Name)
 	var id int64
 	err := hood.QueryRow(query, args...).Scan(&id)
@@ -53,19 +53,19 @@ func (d *DialectPg) Insert(hood *Hood, model *Model, query string, args ...inter
 	return Id(id), err, true
 }
 
-func (d *DialectPg) StmtNotNull() string {
+func (d *Postgres) StmtNotNull() string {
 	return "NOT NULL"
 }
 
-func (d *DialectPg) StmtDefault(s string) string {
+func (d *Postgres) StmtDefault(s string) string {
 	return fmt.Sprintf("DEFAULT %v", s)
 }
 
-func (d *DialectPg) StmtPrimaryKey() string {
+func (d *Postgres) StmtPrimaryKey() string {
 	return "PRIMARY KEY"
 }
 
-func (d *DialectPg) StmtAutoIncrement() string {
+func (d *Postgres) StmtAutoIncrement() string {
 	// postgres has not auto increment statement, uses SERIAL type
 	return ""
 }

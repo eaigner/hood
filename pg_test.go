@@ -22,7 +22,7 @@ func setupDb(t *testing.T) *Hood {
 	if err != nil {
 		t.Fatal("could not open db", err)
 	}
-	hood := New(db, &DialectPg{})
+	hood := New(db, &Postgres{})
 	hood.Log = true
 
 	return hood
@@ -246,7 +246,7 @@ func TestPgFind(t *testing.T) {
 }
 
 func TestSqlType(t *testing.T) {
-	d := &DialectPg{}
+	d := &Postgres{}
 	if x := d.SqlType(true, 0); x != "boolean" {
 		t.Fatal("wrong type", x)
 	}
@@ -281,7 +281,7 @@ func TestSqlType(t *testing.T) {
 }
 
 func TestCreateTableSql(t *testing.T) {
-	hood := New(nil, &DialectPg{})
+	hood := New(nil, &Postgres{})
 	type withoutPk struct {
 		First  string
 		Last   string
