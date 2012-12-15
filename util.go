@@ -2,6 +2,7 @@ package hood
 
 import (
 	"bytes"
+	"reflect"
 	"strings"
 )
 
@@ -14,6 +15,22 @@ func snakeCase(s string) string {
 		buf.WriteRune(v)
 	}
 	return strings.ToLower(buf.String())
+}
+
+func snakeCaseName(f interface{}) string {
+	t := reflect.TypeOf(f)
+	for {
+		c := false
+		switch t.Kind() {
+		case reflect.Array, reflect.Chan, reflect.Map, reflect.Ptr, reflect.Slice:
+			t = t.Elem()
+			c = true
+		}
+		if !c {
+			break
+		}
+	}
+	return snakeCase(t.Name())
 }
 
 func snakeToUpperCamelCase(s string) string {

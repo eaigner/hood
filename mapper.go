@@ -298,7 +298,7 @@ func (hood *Hood) Save(f interface{}) (Id, error) {
 		id  Id
 		err error
 	)
-	model, err := interfaceToModel(f, hood.Dialect)
+	model, err := hood.interfaceToModel(f)
 	if err != nil {
 		return -1, err
 	}
@@ -351,7 +351,7 @@ func (hood *Hood) SaveAll(f interface{}) ([]Id, error) {
 }
 
 func (hood *Hood) Delete(f interface{}) (Id, error) {
-	model, err := interfaceToModel(f, hood.Dialect)
+	model, err := hood.interfaceToModel(f)
 	if err != nil {
 		return -1, err
 	}
@@ -369,7 +369,7 @@ func (hood *Hood) DeleteAll(f interface{}) ([]Id, error) {
 }
 
 func (hood *Hood) CreateTable(table interface{}) error {
-	model, err := interfaceToModel(table, hood.Dialect)
+	model, err := hood.interfaceToModel(table)
 	if err != nil {
 		return err
 	}
@@ -381,7 +381,7 @@ func (hood *Hood) CreateTable(table interface{}) error {
 }
 
 func (hood *Hood) DropTable(table interface{}) error {
-	model, err := interfaceToModel(table, hood.Dialect)
+	model, err := hood.interfaceToModel(table)
 	if err != nil {
 		return err
 	}
@@ -567,4 +567,32 @@ func (hood *Hood) nextMarker() string {
 	marker := hood.Dialect.Marker(hood.argCount)
 	hood.argCount++
 	return marker
+}
+
+func (hood *Hood) interfaceToModel(f interface{}) (*Model, error) {
+	v := reflect.Indirect(reflect.ValueOf(f))
+	if v.Kind() != reflect.Struct {
+		return nil, errors.New("model is not a struct")
+	}
+	t := v.Type()
+	m := &Model{
+		Pk:     nil,
+		Table:  snakeCaseName(f),
+		Fields: []*Field{},
+	}
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		isPk := field.Type.Name() == reflect.TypeOf(Id(0)).Name()
+		fd := &Field{
+			Name:    snakeCase(field.Name),
+			Value:   v.FieldByName(field.Name).Interface(),
+			NotNull: (field.Tag.Get("notnull") == "true"),
+			Default: field.Tag.Get("default"),
+		}
+		if isPk {
+			m.Pk = fd
+		}
+		m.Fields = append(m.Fields, fd)
+	}
+	return m, nil
 }

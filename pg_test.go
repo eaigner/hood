@@ -405,7 +405,7 @@ func TestCreateTableSql(t *testing.T) {
 		"aigner",
 		5,
 	}
-	model, err := interfaceToModel(table, hood.Dialect)
+	model, err := hood.interfaceToModel(table)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -424,7 +424,7 @@ func TestCreateTableSql(t *testing.T) {
 		Last:   "aigner",
 		Amount: 5,
 	}
-	model, err = interfaceToModel(table2, hood.Dialect)
+	model, err = hood.interfaceToModel(table2)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
