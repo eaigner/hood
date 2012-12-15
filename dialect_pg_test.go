@@ -257,15 +257,12 @@ func TestSqlType(t *testing.T) {
 	if x := d.SqlType(uint32(2), 0); x != "integer" {
 		t.Fatal("wrong type", x)
 	}
-	if x := d.SqlType(Id(1), 0); x != "serial" {
+	if x := d.SqlType(Id(1), 0); x != "bigserial" {
 		t.Fatal("wrong type", x)
 	}
 	if x := d.SqlType(int64(1), 0); x != "bigint" {
 		t.Fatal("wrong type", x)
 	}
-	// if x := d.SqlType(Id(1), 0); x != "bigserial" {
-	// 	t.Fatal("wrong type", x)
-	// }
 	if x := d.SqlType(1.8, 0); x != "double precision" {
 		t.Fatal("wrong type", x)
 	}
@@ -319,7 +316,7 @@ func TestCreateTableSql(t *testing.T) {
 		t.Fatal("error not nil", err)
 	}
 	query = hood.createTableSql(model)
-	if query != `CREATE TABLE with_pk ( primary serial PRIMARY KEY, first text, last text, amount integer )` {
+	if query != `CREATE TABLE with_pk ( primary bigserial PRIMARY KEY, first text, last text, amount integer )` {
 		t.Fatal("wrong query", query)
 	}
 }

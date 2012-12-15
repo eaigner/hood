@@ -25,7 +25,7 @@ func (d *DialectPg) Marker(pos int) string {
 func (d *DialectPg) SqlType(f interface{}, size int) string {
 	switch f.(type) {
 	case Id:
-		return "serial"
+		return "bigserial"
 	case bool:
 		return "boolean"
 	case int, int8, int16, int32, uint, uint8, uint16, uint32:
