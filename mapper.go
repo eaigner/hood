@@ -287,6 +287,7 @@ func (hood *Hood) Save(model interface{}) (Id, error) {
 	return ids[0], err
 }
 
+// TODO: change, so that a slice of structs can be passed in
 func (hood *Hood) SaveAll(models []interface{}) ([]Id, error) {
 	ids := make([]Id, 0, len(models))
 	for _, v := range models {
@@ -333,6 +334,7 @@ func (hood *Hood) Delete(model interface{}) (Id, error) {
 	return ids[0], err
 }
 
+// TODO: change, so that a slice of structs can be passed in
 func (hood *Hood) DeleteAll(models []interface{}) ([]Id, error) {
 	ids := make([]Id, 0, len(models))
 	for _, v := range models {
