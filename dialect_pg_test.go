@@ -6,7 +6,9 @@ import (
 	"testing"
 )
 
-var disableLiveTests bool = true
+const (
+	disableLiveTests = true
+)
 
 type PgDialectModel struct {
 	Prim   int    `pk:"true"auto:"true"`
@@ -28,7 +30,7 @@ func setupDb(t *testing.T) *Hood {
 
 func TestPgSave(t *testing.T) {
 	if disableLiveTests {
-		// return
+		return
 	}
 	hood := setupDb(t)
 
@@ -68,6 +70,70 @@ func TestPgSave(t *testing.T) {
 	}
 	if id != 2 {
 		t.Fatal("wrong id", id)
+	}
+}
+
+func TestPgFind(t *testing.T) {
+	if disableLiveTests {
+		return
+	}
+	hood := setupDb(t)
+
+	type pgFindModel struct {
+		First  string
+		Last   string
+		Amount int
+	}
+	model1 := &pgFindModel{
+		"erik",
+		"aigner",
+		5,
+	}
+
+	hood.DropTable(model1)
+
+	err := hood.CreateTable(model1)
+	if err != nil {
+		t.Fatal("error not nil", err)
+	}
+
+	var out []pgFindModel
+	err = hood.Where("first = ? AND amount = ?", "erik", 5).Find(&out)
+	if err != nil {
+		t.Fatal("error not nil", err)
+	}
+	if out != nil {
+		t.Fatal("output should be nil", out)
+	}
+
+	id, err := hood.Save(model1)
+	if err != nil {
+		t.Fatal("error not nil", err)
+	}
+	if id != 1 {
+		t.Fatal("wrong id", id)
+	}
+
+	err = hood.Where("first = ? AND amount = ?", "erik", 5).Find(&out)
+	if err != nil {
+		t.Fatal("error not nil", err)
+	}
+	if out == nil {
+		t.Fatal("output should not be nil")
+	}
+	if x := len(out); x != 1 {
+		t.Fatal("invalid output length", x)
+	}
+	for _, v := range out {
+		if x := v.Amount; x != 5 {
+			t.Fatal("invalid amount", x)
+		}
+		if x := v.First; x != "erik" {
+			t.Fatal("invalid first", x)
+		}
+		if x := v.Last; x != "aigner" {
+			t.Fatal("invalid last", x)
+		}
 	}
 }
 

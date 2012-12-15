@@ -2,7 +2,9 @@ package hood
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 )
 
@@ -13,8 +15,8 @@ type Hood struct {
 	Log      bool
 	selector string
 	where    string
-	params   []interface{}
-	paramNum int
+	args     []interface{}
+	argCount int
 	limit    string
 	offset   string
 	orderBy  string
@@ -59,8 +61,8 @@ func New(database *sql.DB, dialect Dialect) *Hood {
 func (hood *Hood) Reset() {
 	hood.selector = ""
 	hood.where = ""
-	hood.params = []interface{}{}
-	hood.paramNum = 0
+	hood.args = []interface{}{}
+	hood.argCount = 0
 	hood.limit = ""
 	hood.offset = ""
 	hood.orderBy = ""
@@ -124,7 +126,7 @@ func (hood *Hood) Where(query interface{}, args ...interface{}) *Hood {
 		panic("WHERE cannot be empty")
 	}
 	hood.where = fmt.Sprintf("WHERE %v", where)
-	hood.params = append(hood.params, args)
+	hood.args = append(hood.args, args...)
 
 	return hood
 }
@@ -159,7 +161,24 @@ func (hood *Hood) Having(condition string) *Hood {
 	return hood
 }
 
-func (hood *Hood) Find(out []interface{}) error {
+func (hood *Hood) Find(out interface{}) error {
+	defer hood.Reset()
+	invalidInputErr := errors.New("expected input to be a struct slice pointer")
+	if x := reflect.TypeOf(out).Kind(); x != reflect.Ptr {
+		return invalidInputErr
+	}
+	sliceValue := reflect.Indirect(reflect.ValueOf(out))
+	if x := sliceValue.Kind(); x != reflect.Slice {
+		return invalidInputErr
+	}
+	sliceType := sliceValue.Type().Elem()
+	if sliceType.Kind() != reflect.Struct {
+		return invalidInputErr
+	}
+	// infer the select statement from the type if none set
+	if hood.selector == "" {
+		hood.Select("*", sliceValue.Interface())
+	}
 	query := hood.querySql()
 	if hood.Log {
 		fmt.Println(query)
@@ -169,7 +188,7 @@ func (hood *Hood) Find(out []interface{}) error {
 		return err
 	}
 	defer stmt.Close()
-	rows, err := stmt.Query(hood.params)
+	rows, err := stmt.Query(hood.args...)
 	if err != nil {
 		return err
 	}
@@ -179,14 +198,39 @@ func (hood *Hood) Find(out []interface{}) error {
 		return err
 	}
 	for rows.Next() {
-		values := make([]interface{}, len(cols))
-		err := rows.Scan(values...)
+		containers := make([]interface{}, 0, len(cols))
+		for i := 0; i < cap(containers); i++ {
+			var v interface{}
+			containers = append(containers, &v)
+		}
+		err := rows.Scan(containers...)
 		if err != nil {
 			return err
 		}
-		for i, v := range values {
-			fmt.Printf("%d: %v\n", i, v)
+		// create a new row and fill
+		rowType := reflect.New(sliceType)
+		for i, v := range containers {
+			key := cols[i]
+			value := reflect.Indirect(reflect.ValueOf(v))
+			name := snakeToUpperCamelCase(key)
+			field := rowType.Elem().FieldByName(name)
+			if field.IsValid() {
+				switch field.Type().Kind() {
+				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+					field.SetInt(value.Elem().Int())
+				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+					field.SetUint(value.Elem().Uint())
+				case reflect.Float32, reflect.Float64:
+					field.SetFloat(value.Elem().Float())
+				case reflect.String:
+					field.SetString(string(value.Elem().Bytes()))
+				case reflect.Slice:
+					field.Set(value.Elem())
+				}
+			}
 		}
+		// append to output
+		sliceValue.Set(reflect.Append(sliceValue, reflect.Indirect(reflect.ValueOf(rowType.Interface()))))
 	}
 	return nil
 }
@@ -446,7 +490,7 @@ func (hood *Hood) substituteMarkers(query string) string {
 }
 
 func (hood *Hood) nextMarker() string {
-	marker := hood.Dialect.Marker(hood.paramNum)
-	hood.paramNum++
+	marker := hood.Dialect.Marker(hood.argCount)
+	hood.argCount++
 	return marker
 }
