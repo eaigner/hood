@@ -41,6 +41,7 @@ Tables can be declared using the following syntax (please not that this table is
 	
 ## Example
 
+```go
 	hd, err := hood.Open("postgres", "user=hood dbname=hood_test sslmode=disable")
 	if err != nil {
 		panic(err)
@@ -126,3 +127,4 @@ Tables can be declared using the following syntax (please not that this table is
 
 	// Drop
 	hd.DropTable(&Fruit{})
+```
