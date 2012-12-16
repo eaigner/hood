@@ -7,8 +7,8 @@ import (
 
 type sampleModel struct {
 	Prim   Id
-	First  string `notnull`
-	Last   string `default:('orange')`
+	First  string `sql:"notnull"`
+	Last   string `sql:"default('orange')"`
 	Amount int
 }
 
@@ -103,7 +103,7 @@ func TestParseTags(t *testing.T) {
 	if x, ok := m["pk"]; !ok {
 		t.Fatal("wrong value", ok, x)
 	}
-	m = parseTags(`notnull:default('banana')`)
+	m = parseTags(`notnull,default('banana')`)
 	if x, ok := m["notnull"]; !ok {
 		t.Fatal("wrong value", ok, x)
 	}
@@ -115,9 +115,9 @@ func TestParseTags(t *testing.T) {
 func TestInterfaceToModel(t *testing.T) {
 	type table struct {
 		ColPrimary    Id
-		ColAltPrimary string  `pk`
-		ColNotNull    string  `notnull:default('banana')`
-		ColVarChar    VarChar `size(64)`
+		ColAltPrimary string  `sql:"pk"`
+		ColNotNull    string  `sql:"notnull,default('banana')"`
+		ColVarChar    VarChar `sql:"size(64)"`
 		ColTime       time.Time
 	}
 	now := time.Now()

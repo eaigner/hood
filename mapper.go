@@ -574,7 +574,7 @@ func (hood *Hood) nextMarker() string {
 }
 
 func parseTags(s string) map[string]string {
-	c := strings.Split(s, ":")
+	c := strings.Split(s, ",")
 	m := make(map[string]string)
 	for _, v := range c {
 		c2 := strings.Split(v, "(")
@@ -600,7 +600,7 @@ func interfaceToModel(f interface{}) (*Model, error) {
 	}
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
-		tags := parseTags(string(field.Tag))
+		tags := parseTags(field.Tag.Get("sql"))
 		_, isPk := tags["pk"]
 		isPk = isPk || field.Type == reflect.TypeOf(Id(0))
 		_, notNull := tags["notnull"]

@@ -13,8 +13,8 @@ const (
 
 type PgDialectModel struct {
 	Prim   Id
-	First  string `notnull`
-	Last   string `default:('defaultValue')`
+	First  string `sql:"notnull"`
+	Last   string `sql:"default('defaultValue')"`
 	Amount int
 }
 
