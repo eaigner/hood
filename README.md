@@ -17,7 +17,7 @@ If the dialect is registered, you can open the database directly using
 
     hd, err := hood.Open("postgres", "user=<username> dbname=<database>")
     
-or you can pass an existing `*sql.DB` object and dialect to `hood.New(*sql.DB, hood.Dialect)`
+or you can pass an existing database and dialect to `hood.New(*sql.DB, hood.Dialect)`
 
 	hd, err := hood.New(db, &Postgres{})
 	
@@ -39,7 +39,7 @@ Tables can be declared using the following syntax (please not that this table is
 	}
 
 	
-## Save
+## Save (Insert & Update)
 
 ## Find
 
