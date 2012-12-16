@@ -51,7 +51,7 @@ func TestSubstituteMarkers(t *testing.T) {
 	if s != "name = $1" {
 		t.Fatalf("wrong substitution: '%v'", s)
 	}
-	if x := hood.argCount; x != 1 {
+	if x := hood.markerPos; x != 1 {
 		t.Fatal("wrong arg count", x)
 	}
 	hood.Reset()
@@ -59,7 +59,7 @@ func TestSubstituteMarkers(t *testing.T) {
 	if s != "name = $1, balance = $2" {
 		t.Fatalf("wrong substitution: '%v'", s)
 	}
-	if x := hood.argCount; x != 2 {
+	if x := hood.markerPos; x != 2 {
 		t.Fatal("wrong arg count", x)
 	}
 }

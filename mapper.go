@@ -12,20 +12,20 @@ import (
 
 type (
 	Hood struct {
-		Db       *sql.DB
-		Dialect  Dialect
-		Log      bool
-		qo       qo // the query object
-		selector string
-		where    string
-		args     []interface{}
-		argCount int // TODO: remove in favor of len(args)
-		limit    string
-		offset   string
-		orderBy  string
-		joins    []string
-		groupBy  string
-		having   string
+		Db        *sql.DB
+		Dialect   Dialect
+		Log       bool
+		qo        qo // the query object
+		selector  string
+		where     string
+		args      []interface{}
+		markerPos int
+		limit     string
+		offset    string
+		orderBy   string
+		joins     []string
+		groupBy   string
+		having    string
 	}
 	Id      int64
 	VarChar string // TODO: make size settable via tag
@@ -85,7 +85,7 @@ func (hood *Hood) Reset() {
 	hood.selector = ""
 	hood.where = ""
 	hood.args = []interface{}{}
-	hood.argCount = 0
+	hood.markerPos = 0
 	hood.limit = ""
 	hood.offset = ""
 	hood.orderBy = ""
@@ -572,8 +572,8 @@ func (hood *Hood) substituteMarkers(query string) string {
 }
 
 func (hood *Hood) nextMarker() string {
-	marker := hood.Dialect.Marker(hood.argCount)
-	hood.argCount++
+	marker := hood.Dialect.Marker(hood.markerPos)
+	hood.markerPos++
 	return marker
 }
 
