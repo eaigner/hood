@@ -28,7 +28,7 @@ type (
 		having    string
 	}
 	Id      int64
-	VarChar string // TODO: make size settable via tag
+	VarChar string
 	Model   struct {
 		Pk     *Field
 		Table  string
