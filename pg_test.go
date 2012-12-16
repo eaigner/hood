@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	_ "github.com/bmizerany/pq"
 	"testing"
+	"time"
 )
 
 const (
@@ -211,6 +212,7 @@ func TestPgFind(t *testing.T) {
 		return
 	}
 	hood := setupDb(t)
+	now := time.Now()
 
 	type pgFindModel struct {
 		Id Id
@@ -228,6 +230,8 @@ func TestPgFind(t *testing.T) {
 		L  float32
 		M  float64
 		N  []byte
+		O  VarChar
+		P  time.Time
 	}
 	model1 := &pgFindModel{
 		A: "string!",
@@ -244,6 +248,8 @@ func TestPgFind(t *testing.T) {
 		L: 11.5,
 		M: 12.6,
 		N: []byte("bytes!"),
+		O: "varchar!",
+		P: now,
 	}
 
 	hood.DropTable(model1)
@@ -326,6 +332,12 @@ func TestPgFind(t *testing.T) {
 		if x := v.N; string(x) != "bytes!" {
 			t.Fatal("invalid value", x)
 		}
+		if x := v.O; string(x) != "varchar!" {
+			t.Fatal("invalid value", x)
+		}
+		if x := v.P; now.Equal(x) {
+			t.Fatal("invalid value", x)
+		}
 	}
 
 	model1.Id = 0 // force insert, would update otherwise
@@ -385,10 +397,13 @@ func TestSqlType(t *testing.T) {
 	if x := d.SqlType("astring", 0); x != "text" {
 		t.Fatal("wrong type", x)
 	}
-	if x := d.SqlType([]bool{}, 0); x != "varchar(255)" {
+	if x := d.SqlType(VarChar("a"), 0); x != "varchar(255)" {
 		t.Fatal("wrong type", x)
 	}
-	if x := d.SqlType([]bool{}, 128); x != "varchar(128)" {
+	if x := d.SqlType(VarChar("b"), 128); x != "varchar(128)" {
+		t.Fatal("wrong type", x)
+	}
+	if x := d.SqlType(time.Now(), 0); x != "timestamp" {
 		t.Fatal("wrong type", x)
 	}
 }

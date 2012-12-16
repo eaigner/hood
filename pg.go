@@ -3,6 +3,7 @@ package hood
 import (
 	"fmt"
 	_ "github.com/bmizerany/pq"
+	"time"
 )
 
 func init() {
@@ -19,6 +20,13 @@ func (d *Postgres) SqlType(f interface{}, size int) string {
 	switch f.(type) {
 	case Id:
 		return "bigserial"
+	case VarChar:
+		if size < 1 {
+			size = 255
+		}
+		return fmt.Sprintf("varchar(%d)", size)
+	case time.Time:
+		return "timestamp"
 	case bool:
 		return "boolean"
 	case int, int8, int16, int32, uint, uint8, uint16, uint32:
@@ -32,10 +40,7 @@ func (d *Postgres) SqlType(f interface{}, size int) string {
 	case string:
 		return "text"
 	}
-	if size < 1 {
-		size = 255
-	}
-	return fmt.Sprintf("varchar(%d)", size)
+	panic("invalid sql type")
 }
 
 func (d *Postgres) Insert(hood *Hood, model *Model, query string, args ...interface{}) (Id, error, bool) {

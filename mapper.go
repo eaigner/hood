@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
+	"time"
 )
 
 type (
@@ -17,7 +19,7 @@ type (
 		selector string
 		where    string
 		args     []interface{}
-		argCount int
+		argCount int // TODO: remove in favor of len(args)
 		limit    string
 		offset   string
 		orderBy  string
@@ -25,8 +27,9 @@ type (
 		groupBy  string
 		having   string
 	}
-	Id    int64
-	Model struct {
+	Id      int64
+	VarChar string // TODO: make size settable via tag
+	Model   struct {
 		Pk     *Field
 		Table  string
 		Fields []*Field
@@ -36,6 +39,7 @@ type (
 		Value   interface{} // value
 		NotNull bool        // null allowed
 		Default string      // default value
+		Size    int         // size (e.g. for varchar)
 	}
 	qo interface {
 		Prepare(query string) (*sql.Stmt, error)
@@ -255,6 +259,10 @@ func (hood *Hood) Find(out interface{}) error {
 					if reflect.TypeOf(value.Interface()).Elem().Kind() == reflect.Uint8 {
 						field.SetBytes(value.Elem().Bytes())
 					}
+				case reflect.Struct:
+					if field.Type().String() == reflect.TypeOf(time.Time{}).String() {
+						field.Set(value.Elem())
+					}
 				}
 			}
 		}
@@ -278,7 +286,7 @@ func (hood *Hood) Exec(query string, args ...interface{}) (sql.Result, error) {
 	if hood.Log {
 		fmt.Println(args...)
 	}
-	result, err := stmt.Exec(args...)
+	result, err := stmt.Exec(convertSpecialTypes(args)...)
 	if err != nil {
 		return nil, err
 	}
@@ -290,7 +298,7 @@ func (hood *Hood) QueryRow(query string, args ...interface{}) *sql.Row {
 		fmt.Println(query)
 		fmt.Println(args...)
 	}
-	return hood.qo.QueryRow(query, args...)
+	return hood.qo.QueryRow(query, convertSpecialTypes(args)...)
 }
 
 func (hood *Hood) Save(f interface{}) (Id, error) {
@@ -510,7 +518,7 @@ func (hood *Hood) createTableSql(model *Model) string {
 	for i, field := range model.Fields {
 		b := []string{
 			field.Name,
-			hood.Dialect.SqlType(field.Value, 0),
+			hood.Dialect.SqlType(field.Value, field.Size),
 		}
 		if incStmt := hood.Dialect.StmtAutoIncrement(); field.IsPrimaryKey() && incStmt != "" {
 			b = append(b, incStmt)
@@ -582,17 +590,36 @@ func (hood *Hood) interfaceToModel(f interface{}) (*Model, error) {
 	}
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
-		isPk := field.Type.Name() == reflect.TypeOf(Id(0)).Name()
 		fd := &Field{
 			Name:    toSnake(field.Name),
 			Value:   v.FieldByName(field.Name).Interface(),
 			NotNull: (field.Tag.Get("notnull") == "true"),
 			Default: field.Tag.Get("default"),
 		}
-		if isPk {
+		// set size
+		size, _ := strconv.Atoi(field.Tag.Get("size"))
+		fd.Size = size
+		// if it's a primary key, set reference
+		if field.Type == reflect.TypeOf(Id(0)) {
 			m.Pk = fd
 		}
 		m.Fields = append(m.Fields, fd)
 	}
 	return m, nil
+}
+
+func convertSpecialTypes(a []interface{}) []interface{} {
+	args := make([]interface{}, 0, len(a))
+	for _, v := range a {
+		args = append(args, convertSpecialType(v))
+	}
+	return args
+}
+
+func convertSpecialType(f interface{}) interface{} {
+	switch t := f.(type) {
+	case VarChar:
+		return string(t)
+	}
+	return f
 }
