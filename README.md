@@ -43,6 +43,7 @@ type Person struct {
 }
 ```
 
+Schema creation is completely optional, you can use any other tool you like.
 	
 ## Example
 
