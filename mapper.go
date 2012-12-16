@@ -304,6 +304,7 @@ func (hood *Hood) Save(f interface{}) (Id, error) {
 	}
 	update := false
 	if model.Pk != nil {
+		// FIXME: primary key must not necessarily be of type Id
 		if v, ok := model.Pk.Value.(Id); ok && v > 0 {
 			update = true
 		}
