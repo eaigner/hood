@@ -39,12 +39,12 @@ func TestTransaction(t *testing.T) {
 		A  string
 	}
 
-	table := &pgTxModel{
+	table := pgTxModel{
 		A: "A",
 	}
 
-	hood.DropTable(table)
-	err := hood.CreateTable(table)
+	hood.DropTable(&table)
+	err := hood.CreateTable(&table)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -56,7 +56,7 @@ func TestTransaction(t *testing.T) {
 	if _, ok := tx.qo.(*sql.Tx); !ok {
 		t.Fatal("wrong type")
 	}
-	_, err = tx.Save(table)
+	_, err = tx.Save(&table)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -65,7 +65,7 @@ func TestTransaction(t *testing.T) {
 		t.Fatal("error not nil", err)
 	}
 
-	var out []*pgTxModel
+	var out []pgTxModel
 	err = hood.Find(&out)
 	if err != nil {
 		t.Fatal("error not nil", err)
@@ -76,7 +76,7 @@ func TestTransaction(t *testing.T) {
 
 	tx = hood.Begin()
 	table.Id = 0 // force insert by resetting id
-	_, err = tx.Save(table)
+	_, err = tx.Save(&table)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -106,22 +106,22 @@ func TestPgSaveAndDelete(t *testing.T) {
 		A  string
 		B  int
 	}
-	model1 := &pgSaveModel{
+	model1 := pgSaveModel{
 		A: "banana",
 		B: 5,
 	}
-	model2 := &pgSaveModel{
+	model2 := pgSaveModel{
 		A: "orange",
 		B: 4,
 	}
 
-	hood.DropTable(model1)
+	hood.DropTable(&model1)
 
-	err := hood.CreateTable(model1)
+	err := hood.CreateTable(&model1)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
-	id, err := hood.Save(model1)
+	id, err := hood.Save(&model1)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -132,7 +132,7 @@ func TestPgSaveAndDelete(t *testing.T) {
 	model1.A = "grape"
 	model1.B = 9
 
-	id, err = hood.Save(model1)
+	id, err = hood.Save(&model1)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -140,7 +140,7 @@ func TestPgSaveAndDelete(t *testing.T) {
 		t.Fatal("wrong id", id)
 	}
 
-	id, err = hood.Save(model2)
+	id, err = hood.Save(&model2)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -151,7 +151,7 @@ func TestPgSaveAndDelete(t *testing.T) {
 		t.Fatal("id should have been copied", model2.Id)
 	}
 
-	id2, err := hood.Delete(model2)
+	id2, err := hood.Delete(&model2)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -172,16 +172,16 @@ func TestPgSaveAllDeleteAll(t *testing.T) {
 	hood := setupDb(t)
 	hood.DropTable(&pgSaveAllDeleteAll{})
 
-	models := []*pgSaveAllDeleteAll{
-		&pgSaveAllDeleteAll{A: "A"},
-		&pgSaveAllDeleteAll{A: "B"},
+	models := []pgSaveAllDeleteAll{
+		pgSaveAllDeleteAll{A: "A"},
+		pgSaveAllDeleteAll{A: "B"},
 	}
 	err := hood.CreateTable(&pgSaveAllDeleteAll{})
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
 
-	ids, err := hood.SaveAll(models)
+	ids, err := hood.SaveAll(&models)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -201,7 +201,7 @@ func TestPgSaveAllDeleteAll(t *testing.T) {
 		t.Fatal("wrong id", x)
 	}
 
-	_, err = hood.DeleteAll(models)
+	_, err = hood.DeleteAll(&models)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -233,7 +233,7 @@ func TestPgFind(t *testing.T) {
 		O  VarChar
 		P  time.Time
 	}
-	model1 := &pgFindModel{
+	model1 := pgFindModel{
 		A: "string!",
 		B: -1,
 		C: -2,
@@ -252,14 +252,14 @@ func TestPgFind(t *testing.T) {
 		P: now,
 	}
 
-	hood.DropTable(model1)
+	hood.DropTable(&model1)
 
-	err := hood.CreateTable(model1)
+	err := hood.CreateTable(&model1)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
 
-	var out []*pgFindModel
+	var out []pgFindModel
 	err = hood.Where("a = ? AND j = ?", "string!", 9).Find(&out)
 	if err != nil {
 		t.Fatal("error not nil", err)
@@ -268,7 +268,7 @@ func TestPgFind(t *testing.T) {
 		t.Fatal("output should be nil", out)
 	}
 
-	id, err := hood.Save(model1)
+	id, err := hood.Save(&model1)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -343,7 +343,7 @@ func TestPgFind(t *testing.T) {
 	model1.Id = 0 // force insert, would update otherwise
 	model1.A = "row2"
 
-	id, err = hood.Save(model1)
+	id, err = hood.Save(&model1)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}

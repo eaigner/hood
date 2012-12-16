@@ -177,19 +177,15 @@ func (hood *Hood) Having(condition string, args ...interface{}) *Hood {
 
 func (hood *Hood) Find(out interface{}) error {
 	defer hood.Reset()
-	panicMsg := errors.New("expected input to be []*struct")
+	panicMsg := errors.New("expected pointer to struct slice *[]struct")
 	if x := reflect.TypeOf(out).Kind(); x != reflect.Ptr {
 		panic(panicMsg)
 	}
-	slicePtrValue := reflect.Indirect(reflect.ValueOf(out))
-	if x := slicePtrValue.Kind(); x != reflect.Slice {
+	sliceValue := reflect.Indirect(reflect.ValueOf(out))
+	if x := sliceValue.Kind(); x != reflect.Slice {
 		panic(panicMsg)
 	}
-	ptrType := slicePtrValue.Type().Elem()
-	if x := ptrType.Kind(); x != reflect.Ptr {
-		panic(panicMsg)
-	}
-	sliceType := ptrType.Elem()
+	sliceType := sliceValue.Type().Elem()
 	if x := sliceType.Kind(); x != reflect.Struct {
 		panic(panicMsg)
 	}
@@ -263,7 +259,7 @@ func (hood *Hood) Find(out interface{}) error {
 			}
 		}
 		// append to output
-		slicePtrValue.Set(reflect.Append(slicePtrValue, rowValue))
+		sliceValue.Set(reflect.Append(sliceValue, rowValue.Elem()))
 	}
 	return nil
 }
@@ -332,14 +328,18 @@ func (hood *Hood) Save(f interface{}) (Id, error) {
 }
 
 func (hood *Hood) doAll(f interface{}, doFunc func(f2 interface{}) (Id, error)) ([]Id, error) {
-	if reflect.TypeOf(f).Kind() != reflect.Slice {
-		panic("expected slice")
+	panicMsg := "expected pointer to struct slice *[]struct"
+	if reflect.TypeOf(f).Kind() != reflect.Ptr {
+		panic(panicMsg)
 	}
-	sliceValue := reflect.ValueOf(f)
+	if reflect.TypeOf(f).Elem().Kind() != reflect.Slice {
+		panic(panicMsg)
+	}
+	sliceValue := reflect.ValueOf(f).Elem()
 	sliceLen := sliceValue.Len()
 	ids := make([]Id, 0, sliceLen)
 	for i := 0; i < sliceLen; i++ {
-		id, err := doFunc(sliceValue.Index(i).Interface())
+		id, err := doFunc(sliceValue.Index(i).Addr().Interface())
 		if err != nil {
 			return nil, err
 		}
