@@ -1,6 +1,6 @@
 ## Hood
 
-Hood is a database agnostic ORM for Go. It was written with following points in mind:
+Hood is a database agnostic ORM for Go developed by [@eaignr](https://twitter.com/eaignr). It was written with following points in mind:
 
 - Chainable API
 - Transaction support
@@ -10,7 +10,7 @@ Hood is a database agnostic ORM for Go. It was written with following points in 
 
 Dialects currently supported
 
-- Postgres
+- Postgres [github.com/bmizerany/pq](https://github.com/bmizerany/pq)
 
 Adding a dialect is as simple as copying the original `pg.go`, replacing the statement and field values with the new dialect versions.
 
