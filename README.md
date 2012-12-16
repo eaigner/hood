@@ -30,8 +30,8 @@ type Person struct {
 	Id           hood.Id      // autoincrementing int field 'id'
 	FirstName    string       `pk`                          // custom primary key field 'first_name'
 	LastName     hood.VarChar `size(128)`                   // varchar field 'last_name' with size 128
-	Tag          hood.VarChar `default('customer')`         // varchar field 'tag' with size 255
-	CombinedTags hood.VarChar `size(128):default('orange')` // you can also combine tags
+	Tag          hood.VarChar `default('customer')`         // varchar field 'tag' with size 255, default value 'customer'
+	CombinedTags hood.VarChar `size(128):default('orange')` // you can also combine tags, default value 'orange'
 	Updated      time.Time    // timestamp field 'updated'
 	Data         []byte       // data field 'data'
 	IsAdmin      bool         // boolean field 'is_admin'
@@ -52,11 +52,13 @@ import (
 )
 
 func main() {
+	// Open a DB connection, use New() alternatively for unregistered dialects
 	hd, err := hood.Open("postgres", "user=hood dbname=hood_test sslmode=disable")
 	if err != nil {
 		panic(err)
 	}
 
+	// Create a table
 	type Fruit struct {
 		Id    hood.Id
 		Name  string
@@ -86,6 +88,7 @@ func main() {
 
 	fmt.Println("inserted ids:", ids) // [1 2 3 4 5]
 
+	// Commit changes
 	err = tx.Commit()
 	if err != nil {
 		panic(err)
@@ -111,6 +114,9 @@ func main() {
 	}
 
 	// Find
+	//
+	// The markers are db agnostic, so you can always use '?'
+	// e.g. in Postgres they are replaced with $0, $1, ...
 	var results []Fruit
 	err = hd.Where("color = ?", "green").OrderBy("name").Limit(1).Find(&results)
 	if err != nil {
