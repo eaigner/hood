@@ -2,12 +2,13 @@ package hood
 
 import (
 	"testing"
+	"time"
 )
 
 type sampleModel struct {
 	Prim   Id
-	First  string `null:"true"`
-	Last   string `default:"DEFVAL"`
+	First  string `notnull`
+	Last   string `default:('orange')`
 	Amount int
 }
 
@@ -20,7 +21,7 @@ var data1 *sampleModel = &sampleModel{
 
 func TestInsertSQL(t *testing.T) {
 	hood := New(nil, &Postgres{})
-	model, _ := hood.interfaceToModel(data1)
+	model, _ := interfaceToModel(data1)
 	sql, _ := hood.insertSql(model)
 	if sql != `INSERT INTO sample_model (first, last, amount) VALUES ($1, $2, $3)` {
 		t.Fatalf("invalid sql: '%v'", sql)
@@ -29,7 +30,7 @@ func TestInsertSQL(t *testing.T) {
 
 func TestUpdateSQL(t *testing.T) {
 	hood := New(nil, &Postgres{})
-	model, _ := hood.interfaceToModel(data1)
+	model, _ := interfaceToModel(data1)
 	query, _ := hood.updateSql(model)
 	if query != `UPDATE sample_model SET first = $1, last = $2, amount = $3 WHERE prim = $4` {
 		t.Fatalf("invalid sql: '%v'", query)
@@ -38,7 +39,7 @@ func TestUpdateSQL(t *testing.T) {
 
 func TestDeleteSQL(t *testing.T) {
 	hood := New(nil, &Postgres{})
-	model, _ := hood.interfaceToModel(data1)
+	model, _ := interfaceToModel(data1)
 	query, _ := hood.deleteSql(model)
 	if query != `DELETE FROM sample_model WHERE prim = $1` {
 		t.Fatalf("invalid sql: '%v'", query)
@@ -97,53 +98,81 @@ func TestQuerySQLWhere(t *testing.T) {
 	}
 }
 
-func TestInterfaceToModel(t *testing.T) {
-	type SampleModel struct {
-		PrimKey   Id
-		FirstName string `notnull:"true"`
-		LastName  string `default:"last"`
-		Address   string
+func TestParseTags(t *testing.T) {
+	m := parseTags(`pk`)
+	if x, ok := m["pk"]; !ok {
+		t.Fatal("wrong value", ok, x)
 	}
+	m = parseTags(`notnull:default('banana')`)
+	if x, ok := m["notnull"]; !ok {
+		t.Fatal("wrong value", ok, x)
+	}
+	if x, ok := m["default"]; !ok || x != "'banana'" {
+		t.Fatal("wrong value", x)
+	}
+}
 
-	model := &SampleModel{
-		PrimKey:   6,
-		FirstName: "Erik",
-		LastName:  "Aigner",
-		Address:   "Nowhere 7",
+func TestInterfaceToModel(t *testing.T) {
+	type table struct {
+		ColPrimary    Id
+		ColAltPrimary string  `pk`
+		ColNotNull    string  `notnull:default('banana')`
+		ColVarChar    VarChar `size(64)`
+		ColTime       time.Time
 	}
-	hood := New(nil, &Postgres{})
-	m, err := hood.interfaceToModel(model)
+	now := time.Now()
+	table1 := &table{
+		ColPrimary:    6,
+		ColAltPrimary: "banana",
+		ColVarChar:    "orange",
+		ColTime:       now,
+	}
+	m, err := interfaceToModel(table1)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
 	if m.Pk == nil {
 		t.Fatal("pk nil")
 	}
-	if m.Pk.Name != "prim_key" {
-		t.Fatal("wrong pk name", m.Pk.Name)
+	if m.Pk.Name != "col_alt_primary" {
+		t.Fatal("wrong value", m.Pk.Name)
 	}
-	if x := len(m.Fields); x != 4 {
-		t.Fatal("should have 4 fields, has", x)
+	if x := len(m.Fields); x != 5 {
+		t.Fatal("wrong value", x)
 	}
 	f := m.Fields[0]
-	if x, ok := f.Value.(Id); ok && x != 6 {
-		t.Fatal("wrong primary key", x)
+	if x, ok := f.Value.(Id); !ok || x != 6 {
+		t.Fatal("wrong value", x)
+	}
+	if !f.IsPk {
+		t.Fatal("wrong value")
 	}
 	f = m.Fields[1]
-	if x := f.Value; x != "Erik" {
-		t.Fatal("wrong first name", x)
+	if x, ok := f.Value.(string); !ok || x != "banana" {
+		t.Fatal("wrong value", x)
 	}
-	if f.NotNull != true {
-		t.Fatal("should have null tag set")
+	if !f.IsPk {
+		t.Fatal("wrong value")
 	}
 	f = m.Fields[2]
-	if x := f.Value; x != "Aigner" {
-		t.Fatal("wrong last name", x)
+	if x, ok := f.Value.(string); !ok || x != "" {
+		t.Fatal("wrong value", x)
 	}
-	if f.Default != "last" {
-		t.Fatal("should have default set")
+	if f.Default != "'banana'" {
+		t.Fatal("should value", f.Default)
 	}
-	if x := m.Fields[3].Value; x != "Nowhere 7" {
-		t.Fatal("wrong address", x)
+	if !f.NotNull {
+		t.Fatal("wrong value")
+	}
+	f = m.Fields[3]
+	if x, ok := f.Value.(VarChar); !ok || x != "orange" {
+		t.Fatal("wrong value", x)
+	}
+	if x := f.Size; x != 64 {
+		t.Fatal("wrong value", x)
+	}
+	f = m.Fields[4]
+	if x, ok := f.Value.(time.Time); !ok || !now.Equal(x) {
+		t.Fatal("wrong value", x)
 	}
 }

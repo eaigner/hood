@@ -13,8 +13,8 @@ const (
 
 type PgDialectModel struct {
 	Prim   Id
-	First  string `null:"true"`
-	Last   string `default:"'defaultValue'"`
+	First  string `notnull`
+	Last   string `default:('defaultValue')`
 	Amount int
 }
 
@@ -420,7 +420,7 @@ func TestCreateTableSql(t *testing.T) {
 		"aigner",
 		5,
 	}
-	model, err := hood.interfaceToModel(table)
+	model, err := interfaceToModel(table)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -439,7 +439,7 @@ func TestCreateTableSql(t *testing.T) {
 		Last:   "aigner",
 		Amount: 5,
 	}
-	model, err = hood.interfaceToModel(table2)
+	model, err = interfaceToModel(table2)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}

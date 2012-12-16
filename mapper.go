@@ -37,6 +37,7 @@ type (
 	Field struct {
 		Name    string      // column name
 		Value   interface{} // value
+		IsPk    bool        // primary key
 		NotNull bool        // null allowed
 		Default string      // default value
 		Size    int         // size (e.g. for varchar)
@@ -48,11 +49,6 @@ type (
 )
 
 var registeredDialects map[string]Dialect = make(map[string]Dialect)
-
-func (f *Field) IsPrimaryKey() bool {
-	_, ok := f.Value.(Id)
-	return ok
-}
 
 func New(database *sql.DB, dialect Dialect) *Hood {
 	hood := &Hood{
@@ -306,7 +302,7 @@ func (hood *Hood) Save(f interface{}) (Id, error) {
 		id  Id
 		err error
 	)
-	model, err := hood.interfaceToModel(f)
+	model, err := interfaceToModel(f)
 	if err != nil {
 		return -1, err
 	}
@@ -359,7 +355,7 @@ func (hood *Hood) SaveAll(f interface{}) ([]Id, error) {
 }
 
 func (hood *Hood) Delete(f interface{}) (Id, error) {
-	model, err := hood.interfaceToModel(f)
+	model, err := interfaceToModel(f)
 	if err != nil {
 		return -1, err
 	}
@@ -377,7 +373,7 @@ func (hood *Hood) DeleteAll(f interface{}) ([]Id, error) {
 }
 
 func (hood *Hood) CreateTable(table interface{}) error {
-	model, err := hood.interfaceToModel(table)
+	model, err := interfaceToModel(table)
 	if err != nil {
 		return err
 	}
@@ -389,7 +385,7 @@ func (hood *Hood) CreateTable(table interface{}) error {
 }
 
 func (hood *Hood) DropTable(table interface{}) error {
-	model, err := hood.interfaceToModel(table)
+	model, err := interfaceToModel(table)
 	if err != nil {
 		return err
 	}
@@ -520,7 +516,7 @@ func (hood *Hood) createTableSql(model *Model) string {
 			field.Name,
 			hood.Dialect.SqlType(field.Value, field.Size),
 		}
-		if incStmt := hood.Dialect.StmtAutoIncrement(); field.IsPrimaryKey() && incStmt != "" {
+		if incStmt := hood.Dialect.StmtAutoIncrement(); field.IsPk && incStmt != "" {
 			b = append(b, incStmt)
 		}
 		if field.NotNull {
@@ -529,7 +525,7 @@ func (hood *Hood) createTableSql(model *Model) string {
 		if field.Default != "" {
 			b = append(b, hood.Dialect.StmtDefault(field.Default))
 		}
-		if field.IsPrimaryKey() {
+		if field.IsPk {
 			b = append(b, hood.Dialect.StmtPrimaryKey())
 		}
 		a = append(a, strings.Join(b, " "))
@@ -548,7 +544,7 @@ func (hood *Hood) keysValuesAndMarkersForModel(model *Model) ([]string, []interf
 	values := make([]interface{}, 0, max)
 	markers := make([]string, 0, max)
 	for _, field := range model.Fields {
-		if !field.IsPrimaryKey() {
+		if !field.IsPk {
 			keys = append(keys, field.Name)
 			markers = append(markers, hood.nextMarker())
 			values = append(values, field.Value)
@@ -577,7 +573,21 @@ func (hood *Hood) nextMarker() string {
 	return marker
 }
 
-func (hood *Hood) interfaceToModel(f interface{}) (*Model, error) {
+func parseTags(s string) map[string]string {
+	c := strings.Split(s, ":")
+	m := make(map[string]string)
+	for _, v := range c {
+		c2 := strings.Split(v, "(")
+		if len(c2) == 2 && len(c2[1]) > 1 {
+			m[c2[0]] = c2[1][:len(c2[1])-1]
+		} else {
+			m[v] = ""
+		}
+	}
+	return m
+}
+
+func interfaceToModel(f interface{}) (*Model, error) {
 	v := reflect.Indirect(reflect.ValueOf(f))
 	if v.Kind() != reflect.Struct {
 		return nil, errors.New("model is not a struct")
@@ -590,17 +600,29 @@ func (hood *Hood) interfaceToModel(f interface{}) (*Model, error) {
 	}
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
+		tags := parseTags(string(field.Tag))
+		_, isPk := tags["pk"]
+		isPk = isPk || field.Type == reflect.TypeOf(Id(0))
+		_, notNull := tags["notnull"]
+		defVal, defOk := tags["default"]
+		sizeVal, sizeOk := tags["size"]
 		fd := &Field{
 			Name:    toSnake(field.Name),
 			Value:   v.FieldByName(field.Name).Interface(),
-			NotNull: (field.Tag.Get("notnull") == "true"),
-			Default: field.Tag.Get("default"),
+			IsPk:    isPk,
+			NotNull: notNull,
+		}
+		// set default value
+		if defOk {
+			fd.Default = defVal
 		}
 		// set size
-		size, _ := strconv.Atoi(field.Tag.Get("size"))
-		fd.Size = size
+		if sizeOk {
+			intVal, _ := strconv.Atoi(sizeVal)
+			fd.Size = intVal
+		}
 		// if it's a primary key, set reference
-		if field.Type == reflect.TypeOf(Id(0)) {
+		if isPk {
 			m.Pk = fd
 		}
 		m.Fields = append(m.Fields, fd)
