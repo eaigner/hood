@@ -25,23 +25,33 @@ or you can pass an existing database and dialect to `hood.New(*sql.DB, hood.Dial
 
 Tables can be declared using the following syntax (please not that this table is only for demonstration purposes and would not produce valid SQL since it has 2 primary keys)
 
-	type Person struct {
-		Id           Id        // autoincrementing int field 'id'
-		FirstName    string    `pk`                          // custom primary key field 'first_name'
-		LastName     VarChar   `size(128)`                   // varchar field 'last_name' with size 128
-		Tag          VarChar   `default('customer')`         // varchar field 'tag' with size 255
-		CombinedTags VarChar   `size(128):default('orange')` // you can also combine tags
-		Updated      time.Time // timestamp field 'updated'
-		Data         []byte    // data field 'data'
-		IsAdmin      bool      // boolean field 'is_admin'
-		Notes        string    // text field 'notes'
-		// ... and other built in types (int, uint, float...)
-	}
+```go
+type Person struct {
+	Id           hood.Id      // autoincrementing int field 'id'
+	FirstName    string       `pk`                          // custom primary key field 'first_name'
+	LastName     hood.VarChar `size(128)`                   // varchar field 'last_name' with size 128
+	Tag          hood.VarChar `default('customer')`         // varchar field 'tag' with size 255
+	CombinedTags hood.VarChar `size(128):default('orange')` // you can also combine tags
+	Updated      time.Time    // timestamp field 'updated'
+	Data         []byte       // data field 'data'
+	IsAdmin      bool         // boolean field 'is_admin'
+	Notes        string       // text field 'notes'
+	// ... and other built in types (int, uint, float...)
+}
+```
 
 	
 ## Example
 
 ```go
+
+package main
+
+import (
+	"hood"
+)
+
+func main() {
 	hd, err := hood.Open("postgres", "user=hood dbname=hood_test sslmode=disable")
 	if err != nil {
 		panic(err)
@@ -127,4 +137,5 @@ Tables can be declared using the following syntax (please not that this table is
 
 	// Drop
 	hd.DropTable(&Fruit{})
+}
 ```
