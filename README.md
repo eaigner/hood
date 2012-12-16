@@ -12,6 +12,8 @@ Dialects currently supported
 
 - Postgres
 
+Adding a dialect is as simple as copying the original `pg.go`, replacing the statement and field values with the new dialect versions.
+
 ## Open
 
 If the dialect is registered, you can open the database directly using
