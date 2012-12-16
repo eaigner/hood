@@ -24,9 +24,9 @@ or you can pass an existing database and dialect to `hood.New(*sql.DB, hood.Dial
 
 	hd, err := hood.New(db, &Postgres{})
 	
-## Models
+## Schemas
 
-Tables can be declared using the following syntax (please not that this table is only for demonstration purposes and would not produce valid SQL since it has 2 primary keys)
+Schemas can be declared using the following syntax (only for demonstration purposes, would not produce valid SQL since it has 2 primary keys)
 
 ```go
 type Person struct {
