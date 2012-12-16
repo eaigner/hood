@@ -252,7 +252,7 @@ func (hood *Hood) Find(out interface{}) error {
 						field.SetBytes(value.Elem().Bytes())
 					}
 				case reflect.Struct:
-					if field.Type().String() == reflect.TypeOf(time.Time{}).String() {
+					if field.Type() == reflect.TypeOf(time.Time{}) {
 						field.Set(value.Elem())
 					}
 				}
@@ -320,7 +320,7 @@ func (hood *Hood) Save(f interface{}) (Id, error) {
 	structValue := reflect.Indirect(reflect.ValueOf(f))
 	for i := 0; i < structValue.NumField(); i++ {
 		field := structValue.Field(i)
-		if field.Type().String() == reflect.TypeOf(Id(0)).String() {
+		if field.Type() == reflect.TypeOf(Id(0)) {
 			field.SetInt(int64(id))
 		}
 	}
