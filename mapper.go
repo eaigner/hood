@@ -1,3 +1,5 @@
+// Package hood provides a database agnostic, transactional ORM for the sql
+// package
 package hood
 
 import (
@@ -11,6 +13,7 @@ import (
 )
 
 type (
+	// Hood is an ORM handle.
 	Hood struct {
 		Db        *sql.DB
 		Dialect   Dialect
@@ -27,20 +30,28 @@ type (
 		groupBy   string
 		having    string
 	}
-	Id      int64
+
+	// Id represents a auto-incrementing integer primary key type.
+	Id int64
+
+	// Varchar represents a VARCHAR type.
 	VarChar string
-	Model   struct {
+
+	// Model represents a parsed schema interface{}.
+	Model struct {
 		Pk     *Field
 		Table  string
 		Fields []*Field
 	}
+
+	// Field represents a schema field.
 	Field struct {
-		Name    string      // column name
-		Value   interface{} // value
-		IsPk    bool        // primary key
-		NotNull bool        // null allowed
-		Default string      // default value
-		Size    int         // size (e.g. for varchar)
+		Name    string      // Column name
+		Value   interface{} // Value
+		IsPk    bool        // Flag if it is a primary key
+		NotNull bool        // Flag if null values are allowed
+		Default string      // Default value
+		Size    int         // Field size (e.g. for varchar)
 	}
 	qo interface {
 		Prepare(query string) (*sql.Stmt, error)
@@ -50,6 +61,7 @@ type (
 
 var registeredDialects map[string]Dialect = make(map[string]Dialect)
 
+// New creates a new Hood using the specified DB and dialect.
 func New(database *sql.DB, dialect Dialect) *Hood {
 	hood := &Hood{
 		Db:      database,
@@ -61,6 +73,8 @@ func New(database *sql.DB, dialect Dialect) *Hood {
 	return hood
 }
 
+// Open opens a new database connection using the specified driver and data
+// source name. It matches the sql.Open method signature.
 func Open(driverName, dataSourceName string) (*Hood, error) {
 	database, err := sql.Open(driverName, dataSourceName)
 	if err != nil {
@@ -73,10 +87,12 @@ func Open(driverName, dataSourceName string) (*Hood, error) {
 	return New(database, dialect), nil
 }
 
+// RegisterDialect registers a new dialect using the specified name and dialect.
 func RegisterDialect(name string, dialect Dialect) {
 	registeredDialects[name] = dialect
 }
 
+// Reset resets the internal state.
 func (hood *Hood) Reset() {
 	hood.selector = ""
 	hood.where = ""
@@ -90,6 +106,8 @@ func (hood *Hood) Reset() {
 	hood.having = ""
 }
 
+// Begin starts a new transaction and returns a copy of Hood. You have to call
+// subsequent methods on the newly returned object.
 func (hood *Hood) Begin() *Hood {
 	c := new(Hood)
 	*c = *hood
@@ -102,6 +120,7 @@ func (hood *Hood) Begin() *Hood {
 	return c
 }
 
+// Commit commits a started transaction.
 func (hood *Hood) Commit() error {
 	if v, ok := hood.qo.(*sql.Tx); ok {
 		return v.Commit()
@@ -109,6 +128,7 @@ func (hood *Hood) Commit() error {
 	return nil
 }
 
+// Rollback rolls back a started transaction.
 func (hood *Hood) Rollback() error {
 	if v, ok := hood.qo.(*sql.Tx); ok {
 		return v.Rollback()
@@ -116,6 +136,9 @@ func (hood *Hood) Rollback() error {
 	return nil
 }
 
+// Select adds a SELECT clause to the query with the specified columsn and table.
+// The table can either be a string or it's name can be inferred from the passed
+// interface{} type.
 func (hood *Hood) Select(selector string, table interface{}) *Hood {
 	if selector == "" {
 		selector = "*"
@@ -135,6 +158,10 @@ func (hood *Hood) Select(selector string, table interface{}) *Hood {
 	return hood
 }
 
+// Where adds a WHERE clause to the query. The markers are database agnostic, so
+// you can always use ? and it will get replaced with the dialect specific
+// version, for example
+//   Where("id = ?", 3)
 func (hood *Hood) Where(query string, args ...interface{}) *Hood {
 	hood.where = fmt.Sprintf("WHERE %v", query)
 	hood.args = append(hood.args, args...)
@@ -142,39 +169,49 @@ func (hood *Hood) Where(query string, args ...interface{}) *Hood {
 	return hood
 }
 
+// Limit adds a LIMIT clause to the query.
 func (hood *Hood) Limit(limit int) *Hood {
 	hood.limit = "LIMIT ?"
 	hood.args = append(hood.args, limit)
 	return hood
 }
 
+// Offset adds an OFFSET clause to the query.
 func (hood *Hood) Offset(offset int) *Hood {
 	hood.offset = "OFFSET ?"
 	hood.args = append(hood.args, offset)
 	return hood
 }
 
+// OrderBy adds an ORDER BY clause to the query.
 func (hood *Hood) OrderBy(key string) *Hood {
 	hood.orderBy = fmt.Sprintf("ORDER BY %v", key)
 	return hood
 }
 
+// Join performs a JOIN on tables, for example
+//   Join("INNER JOIN", "users", "orders.user_id == users.id")
 func (hood *Hood) Join(op, table, condition string) *Hood {
 	hood.joins = append(hood.joins, fmt.Sprintf("%v JOIN %v ON %v", op, table, condition))
 	return hood
 }
 
+// GroupBy adds a GROUP BY clause to the query.
 func (hood *Hood) GroupBy(key string) *Hood {
 	hood.groupBy = fmt.Sprintf("GROUP BY %v", key)
 	return hood
 }
 
+// Having adds a HAVING clause to the query.
 func (hood *Hood) Having(condition string, args ...interface{}) *Hood {
 	hood.having = fmt.Sprintf("HAVING %v", condition)
 	hood.args = append(hood.args, args...)
 	return hood
 }
 
+// Find performs a find using the previously specified query. If no explicit
+// SELECT clause was specified earlier, the select is inferred from the passed
+// interface type.
 func (hood *Hood) Find(out interface{}) error {
 	defer hood.Reset()
 	panicMsg := errors.New("expected pointer to struct slice *[]struct")
@@ -264,6 +301,7 @@ func (hood *Hood) Find(out interface{}) error {
 	return nil
 }
 
+// Exec executes a raw sql query.
 func (hood *Hood) Exec(query string, args ...interface{}) (sql.Result, error) {
 	defer hood.Reset()
 	query = hood.substituteMarkers(query)
@@ -285,6 +323,9 @@ func (hood *Hood) Exec(query string, args ...interface{}) (sql.Result, error) {
 	return result, nil
 }
 
+// QueryRow executes a query that is expected to return at most one row.
+// QueryRow always return a non-nil value. Errors are deferred until Row's Scan
+// method is called.
 func (hood *Hood) QueryRow(query string, args ...interface{}) *sql.Row {
 	if hood.Log {
 		fmt.Println(query)
@@ -293,6 +334,7 @@ func (hood *Hood) QueryRow(query string, args ...interface{}) *sql.Row {
 	return hood.qo.QueryRow(query, convertSpecialTypes(args)...)
 }
 
+// Save performs an INSERT, or UPDATE if the passed structs Id is set.
 func (hood *Hood) Save(f interface{}) (Id, error) {
 	var (
 		id  Id
@@ -349,12 +391,14 @@ func (hood *Hood) doAll(f interface{}, doFunc func(f2 interface{}) (Id, error)) 
 	return ids, nil
 }
 
+// SaveAll performs an INSERT or UPDATE on a slice of structs.
 func (hood *Hood) SaveAll(f interface{}) ([]Id, error) {
 	return hood.doAll(f, func(f2 interface{}) (Id, error) {
 		return hood.Save(f2)
 	})
 }
 
+// Delete deletes the row matching the specified structs Id.
 func (hood *Hood) Delete(f interface{}) (Id, error) {
 	model, err := interfaceToModel(f)
 	if err != nil {
@@ -367,12 +411,14 @@ func (hood *Hood) Delete(f interface{}) (Id, error) {
 	return id, err
 }
 
+// DeleteAll deletes the rows matching the specified struct slice Ids.
 func (hood *Hood) DeleteAll(f interface{}) ([]Id, error) {
 	return hood.doAll(f, func(f2 interface{}) (Id, error) {
 		return hood.Delete(f2)
 	})
 }
 
+// CreateTable creates a new table based on the provided schema.
 func (hood *Hood) CreateTable(table interface{}) error {
 	model, err := interfaceToModel(table)
 	if err != nil {
@@ -385,6 +431,7 @@ func (hood *Hood) CreateTable(table interface{}) error {
 	return nil
 }
 
+// DropTable drops the table matching the provided table name.
 func (hood *Hood) DropTable(table interface{}) error {
 	model, err := interfaceToModel(table)
 	if err != nil {
