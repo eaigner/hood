@@ -148,6 +148,65 @@ func TestFieldZero(t *testing.T) {
 	}
 }
 
+func TestFieldValidate(t *testing.T) {
+	type Schema struct {
+		A string  `validate:"len(3:6)"`
+		B int     `validate:"range(10:20)"`
+		C VarChar `validate:"len(:4),presence"`
+	}
+	m, _ := interfaceToModel(&Schema{})
+	a := m.Fields[0]
+	if x := len(a.ValidateTags); x != 1 {
+		t.Fatal("wrong len", x)
+	}
+	if x, ok := a.ValidateTags["len"]; !ok || x != "3:6" {
+		t.Fatal("wrong value", x, ok)
+	}
+	if err := a.Validate(); err == nil || err.Error() != "value too short" {
+		t.Fatal("should not validate")
+	}
+	a.Value = "abc"
+	if err := a.Validate(); err != nil {
+		t.Fatal("should validate", err)
+	}
+	a.Value = "abcdefg"
+	if err := a.Validate(); err == nil || err.Error() != "value too long" {
+		t.Fatal("should not validate")
+	}
+
+	b := m.Fields[1]
+	if x := len(b.ValidateTags); x != 1 {
+		t.Fatal("wrong len", x)
+	}
+	if err := b.Validate(); err == nil || err.Error() != "value too small" {
+		t.Fatal("should not validate")
+	}
+	b.Value = 10
+	if err := b.Validate(); err != nil {
+		t.Fatal("should validate", err)
+	}
+	b.Value = 21
+	if err := b.Validate(); err == nil || err.Error() != "value too big" {
+		t.Fatal("should not validate")
+	}
+
+	c := m.Fields[2]
+	if x := len(c.ValidateTags); x != 2 {
+		t.Fatal("wrong len", x)
+	}
+	if err := c.Validate(); err == nil || err.Error() != "value not set" {
+		t.Fatal("should not validate")
+	}
+	c.Value = "a"
+	if err := c.Validate(); err != nil {
+		t.Fatal("should validate", err)
+	}
+	c.Value = "abcde"
+	if err := c.Validate(); err == nil || err.Error() != "value too long" {
+		t.Fatal("should not validate")
+	}
+}
+
 func TestInterfaceToModel(t *testing.T) {
 	type table struct {
 		ColPrimary    Id

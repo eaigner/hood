@@ -7,15 +7,28 @@ import (
 )
 
 type Person struct {
-	Id           hood.Id      // autoincrementing int field 'id'
-	FirstName    string       `sql:"pk"`                          // custom primary key field 'first_name'
-	LastName     hood.VarChar `sql:"size(128),notnull"`           // varchar field 'last_name' with size 128, NOT NULL
-	Tag          hood.VarChar `sql:"default('customer')"`         // varchar field 'tag' with size 255, default value 'customer'
-	CombinedTags hood.VarChar `sql:"size(128),default('orange')"` // you can also combine tags, default value 'orange'
+	// Auto-incrementing int field 'id'
+	Id hood.Id
+
+	// Custom primary key field 'first_name', with presence validation
+	FirstName string `sql:"pk" validate:"presence"`
+
+	// Varchar field 'last_name' with size 128, NOT NULL
+	LastName hood.VarChar `sql:"size(128),notnull"`
+
+	// Varchar field 'tag' with size 255, default value 'customer'
+	Tag hood.VarChar `sql:"default('customer')"`
+
+	// You can also combine tags, default value 'orange'
+	CombinedTags hood.VarChar `sql:"size(128),default('orange')"`
 	Updated      time.Time    // timestamp field 'updated'
 	Data         []byte       // data field 'data'
 	IsAdmin      bool         // boolean field 'is_admin'
 	Notes        string       // text field 'notes'
+
+	// Validates number range
+	Balance int `validate:"range(10:20)"`
+
 	// ... and other built in types (int, uint, float...)
 }
 
@@ -29,7 +42,7 @@ func main() {
 	// Create a table
 	type Fruit struct {
 		Id    hood.Id
-		Name  string
+		Name  string `validate:"presence"`
 		Color string
 	}
 
@@ -79,6 +92,12 @@ func main() {
 
 	if fruits[0].Id != 1 || fruits[1].Id != 2 || fruits[2].Id != 3 {
 		panic("id not set")
+	}
+
+	// Let's try to save a row that does not satisfy the required validations
+	_, err = hd.Save(&Fruit{})
+	if err == nil || err.Error() != "value not set" {
+		panic("does not satisfy validations, should not save")
 	}
 
 	// Find

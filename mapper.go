@@ -46,9 +46,10 @@ type (
 
 	// Field represents a schema field.
 	Field struct {
-		Name    string            // Column name
-		Value   interface{}       // Value
-		SqlTags map[string]string // The struct tags for this field
+		Name         string            // Column name
+		Value        interface{}       // Value
+		SqlTags      map[string]string // The sql struct tags for this field
+		ValidateTags map[string]string // The validate struct tags for this field
 	}
 	qo interface {
 		Prepare(query string) (*sql.Stmt, error)
@@ -56,7 +57,7 @@ type (
 	}
 )
 
-// PrimaryKey tests if the field is declared using the sql tag "pk or is of type Id
+// PrimaryKey tests if the field is declared using the sql tag "pk" or is of type Id
 func (field *Field) PrimaryKey() bool {
 	_, isPk := field.SqlTags["pk"]
 	_, isId := field.Value.(Id)
@@ -88,6 +89,126 @@ func (field *Field) Size() int {
 func (field *Field) Zero() bool {
 	x := field.Value
 	return x == nil || x == reflect.Zero(reflect.TypeOf(x)).Interface()
+}
+
+// String returns the field string value and a bool flag indicating if the
+// conversion was successful
+func (field *Field) String() (string, bool) {
+	switch t := field.Value.(type) {
+	case string:
+		return t, true
+	case VarChar:
+		return string(t), true
+	}
+	return "", false
+}
+
+// Int returns the field int value and a bool flag indication if the conversion
+// was successful
+func (field *Field) Int() (int64, bool) {
+	switch t := field.Value.(type) {
+	case int, int8, int16, int32, int64:
+		return reflect.ValueOf(t).Int(), true
+	case uint, uint8, uint16, uint32, uint64:
+		return int64(reflect.ValueOf(t).Uint()), true
+	}
+	return 0, false
+}
+
+// Validate tests if the field conforms to it's validation constraints specified
+// int the "validate" struct tag
+func (field *Field) Validate() error {
+	// length
+	if tuple, ok := field.ValidateTags["len"]; ok {
+		s, ok := field.String()
+		if ok {
+			if err := validateLen(s, tuple); err != nil {
+				return err
+			}
+		}
+	}
+	// range
+	if tuple, ok := field.ValidateTags["range"]; ok {
+		i, ok := field.Int()
+		if ok {
+			if err := validateRange(i, tuple); err != nil {
+				return err
+			}
+		}
+	}
+	// presence
+	if _, ok := field.ValidateTags["presence"]; ok {
+		if field.Zero() {
+			return errors.New("value not set")
+		}
+	}
+	return nil
+}
+
+func parseTuple(tuple string) (string, string) {
+	c := strings.Split(tuple, ":")
+	a := c[0]
+	b := c[1]
+	if len(c) != 2 || (len(a) == 0 && len(b) == 0) {
+		panic("invalid validation tuple")
+	}
+	return a, b
+}
+
+func validateLen(s, tuple string) error {
+	a, b := parseTuple(tuple)
+	if len(a) > 0 {
+		min, err := strconv.Atoi(a)
+		if err != nil {
+			panic(err)
+		}
+		if len(s) < min {
+			return errors.New("value too short")
+		}
+	}
+	if len(b) > 0 {
+		max, err := strconv.Atoi(b)
+		if err != nil {
+			panic(err)
+		}
+		if len(s) > max {
+			return errors.New("value too long")
+		}
+	}
+	return nil
+}
+
+func validateRange(i int64, tuple string) error {
+	a, b := parseTuple(tuple)
+	if len(a) > 0 {
+		min, err := strconv.ParseInt(a, 10, 64)
+		if err != nil {
+			return err
+		}
+		if i < min {
+			return errors.New("value too small")
+		}
+	}
+	if len(b) > 0 {
+		max, err := strconv.ParseInt(b, 10, 64)
+		if err != nil {
+			return err
+		}
+		if i > max {
+			return errors.New("value too big")
+		}
+	}
+	return nil
+}
+
+func (model *Model) Validate() error {
+	for _, field := range model.Fields {
+		err := field.Validate()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 var registeredDialects map[string]Dialect = make(map[string]Dialect)
@@ -365,6 +486,19 @@ func (hood *Hood) QueryRow(query string, args ...interface{}) *sql.Row {
 	return hood.qo.QueryRow(query, convertSpecialTypes(args)...)
 }
 
+// Validate validates the provided struct
+func (hood *Hood) Validate(f interface{}) error {
+	model, err := interfaceToModel(f)
+	if err != nil {
+		return err
+	}
+	err = model.Validate()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // Save performs an INSERT, or UPDATE if the passed structs Id is set.
 func (hood *Hood) Save(f interface{}) (Id, error) {
 	var (
@@ -372,6 +506,10 @@ func (hood *Hood) Save(f interface{}) (Id, error) {
 		err error
 	)
 	model, err := interfaceToModel(f)
+	if err != nil {
+		return -1, err
+	}
+	err = model.Validate()
 	if err != nil {
 		return -1, err
 	}
@@ -673,9 +811,10 @@ func interfaceToModel(f interface{}) (*Model, error) {
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
 		fd := &Field{
-			Name:    toSnake(field.Name),
-			Value:   v.FieldByName(field.Name).Interface(),
-			SqlTags: parseTags(field.Tag.Get("sql")),
+			Name:         toSnake(field.Name),
+			Value:        v.FieldByName(field.Name).Interface(),
+			SqlTags:      parseTags(field.Tag.Get("sql")),
+			ValidateTags: parseTags(field.Tag.Get("validate")),
 		}
 		if fd.PrimaryKey() {
 			m.Pk = fd
