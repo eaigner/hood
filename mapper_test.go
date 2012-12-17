@@ -68,16 +68,17 @@ func TestSubstituteMarkers(t *testing.T) {
 func TestQuerySQL(t *testing.T) {
 	hood := New(nil, &Postgres{})
 	hood.Select("*", &sampleModel{})
-	hood.Where("id = ?", "erik")
+	hood.Where("id = ?", 2)
+	hood.Where("category_id = ?", 5)
 	hood.Join("INNER", "orders", "users.id == orders.id")
 	hood.GroupBy("name")
 	hood.Having("SUM(price) < ?", 2000)
 	hood.OrderBy("first_name")
 	hood.Offset(3)
 	hood.Limit(10)
-	sql := hood.querySql()
-	if sql != `SELECT * FROM sample_model INNER JOIN orders ON users.id == orders.id WHERE id = $1 GROUP BY name HAVING SUM(price) < $2 ORDER BY first_name LIMIT $3 OFFSET $4` {
-		t.Fatalf("invalid sql: '%v'", sql)
+	query := hood.querySql()
+	if query != `SELECT * FROM sample_model INNER JOIN orders ON users.id == orders.id WHERE id = $1 AND category_id = $2 GROUP BY name HAVING SUM(price) < $3 ORDER BY first_name LIMIT $4 OFFSET $5` {
+		t.Fatalf("invalid query: '%v'", query)
 	}
 }
 

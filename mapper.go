@@ -20,7 +20,7 @@ type (
 		Log       bool
 		qo        qo // the query object
 		selector  string
-		where     string
+		where     []string
 		args      []interface{}
 		markerPos int
 		limit     string
@@ -247,7 +247,7 @@ func RegisterDialect(name string, dialect Dialect) {
 // Reset resets the internal state.
 func (hood *Hood) Reset() {
 	hood.selector = ""
-	hood.where = ""
+	hood.where = make([]string, 0, 10)
 	hood.args = []interface{}{}
 	hood.markerPos = 0
 	hood.limit = ""
@@ -315,7 +315,7 @@ func (hood *Hood) Select(selector string, table interface{}) *Hood {
 // version, for example
 //   Where("id = ?", 3)
 func (hood *Hood) Where(query string, args ...interface{}) *Hood {
-	hood.where = fmt.Sprintf("WHERE %v", query)
+	hood.where = append(hood.where, query)
 	hood.args = append(hood.args, args...)
 
 	return hood
@@ -698,8 +698,8 @@ func (hood *Hood) querySql() string {
 	for _, join := range hood.joins {
 		query = append(query, join)
 	}
-	if x := hood.where; x != "" {
-		query = append(query, x)
+	if x := hood.where; len(x) > 0 {
+		query = append(query, fmt.Sprintf("WHERE %v", strings.Join(x, " AND ")))
 	}
 	if x := hood.groupBy; x != "" {
 		query = append(query, x)
