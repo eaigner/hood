@@ -46,9 +46,9 @@ type (
 
 	// Field represents a schema field.
 	Field struct {
-		Name  string            // Column name
-		Value interface{}       // Value
-		Tags  map[string]string // The struct tags for this field
+		Name    string            // Column name
+		Value   interface{}       // Value
+		SqlTags map[string]string // The struct tags for this field
 	}
 	qo interface {
 		Prepare(query string) (*sql.Stmt, error)
@@ -59,25 +59,25 @@ type (
 // PrimaryKey returns true if the field is declared using the struct tag 
 // sql:"pk" or is of type Id
 func (field *Field) PrimaryKey() bool {
-	_, isPk := field.Tags["pk"]
+	_, isPk := field.SqlTags["pk"]
 	_, isId := field.Value.(Id)
 	return isPk || isId
 }
 
 // NotNull returns wether or not the field is declared as NOT NULL
 func (field *Field) NotNull() bool {
-	_, ok := field.Tags["notnull"]
+	_, ok := field.SqlTags["notnull"]
 	return ok
 }
 
 // Default returns the default value for the field
 func (field *Field) Default() string {
-	return field.Tags["default"]
+	return field.SqlTags["default"]
 }
 
 // Size returns the field size, e.g. for varchars
 func (field *Field) Size() int {
-	v, ok := field.Tags["size"]
+	v, ok := field.SqlTags["size"]
 	if ok {
 		i, _ := strconv.Atoi(v)
 		return i
@@ -675,9 +675,9 @@ func interfaceToModel(f interface{}) (*Model, error) {
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
 		fd := &Field{
-			Name:  toSnake(field.Name),
-			Value: v.FieldByName(field.Name).Interface(),
-			Tags:  parseTags(field.Tag.Get("sql")),
+			Name:    toSnake(field.Name),
+			Value:   v.FieldByName(field.Name).Interface(),
+			SqlTags: parseTags(field.Tag.Get("sql")),
 		}
 		if fd.PrimaryKey() {
 			m.Pk = fd
