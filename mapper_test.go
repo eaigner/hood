@@ -144,31 +144,31 @@ func TestInterfaceToModel(t *testing.T) {
 	if x, ok := f.Value.(Id); !ok || x != 6 {
 		t.Fatal("wrong value", x)
 	}
-	if !f.IsPk {
+	if !f.PrimaryKey() {
 		t.Fatal("wrong value")
 	}
 	f = m.Fields[1]
 	if x, ok := f.Value.(string); !ok || x != "banana" {
 		t.Fatal("wrong value", x)
 	}
-	if !f.IsPk {
+	if !f.PrimaryKey() {
 		t.Fatal("wrong value")
 	}
 	f = m.Fields[2]
 	if x, ok := f.Value.(string); !ok || x != "" {
 		t.Fatal("wrong value", x)
 	}
-	if f.Default != "'banana'" {
-		t.Fatal("should value", f.Default)
+	if f.Default() != "'banana'" {
+		t.Fatal("should value", f.Default())
 	}
-	if !f.NotNull {
+	if !f.NotNull() {
 		t.Fatal("wrong value")
 	}
 	f = m.Fields[3]
 	if x, ok := f.Value.(VarChar); !ok || x != "orange" {
 		t.Fatal("wrong value", x)
 	}
-	if x := f.Size; x != 64 {
+	if x := f.Size(); x != 64 {
 		t.Fatal("wrong value", x)
 	}
 	f = m.Fields[4]

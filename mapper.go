@@ -46,18 +46,44 @@ type (
 
 	// Field represents a schema field.
 	Field struct {
-		Name    string      // Column name
-		Value   interface{} // Value
-		IsPk    bool        // Flag if it is a primary key
-		NotNull bool        // Flag if null values are allowed
-		Default string      // Default value
-		Size    int         // Field size (e.g. for varchar)
+		Name  string            // Column name
+		Value interface{}       // Value
+		Tags  map[string]string // The struct tags for this field
 	}
 	qo interface {
 		Prepare(query string) (*sql.Stmt, error)
 		QueryRow(query string, args ...interface{}) *sql.Row
 	}
 )
+
+// PrimaryKey returns true if the field is declared using the struct tag 
+// sql:"pk" or is of type Id
+func (field *Field) PrimaryKey() bool {
+	_, isPk := field.Tags["pk"]
+	_, isId := field.Value.(Id)
+	return isPk || isId
+}
+
+// NotNull returns wether or not the field is declared as NOT NULL
+func (field *Field) NotNull() bool {
+	_, ok := field.Tags["notnull"]
+	return ok
+}
+
+// Default returns the default value for the field
+func (field *Field) Default() string {
+	return field.Tags["default"]
+}
+
+// Size returns the field size, e.g. for varchars
+func (field *Field) Size() int {
+	v, ok := field.Tags["size"]
+	if ok {
+		i, _ := strconv.Atoi(v)
+		return i
+	}
+	return 0
+}
 
 var registeredDialects map[string]Dialect = make(map[string]Dialect)
 
@@ -562,18 +588,18 @@ func (hood *Hood) createTableSql(model *Model) string {
 	for i, field := range model.Fields {
 		b := []string{
 			field.Name,
-			hood.Dialect.SqlType(field.Value, field.Size),
+			hood.Dialect.SqlType(field.Value, field.Size()),
 		}
-		if incStmt := hood.Dialect.StmtAutoIncrement(); field.IsPk && incStmt != "" {
+		if incStmt := hood.Dialect.StmtAutoIncrement(); field.PrimaryKey() && incStmt != "" {
 			b = append(b, incStmt)
 		}
-		if field.NotNull {
+		if field.NotNull() {
 			b = append(b, hood.Dialect.StmtNotNull())
 		}
-		if field.Default != "" {
-			b = append(b, hood.Dialect.StmtDefault(field.Default))
+		if x := field.Default(); x != "" {
+			b = append(b, hood.Dialect.StmtDefault(x))
 		}
-		if field.IsPk {
+		if field.PrimaryKey() {
 			b = append(b, hood.Dialect.StmtPrimaryKey())
 		}
 		a = append(a, strings.Join(b, " "))
@@ -592,7 +618,7 @@ func (hood *Hood) keysValuesAndMarkersForModel(model *Model) ([]string, []interf
 	values := make([]interface{}, 0, max)
 	markers := make([]string, 0, max)
 	for _, field := range model.Fields {
-		if !field.IsPk {
+		if !field.PrimaryKey() {
 			keys = append(keys, field.Name)
 			markers = append(markers, hood.nextMarker())
 			values = append(values, field.Value)
@@ -648,29 +674,12 @@ func interfaceToModel(f interface{}) (*Model, error) {
 	}
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
-		tags := parseTags(field.Tag.Get("sql"))
-		_, isPk := tags["pk"]
-		isPk = isPk || field.Type == reflect.TypeOf(Id(0))
-		_, notNull := tags["notnull"]
-		defVal, defOk := tags["default"]
-		sizeVal, sizeOk := tags["size"]
 		fd := &Field{
-			Name:    toSnake(field.Name),
-			Value:   v.FieldByName(field.Name).Interface(),
-			IsPk:    isPk,
-			NotNull: notNull,
+			Name:  toSnake(field.Name),
+			Value: v.FieldByName(field.Name).Interface(),
+			Tags:  parseTags(field.Tag.Get("sql")),
 		}
-		// set default value
-		if defOk {
-			fd.Default = defVal
-		}
-		// set size
-		if sizeOk {
-			intVal, _ := strconv.Atoi(sizeVal)
-			fd.Size = intVal
-		}
-		// if it's a primary key, set reference
-		if isPk {
+		if fd.PrimaryKey() {
 			m.Pk = fd
 		}
 		m.Fields = append(m.Fields, fd)
