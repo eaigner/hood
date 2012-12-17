@@ -56,15 +56,14 @@ type (
 	}
 )
 
-// PrimaryKey returns true if the field is declared using the struct tag 
-// sql:"pk" or is of type Id
+// PrimaryKey tests if the field is declared using the sql tag "pk or is of type Id
 func (field *Field) PrimaryKey() bool {
 	_, isPk := field.SqlTags["pk"]
 	_, isId := field.Value.(Id)
 	return isPk || isId
 }
 
-// NotNull returns wether or not the field is declared as NOT NULL
+// NotNull tests if the field is declared as NOT NULL
 func (field *Field) NotNull() bool {
 	_, ok := field.SqlTags["notnull"]
 	return ok
@@ -83,6 +82,12 @@ func (field *Field) Size() int {
 		return i
 	}
 	return 0
+}
+
+// Zero tests wether or not the field is set
+func (field *Field) Zero() bool {
+	x := field.Value
+	return x == nil || x == reflect.Zero(reflect.TypeOf(x)).Interface()
 }
 
 var registeredDialects map[string]Dialect = make(map[string]Dialect)
@@ -370,14 +375,7 @@ func (hood *Hood) Save(f interface{}) (Id, error) {
 	if err != nil {
 		return -1, err
 	}
-	update := false
-	if model.Pk != nil {
-		// FIXME: primary key must not necessarily be of type Id
-		if v, ok := model.Pk.Value.(Id); ok && v > 0 {
-			update = true
-		}
-	}
-	if update {
+	if model.Pk != nil && !model.Pk.Zero() {
 		id, err = hood.update(model)
 	} else {
 		id, err = hood.insert(model)

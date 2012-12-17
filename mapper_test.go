@@ -112,6 +112,42 @@ func TestParseTags(t *testing.T) {
 	}
 }
 
+func TestFieldZero(t *testing.T) {
+	field := &Field{}
+	field.Value = nil
+	if !field.Zero() {
+		t.Fatal("should be zero")
+	}
+	field.Value = 0
+	if !field.Zero() {
+		t.Fatal("should be zero")
+	}
+	field.Value = ""
+	if !field.Zero() {
+		t.Fatal("should be zero")
+	}
+	field.Value = false
+	if !field.Zero() {
+		t.Fatal("should be zero")
+	}
+	field.Value = true
+	if field.Zero() {
+		t.Fatal("should not be zero")
+	}
+	field.Value = -1
+	if field.Zero() {
+		t.Fatal("should not be zero")
+	}
+	field.Value = 1
+	if field.Zero() {
+		t.Fatal("should not be zero")
+	}
+	field.Value = "asdf"
+	if field.Zero() {
+		t.Fatal("should not be zero")
+	}
+}
+
 func TestInterfaceToModel(t *testing.T) {
 	type table struct {
 		ColPrimary    Id
