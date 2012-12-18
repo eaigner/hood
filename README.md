@@ -87,7 +87,7 @@ For example:
 
 ```go
 func (u *User) ValidateUsername() error {
-	rx := regexp.MustCompile(`[a-z0-9]`)
+	rx := regexp.MustCompile(`[a-z0-9]+`)
 	if !rx.MatchString(u.Name) {
 		return errors.New("username contains invalid characters")
 	}
