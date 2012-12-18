@@ -475,6 +475,22 @@ func (hood *Hood) Validate(f interface{}) error {
 	if err != nil {
 		return err
 	}
+	// call validate methods
+	typ := reflect.TypeOf(f)
+	for i := 0; i < typ.NumMethod(); i++ {
+		method := typ.Method(i)
+		if strings.HasPrefix(method.Name, "Validate") {
+			ft := method.Func.Type()
+			if ft.NumOut() == 1 &&
+				ft.NumIn() == 1 &&
+				ft.Out(0) != reflect.TypeOf(errors.New("")) {
+				v := reflect.ValueOf(f).Method(i).Call([]reflect.Value{})
+				if vdErr := v[0].Interface(); vdErr != nil {
+					return vdErr.(error)
+				}
+			}
+		}
+	}
 	return nil
 }
 

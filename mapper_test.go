@@ -1,6 +1,7 @@
 package hood
 
 import (
+	"errors"
 	"testing"
 	"time"
 )
@@ -205,6 +206,46 @@ func TestFieldValidate(t *testing.T) {
 	c.Value = "abcde"
 	if err := c.Validate(); err == nil || err.Error() != "value too long" {
 		t.Fatal("should not validate")
+	}
+}
+
+type validateSchema struct {
+	A string
+}
+
+var numValidateFuncCalls = 0
+
+func (v *validateSchema) ValidateX() error {
+	numValidateFuncCalls++
+	if v.A == "banana" {
+		return errors.New("value cannot be banana")
+	}
+	return nil
+}
+
+func (v *validateSchema) ValidateY() error {
+	numValidateFuncCalls++
+	return errors.New("ValidateY failed")
+}
+
+func TestValidationMethods(t *testing.T) {
+	hd := New(nil, &Postgres{})
+	m := &validateSchema{}
+	err := hd.Validate(m)
+	if err == nil || err.Error() != "ValidateY failed" {
+		t.Fatal("wrong error", err)
+	}
+	if numValidateFuncCalls != 2 {
+		t.Fatal("should have called validation func")
+	}
+	numValidateFuncCalls = 0
+	m.A = "banana"
+	err = hd.Validate(m)
+	if err == nil || err.Error() != "value cannot be banana" {
+		t.Fatal("wrong error", err)
+	}
+	if numValidateFuncCalls != 1 {
+		t.Fatal("should have called validation func")
 	}
 }
 
