@@ -106,7 +106,7 @@ func (u *User) BeforeUpdate() error {
 }
 ```
 
-If the hooks returns an error on a `Before-` action it **is not performed**!
+If the hook returns an error on a `Before-` action it **is not performed**!
 
 The following hooks are defined:
 
