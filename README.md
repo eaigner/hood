@@ -80,6 +80,21 @@ Besides the `sql:` struct tag, you can specify a `validate:` tag for model valid
 
 You can also define multiple validations on one field, e.g. `validate:"len(:12),presence"`
 
+For more complex validations you can use custom validation methods. The methods
+are added to the schema and must start with `Validate` and return an `error`.
+
+For example:
+
+```go
+func (u *User) ValidateUsername() error {
+	rx := regexp.MustCompile(`[a-z0-9]`)
+	if !rx.MatchString(u.Name) {
+		return errors.New("username contains invalid characters")
+	}
+	return nil
+}
+```
+
 ## Example
 
 ```go
