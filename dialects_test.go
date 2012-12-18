@@ -195,21 +195,64 @@ func DoTestSaveAndDelete(t *testing.T, info dialectInfo) {
 	}
 }
 
-func TestSaveAllDeleteAll(t *testing.T) {
+func TestSaveDeleteAllAndHooks(t *testing.T) {
 	for _, info := range toRun {
-		DoTestSaveAllDeleteAll(t, info)
+		DoTestSaveDeleteAllAndHooks(t, info)
 	}
 }
 
-func DoTestSaveAllDeleteAll(t *testing.T, info dialectInfo) {
-	type sdAllModel struct {
-		Id Id
-		A  string
-	}
+type sdAllModel struct {
+	Id Id
+	A  string
+}
 
+var sdAllHooksCalled int
+
+func (m *sdAllModel) BeforeSave() error {
+	sdAllHooksCalled++
+	return nil
+}
+
+func (m *sdAllModel) AfterSave() error {
+	sdAllHooksCalled++
+	return nil
+}
+
+func (m *sdAllModel) BeforeInsert() error {
+	sdAllHooksCalled++
+	return nil
+}
+
+func (m *sdAllModel) AfterInsert() error {
+	sdAllHooksCalled++
+	return nil
+}
+
+func (m *sdAllModel) BeforeUpdate() error {
+	sdAllHooksCalled++
+	return nil
+}
+
+func (m *sdAllModel) AfterUpdate() error {
+	sdAllHooksCalled++
+	return nil
+}
+
+func (m *sdAllModel) BeforeDelete() error {
+	sdAllHooksCalled++
+	return nil
+}
+
+func (m *sdAllModel) AfterDelete() error {
+	sdAllHooksCalled++
+	return nil
+}
+
+func DoTestSaveDeleteAllAndHooks(t *testing.T, info dialectInfo) {
 	hd := info.setupDbFunc(t)
 	hd.DropTable(&sdAllModel{})
 
+	sdAllHooksCalled = 0
 	models := []sdAllModel{
 		sdAllModel{A: "A"},
 		sdAllModel{A: "B"},
@@ -240,9 +283,15 @@ func DoTestSaveAllDeleteAll(t *testing.T, info dialectInfo) {
 		t.Fatal("wrong id", x)
 	}
 
+	hd.SaveAll(&models) // force update for hooks test 
+
 	_, err = hd.DeleteAll(&models)
 	if err != nil {
 		t.Fatal("error not nil", err)
+	}
+
+	if sdAllHooksCalled != 20 {
+		t.Fatal("wrong hook call count", sdAllHooksCalled)
 	}
 }
 

@@ -95,6 +95,24 @@ func (u *User) ValidateUsername() error {
 }
 ```
 
+## Hooks
+
+You can add hooks to a model to run on a specific action like so:
+
+```go
+func (u *User) BeforeSave() error {
+	u.Updated = time.Now()
+	return nil
+}
+```
+
+The following hooks are defined:
+
+- `Before/AfterSave`
+- `Before/AfterInsert`
+- `Before/AfterUpdate`
+- `Before/AfterDelete`
+
 ## Example
 
 ```go

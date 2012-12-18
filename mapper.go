@@ -476,10 +476,19 @@ func (hood *Hood) Validate(f interface{}) error {
 		return err
 	}
 	// call validate methods
+	err = callModelMethod(f, "Validate", true)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func callModelMethod(f interface{}, methodName string, isPrefix bool) error {
 	typ := reflect.TypeOf(f)
 	for i := 0; i < typ.NumMethod(); i++ {
 		method := typ.Method(i)
-		if strings.HasPrefix(method.Name, "Validate") {
+		if (isPrefix && strings.HasPrefix(method.Name, methodName)) ||
+			(!isPrefix && method.Name == methodName) {
 			ft := method.Func.Type()
 			if ft.NumOut() == 1 &&
 				ft.NumIn() == 1 {
@@ -496,25 +505,44 @@ func (hood *Hood) Validate(f interface{}) error {
 // Save performs an INSERT, or UPDATE if the passed structs Id is set.
 func (hood *Hood) Save(f interface{}) (Id, error) {
 	var (
-		id  Id
+		id  Id = -1
 		err error
 	)
 	model, err := interfaceToModel(f)
 	if err != nil {
-		return -1, err
+		return id, err
 	}
 	err = model.Validate()
 	if err != nil {
-		return -1, err
+		return id, err
+	}
+	err = callModelMethod(f, "BeforeSave", false)
+	if err != nil {
+		return id, err
 	}
 	if model.Pk != nil && !model.Pk.Zero() {
+		err = callModelMethod(f, "BeforeUpdate", false)
+		if err != nil {
+			return id, err
+		}
 		id, err = hood.update(model)
+		if err == nil {
+			err = callModelMethod(f, "AfterUpdate", false)
+		}
 	} else {
+		err = callModelMethod(f, "BeforeInsert", false)
+		if err != nil {
+			return id, err
+		}
 		id, err = hood.insert(model)
+		if err == nil {
+			err = callModelMethod(f, "AfterInsert", false)
+		}
 	}
 	if err != nil {
-		return -1, err
+		return id, err
 	}
+	callModelMethod(f, "AfterSave", false)
 	// update model id after save
 	structValue := reflect.Indirect(reflect.ValueOf(f))
 	for i := 0; i < structValue.NumField(); i++ {
@@ -560,10 +588,15 @@ func (hood *Hood) Delete(f interface{}) (Id, error) {
 	if err != nil {
 		return -1, err
 	}
+	err = callModelMethod(f, "BeforeDelete", false)
+	if err != nil {
+		return -1, nil
+	}
 	id, err := hood.delete(model)
 	if err != nil {
 		return -1, err
 	}
+	err = callModelMethod(f, "AfterDelete", false)
 	return id, err
 }
 
