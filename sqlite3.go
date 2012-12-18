@@ -12,16 +12,16 @@ func init() {
 	// It's probably not a good idea to register the dialect by default since
 	// it requires specific packages to be installed on the target system!
 	// 
-	// RegisterDialect("sqlite3", &Sqlite{})
+	// RegisterDialect("sqlite3", &Sqlite3{})
 }
 
-type Sqlite struct{}
+type Sqlite3 struct{}
 
-func (d *Sqlite) Marker(pos int) string {
+func (d *Sqlite3) Marker(pos int) string {
 	return fmt.Sprintf("$%d", pos+1)
 }
 
-func (d *Sqlite) SqlType(f interface{}, size int) string {
+func (d *Sqlite3) SqlType(f interface{}, size int) string {
 	switch f.(type) {
 	case Id:
 		return "integer"
@@ -44,7 +44,7 @@ func (d *Sqlite) SqlType(f interface{}, size int) string {
 	panic("invalid sql type")
 }
 
-func (d *Sqlite) ValueToField(value reflect.Value, field reflect.Value) error {
+func (d *Sqlite3) ValueToField(value reflect.Value, field reflect.Value) error {
 	switch field.Type().Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		field.SetInt(value.Elem().Int())
@@ -84,22 +84,22 @@ func (d *Sqlite) ValueToField(value reflect.Value, field reflect.Value) error {
 	return nil
 }
 
-func (d *Sqlite) Insert(hood *Hood, model *Model, query string, args ...interface{}) (Id, error, bool) {
+func (d *Sqlite3) Insert(hood *Hood, model *Model, query string, args ...interface{}) (Id, error, bool) {
 	return -1, nil, false
 }
 
-func (d *Sqlite) StmtNotNull() string {
+func (d *Sqlite3) StmtNotNull() string {
 	return "NOT NULL"
 }
 
-func (d *Sqlite) StmtDefault(s string) string {
+func (d *Sqlite3) StmtDefault(s string) string {
 	return fmt.Sprintf("DEFAULT %v", s)
 }
 
-func (d *Sqlite) StmtPrimaryKey() string {
+func (d *Sqlite3) StmtPrimaryKey() string {
 	return "PRIMARY KEY"
 }
 
-func (d *Sqlite) StmtAutoIncrement() string {
+func (d *Sqlite3) StmtAutoIncrement() string {
 	return "AUTOINCREMENT"
 }

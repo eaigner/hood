@@ -25,7 +25,7 @@ var toRun = []dialectInfo{
 // 	`CREATE TABLE with_pk ( primary bigserial PRIMARY KEY, first text, last text, amount integer )`,
 // },
 // dialectInfo{
-// 	&Sqlite{},
+// 	&Sqlite3{},
 // 	setupSqlite3Db,
 // 	`CREATE TABLE without_pk ( first text, last text, amount integer )`,
 // 	`CREATE TABLE with_pk ( primary integer PRIMARY KEY AUTOINCREMENT, first text, last text, amount integer )`,
@@ -40,22 +40,24 @@ type dialectInfo struct {
 }
 
 func setupPgDb(t *testing.T) *Hood {
-	hd, err := Open("postgres", "user=hood dbname=hood_test sslmode=disable")
+	db, err := sql.Open("postgres", "user=hood dbname=hood_test sslmode=disable")
 	if err != nil {
 		t.Fatal("could not open db", err)
 	}
+	hd := New(db, &Postgres{})
 	hd.Log = true
 	return hd
 }
 
 func setupSqlite3Db(t *testing.T) *Hood {
 	os.Remove("/tmp/foo.db")
-	hood, err := Open("sqlite3", "/tmp/foo.db")
+	db, err := sql.Open("sqlite3", "/tmp/foo.db")
 	if err != nil {
 		t.Fatal("could not open db", err)
 	}
-	hood.Log = true
-	return hood
+	hd := New(db, &Sqlite3{})
+	hd.Log = true
+	return hd
 }
 
 func TestTransaction(t *testing.T) {
@@ -515,7 +517,7 @@ func TestSqlTypeForPgDialect(t *testing.T) {
 }
 
 func TestSqlTypeForSqlite3Dialect(t *testing.T) {
-	d := &Sqlite{}
+	d := &Sqlite3{}
 	if x := d.SqlType(true, 0); x != "integer" {
 		t.Fatal("wrong type", x)
 	}
