@@ -4,6 +4,7 @@ Hood is a database agnostic ORM for Go developed by [@eaignr](https://twitter.co
 
 - Chainable API
 - Transaction support
+- Model validations
 - Database dialect interface
 - No implicit fields
 - Clean and testable codebase
