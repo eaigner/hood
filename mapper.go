@@ -482,11 +482,10 @@ func (hood *Hood) Validate(f interface{}) error {
 		if strings.HasPrefix(method.Name, "Validate") {
 			ft := method.Func.Type()
 			if ft.NumOut() == 1 &&
-				ft.NumIn() == 1 &&
-				ft.Out(0) != reflect.TypeOf(errors.New("")) {
+				ft.NumIn() == 1 {
 				v := reflect.ValueOf(f).Method(i).Call([]reflect.Value{})
-				if vdErr := v[0].Interface(); vdErr != nil {
-					return vdErr.(error)
+				if vdErr, ok := v[0].Interface().(error); ok {
+					return vdErr
 				}
 			}
 		}
