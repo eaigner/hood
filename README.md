@@ -66,11 +66,15 @@ Schema creation is completely optional, you can use any other tool you like.
 
 Besides the `sql:` struct tag, you can specify a `validate:` tag for model validation:
 
-- `presence`: validates that a field is set
-- `len(min:max)`: validates that a `string` or `VarChar` field has a specified min or max length. You can also omit values if you just want a min or max limit like so `len(min:)`, however the `:` is always required!
-- `range(min:max)`: validates that an int value lies in the specific range, or has a specified min or max value (e.g. for max only `range(:max)`)
+- `presence` validates that a field is set
+- `len(min:max)` validates that a `string` or `VarChar` field’s length lies within the specified range
+	- `len(min:)` validates that it has the specified min length, 
+	- `len(:max)` or max length
+- `range(min:max)` validates that an `int` value lies in the specific range
+	- `range(min:)` validates that it has the specified min value,
+	- `range(:max)` or max value
 
-You can also chain validations, e.g. `validate:"len(:12),presence"`
+You can also define multiple validations on one field, e.g. `validate:"len(:12),presence"`
 
 ## Example
 
