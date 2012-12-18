@@ -1,7 +1,7 @@
 package hood
 
 const (
-	ValidationErrorValueNotSet = 0x8000 + iota
+	ValidationErrorValueNotSet = (1<<16 + iota)
 	ValidationErrorValueTooSmall
 	ValidationErrorValueTooBig
 	ValidationErrorValueTooShort
@@ -16,7 +16,8 @@ type ValidationError struct {
 
 // NewValidationError returns a new validation error with the specified id and
 // text. The id's purpose is to distinguish different validation error types.
-// Built-in validation error ids start at 0x8000.
+// Built-in validation error ids start at 65536, so you should keep your custom
+// ids under that value.
 func NewValidationError(id int, text string) error {
 	return &ValidationError{id, text}
 }
