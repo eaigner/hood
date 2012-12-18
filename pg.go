@@ -3,6 +3,7 @@ package hood
 import (
 	"fmt"
 	_ "github.com/bmizerany/pq"
+	"reflect"
 	"time"
 )
 
@@ -41,6 +42,34 @@ func (d *Postgres) SqlType(f interface{}, size int) string {
 		return "text"
 	}
 	panic("invalid sql type")
+}
+
+func (d *Postgres) ValueToField(value reflect.Value, field reflect.Value) error {
+	switch field.Type().Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		field.SetInt(value.Elem().Int())
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		// reading uint from int value causes panic
+		switch value.Elem().Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			field.SetUint(uint64(value.Elem().Int()))
+		default:
+			field.SetUint(value.Elem().Uint())
+		}
+	case reflect.Float32, reflect.Float64:
+		field.SetFloat(value.Elem().Float())
+	case reflect.String:
+		field.SetString(string(value.Elem().Bytes()))
+	case reflect.Slice:
+		if reflect.TypeOf(value.Interface()).Elem().Kind() == reflect.Uint8 {
+			field.SetBytes(value.Elem().Bytes())
+		}
+	case reflect.Struct:
+		if field.Type() == reflect.TypeOf(time.Time{}) {
+			field.Set(value.Elem())
+		}
+	}
+	return nil
 }
 
 func (d *Postgres) Insert(hood *Hood, model *Model, query string, args ...interface{}) (Id, error, bool) {

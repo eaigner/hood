@@ -9,7 +9,6 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	"time"
 )
 
 type (
@@ -421,29 +420,9 @@ func (hood *Hood) Find(out interface{}) error {
 			name := snakeToUpperCamel(key)
 			field := rowValue.Elem().FieldByName(name)
 			if field.IsValid() {
-				switch field.Type().Kind() {
-				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-					field.SetInt(value.Elem().Int())
-				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-					// reading uint from int value causes panic
-					switch value.Elem().Kind() {
-					case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-						field.SetUint(uint64(value.Elem().Int()))
-					default:
-						field.SetUint(value.Elem().Uint())
-					}
-				case reflect.Float32, reflect.Float64:
-					field.SetFloat(value.Elem().Float())
-				case reflect.String:
-					field.SetString(string(value.Elem().Bytes()))
-				case reflect.Slice:
-					if reflect.TypeOf(value.Interface()).Elem().Kind() == reflect.Uint8 {
-						field.SetBytes(value.Elem().Bytes())
-					}
-				case reflect.Struct:
-					if field.Type() == reflect.TypeOf(time.Time{}) {
-						field.Set(value.Elem())
-					}
+				err = hood.Dialect.ValueToField(value, field)
+				if err != nil {
+					return err
 				}
 			}
 		}
@@ -726,9 +705,6 @@ func (hood *Hood) createTableSql(model *Model) string {
 			field.Name,
 			hood.Dialect.SqlType(field.Value, field.Size()),
 		}
-		if incStmt := hood.Dialect.StmtAutoIncrement(); field.PrimaryKey() && incStmt != "" {
-			b = append(b, incStmt)
-		}
 		if field.NotNull() {
 			b = append(b, hood.Dialect.StmtNotNull())
 		}
@@ -737,6 +713,9 @@ func (hood *Hood) createTableSql(model *Model) string {
 		}
 		if field.PrimaryKey() {
 			b = append(b, hood.Dialect.StmtPrimaryKey())
+		}
+		if incStmt := hood.Dialect.StmtAutoIncrement(); field.PrimaryKey() && incStmt != "" {
+			b = append(b, incStmt)
 		}
 		a = append(a, strings.Join(b, " "))
 		if i < len(model.Fields)-1 {
