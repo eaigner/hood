@@ -100,7 +100,7 @@ func (u *User) ValidateUsername() error {
 You can add hooks to a model to run on a specific action like so:
 
 ```go
-func (u *User) BeforeSave() error {
+func (u *User) BeforeUpdate() error {
 	u.Updated = time.Now()
 	return nil
 }
