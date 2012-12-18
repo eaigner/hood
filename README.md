@@ -16,7 +16,7 @@ Dialects currently supported
 
 ** not registered by default, requires some packages installed on the system
 
-Adding a dialect is as simple as copying the original `pg.go`, replacing the statement and field values with the new dialect versions.
+Adding a dialect is as simple as copying the original `postgres.go`, replacing the statement and field values with the new dialect versions.
 
 
 ## Documentation
