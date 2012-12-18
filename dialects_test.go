@@ -206,45 +206,45 @@ type sdAllModel struct {
 	A  string
 }
 
-var sdAllHooksCalled int
+var sdAllHooks []string
 
 func (m *sdAllModel) BeforeSave() error {
-	sdAllHooksCalled++
+	sdAllHooks = append(sdAllHooks, "bsave")
 	return nil
 }
 
 func (m *sdAllModel) AfterSave() error {
-	sdAllHooksCalled++
+	sdAllHooks = append(sdAllHooks, "asave")
 	return nil
 }
 
 func (m *sdAllModel) BeforeInsert() error {
-	sdAllHooksCalled++
+	sdAllHooks = append(sdAllHooks, "binsert")
 	return nil
 }
 
 func (m *sdAllModel) AfterInsert() error {
-	sdAllHooksCalled++
+	sdAllHooks = append(sdAllHooks, "ainsert")
 	return nil
 }
 
 func (m *sdAllModel) BeforeUpdate() error {
-	sdAllHooksCalled++
+	sdAllHooks = append(sdAllHooks, "bupdate")
 	return nil
 }
 
 func (m *sdAllModel) AfterUpdate() error {
-	sdAllHooksCalled++
+	sdAllHooks = append(sdAllHooks, "aupdate")
 	return nil
 }
 
 func (m *sdAllModel) BeforeDelete() error {
-	sdAllHooksCalled++
+	sdAllHooks = append(sdAllHooks, "bdelete")
 	return nil
 }
 
 func (m *sdAllModel) AfterDelete() error {
-	sdAllHooksCalled++
+	sdAllHooks = append(sdAllHooks, "adelete")
 	return nil
 }
 
@@ -252,12 +252,12 @@ func DoTestSaveDeleteAllAndHooks(t *testing.T, info dialectInfo) {
 	hd := info.setupDbFunc(t)
 	hd.DropTable(&sdAllModel{})
 
-	sdAllHooksCalled = 0
 	models := []sdAllModel{
 		sdAllModel{A: "A"},
 		sdAllModel{A: "B"},
 	}
 
+	sdAllHooks = make([]string, 0, 20)
 	err := hd.CreateTable(&sdAllModel{})
 	if err != nil {
 		t.Fatal("error not nil", err)
@@ -290,8 +290,35 @@ func DoTestSaveDeleteAllAndHooks(t *testing.T, info dialectInfo) {
 		t.Fatal("error not nil", err)
 	}
 
-	if sdAllHooksCalled != 20 {
-		t.Fatal("wrong hook call count", sdAllHooksCalled)
+	if x := len(sdAllHooks); x != 20 {
+		t.Fatal("wrong hook call count", x)
+	}
+	hookMatch := []string{
+		"bsave",
+		"binsert",
+		"ainsert",
+		"asave",
+		"bsave",
+		"binsert",
+		"ainsert",
+		"asave",
+		"bsave",
+		"bupdate",
+		"aupdate",
+		"asave",
+		"bsave",
+		"bupdate",
+		"aupdate",
+		"asave",
+		"bdelete",
+		"adelete",
+		"bdelete",
+		"adelete",
+	}
+	for i, v := range hookMatch {
+		if x := sdAllHooks[i]; x != v {
+			t.Fatal("wrong hook sequence", x, v)
+		}
 	}
 }
 
