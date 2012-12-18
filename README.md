@@ -11,7 +11,9 @@ Hood is a database agnostic ORM for Go developed by [@eaignr](https://twitter.co
 Dialects currently supported
 
 - **Postgres** using [github.com/bmizerany/pq](https://github.com/bmizerany/pq)
-- **Sqlite** (by [lbolla](https://github.com/lbolla), not registered by default because the driver requires some packages installed on the system) using [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
+- **Sqlite** ** (by [lbolla](https://github.com/lbolla)) using [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
+
+** not registered by default, requires some packages installed on the system
 
 Adding a dialect is as simple as copying the original `pg.go`, replacing the statement and field values with the new dialect versions.
 
