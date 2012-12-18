@@ -80,19 +80,19 @@ func (d *Postgres) Insert(hood *Hood, model *Model, query string, args ...interf
 	return Id(id), err, true
 }
 
-func (d *Postgres) StmtNotNull() string {
+func (d *Postgres) KeywordNotNull() string {
 	return "NOT NULL"
 }
 
-func (d *Postgres) StmtDefault(s string) string {
+func (d *Postgres) KeywordDefault(s string) string {
 	return fmt.Sprintf("DEFAULT %v", s)
 }
 
-func (d *Postgres) StmtPrimaryKey() string {
+func (d *Postgres) KeywordPrimaryKey() string {
 	return "PRIMARY KEY"
 }
 
-func (d *Postgres) StmtAutoIncrement() string {
-	// postgres has not auto increment statement, uses SERIAL type
+func (d *Postgres) KeywordAutoIncrement() string {
+	// postgres has not auto increment keyword, uses SERIAL type
 	return ""
 }

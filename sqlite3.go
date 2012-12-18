@@ -88,18 +88,18 @@ func (d *Sqlite3) Insert(hood *Hood, model *Model, query string, args ...interfa
 	return -1, nil, false
 }
 
-func (d *Sqlite3) StmtNotNull() string {
+func (d *Sqlite3) KeywordNotNull() string {
 	return "NOT NULL"
 }
 
-func (d *Sqlite3) StmtDefault(s string) string {
+func (d *Sqlite3) KeywordDefault(s string) string {
 	return fmt.Sprintf("DEFAULT %v", s)
 }
 
-func (d *Sqlite3) StmtPrimaryKey() string {
+func (d *Sqlite3) KeywordPrimaryKey() string {
 	return "PRIMARY KEY"
 }
 
-func (d *Sqlite3) StmtAutoIncrement() string {
+func (d *Sqlite3) KeywordAutoIncrement() string {
 	return "AUTOINCREMENT"
 }

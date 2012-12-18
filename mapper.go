@@ -706,16 +706,16 @@ func (hood *Hood) createTableSql(model *Model) string {
 			hood.Dialect.SqlType(field.Value, field.Size()),
 		}
 		if field.NotNull() {
-			b = append(b, hood.Dialect.StmtNotNull())
+			b = append(b, hood.Dialect.KeywordNotNull())
 		}
 		if x := field.Default(); x != "" {
-			b = append(b, hood.Dialect.StmtDefault(x))
+			b = append(b, hood.Dialect.KeywordDefault(x))
 		}
 		if field.PrimaryKey() {
-			b = append(b, hood.Dialect.StmtPrimaryKey())
+			b = append(b, hood.Dialect.KeywordPrimaryKey())
 		}
-		if incStmt := hood.Dialect.StmtAutoIncrement(); field.PrimaryKey() && incStmt != "" {
-			b = append(b, incStmt)
+		if incKeyword := hood.Dialect.KeywordAutoIncrement(); field.PrimaryKey() && incKeyword != "" {
+			b = append(b, incKeyword)
 		}
 		a = append(a, strings.Join(b, " "))
 		if i < len(model.Fields)-1 {

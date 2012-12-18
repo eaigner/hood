@@ -19,19 +19,19 @@ type Dialect interface {
 
 	// Insert takes the generated query and modifies it. E.g. Postgres does not
 	// return the inserted IDs after executing INSERT, unless a RETURNING
-	// statement is appended. If a dialect needs a custom INSERT, it should return
+	// keyword is appended. If a dialect needs a custom INSERT, it should return
 	// implemented == true.
 	Insert(hood *Hood, model *Model, query string, args ...interface{}) (id Id, err error, implemented bool)
 
-	// StmtNotNull returns the dialect specific statement for 'NOT NULL'.
-	StmtNotNull() string
+	// KeywordNotNull returns the dialect specific keyword for 'NOT NULL'.
+	KeywordNotNull() string
 
-	// StmtDefault returns the dialect specific statement for 'DEFAULT'.
-	StmtDefault(s string) string
+	// KeywordDefault returns the dialect specific keyword for 'DEFAULT'.
+	KeywordDefault(s string) string
 
-	// StmtPrimaryKey returns the dialect specific statement for 'PRIMARY KEY'.
-	StmtPrimaryKey() string
+	// KeywordPrimaryKey returns the dialect specific keyword for 'PRIMARY KEY'.
+	KeywordPrimaryKey() string
 
-	// StmtAutoIncrement returns the dialect specific statement for 'AUTO_INCREMENT'.
-	StmtAutoIncrement() string
+	// KeywordAutoIncrement returns the dialect specific keyword for 'AUTO_INCREMENT'.
+	KeywordAutoIncrement() string
 }
