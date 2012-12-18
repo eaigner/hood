@@ -2,20 +2,22 @@ package hood
 
 import (
 	"fmt"
-	_ "github.com/mattn/go-sqlite3"
+	// _ "github.com/mattn/go-sqlite3"
 	"reflect"
 	"time"
 	"unsafe"
 )
 
 func init() {
-	RegisterDialect("sqlite3", &Sqlite{})
+	// It's probably not a good idea to register the dialect by default since
+	// it requires specific packages to be installed on the target system!
+	// 
+	// RegisterDialect("sqlite3", &Sqlite{})
 }
 
 type Sqlite struct{}
 
 func (d *Sqlite) Marker(pos int) string {
-//         return "?"
 	return fmt.Sprintf("$%d", pos+1)
 }
 
@@ -70,7 +72,7 @@ func (d *Sqlite) ValueToField(value reflect.Value, field reflect.Value) error {
 		}
 	case reflect.Struct:
 		if field.Type() == reflect.TypeOf(time.Time{}) {
-			// TODO
+			// TODO(lbolla): fix todo message, and describe what there is to-do here
 			t, err := time.Parse("2006-01-02 15:04:05", value.Elem().String())
 			if err != nil {
 				return err

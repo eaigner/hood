@@ -2,55 +2,86 @@ package hood
 
 import (
 	"database/sql"
-	_ "github.com/bmizerany/pq"
+	"os"
 	"testing"
 	"time"
 )
 
-const (
-	disableLiveTests = true
-)
+// THE IMPORTS AND LIVE TESTS ARE DISABLED BY DEFAULT, NOT TO INTERFERE WITH
+// REAL UNIT TESTS, SINCE THEY DO REQUIRE A CERTAIN SYSTEM CONFIGURATION!
+//
+// ONLY ENABLE THE LIVE TESTS IF NECESSARY
 
-type PgDialectModel struct {
-	Prim   Id
-	First  string `sql:"notnull"`
-	Last   string `sql:"default('defaultValue')"`
-	Amount int
+// import (
+// 	_ "github.com/bmizerany/pq"
+// 	_ "github.com/mattn/go-sqlite3"
+// )
+
+var toRun = []dialectInfo{
+// dialectInfo{
+// 	&Postgres{},
+// 	setupPgDb,
+// 	`CREATE TABLE without_pk ( first text, last text, amount integer )`,
+// 	`CREATE TABLE with_pk ( primary bigserial PRIMARY KEY, first text, last text, amount integer )`,
+// },
+// dialectInfo{
+// 	&Sqlite{},
+// 	setupSqlite3Db,
+// 	`CREATE TABLE without_pk ( first text, last text, amount integer )`,
+// 	`CREATE TABLE with_pk ( primary integer PRIMARY KEY AUTOINCREMENT, first text, last text, amount integer )`,
+// },
 }
 
-func setupDb(t *testing.T) *Hood {
-	hood, err := Open("postgres", "user=hood dbname=hood_test sslmode=disable")
+type dialectInfo struct {
+	dialect                 Dialect
+	setupDbFunc             func(t *testing.T) *Hood
+	createTableWithoutPkSql string
+	createTableWithPkSql    string
+}
+
+func setupPgDb(t *testing.T) *Hood {
+	hd, err := Open("postgres", "user=hood dbname=hood_test sslmode=disable")
+	if err != nil {
+		t.Fatal("could not open db", err)
+	}
+	hd.Log = true
+	return hd
+}
+
+func setupSqlite3Db(t *testing.T) *Hood {
+	os.Remove("/tmp/foo.db")
+	hood, err := Open("sqlite3", "/tmp/foo.db")
 	if err != nil {
 		t.Fatal("could not open db", err)
 	}
 	hood.Log = true
-
 	return hood
 }
 
 func TestTransaction(t *testing.T) {
-	if disableLiveTests {
-		return
+	for _, info := range toRun {
+		DoTestTransaction(t, info)
 	}
-	hood := setupDb(t)
+}
 
-	type pgTxModel struct {
+func DoTestTransaction(t *testing.T, info dialectInfo) {
+	hd := info.setupDbFunc(t)
+	type txModel struct {
 		Id Id
 		A  string
 	}
-
-	table := pgTxModel{
+	table := txModel{
 		A: "A",
 	}
 
-	hood.DropTable(&table)
-	err := hood.CreateTable(&table)
+	hd.DropTable(&table)
+	err := hd.CreateTable(&table)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
 
-	tx := hood.Begin()
-	if _, ok := hood.qo.(*sql.DB); !ok {
+	tx := hd.Begin()
+	if _, ok := hd.qo.(*sql.DB); !ok {
 		t.Fatal("wrong type")
 	}
 	if _, ok := tx.qo.(*sql.Tx); !ok {
@@ -65,8 +96,8 @@ func TestTransaction(t *testing.T) {
 		t.Fatal("error not nil", err)
 	}
 
-	var out []pgTxModel
-	err = hood.Find(&out)
+	var out []txModel
+	err = hd.Find(&out)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -74,7 +105,7 @@ func TestTransaction(t *testing.T) {
 		t.Fatal("wrong length", x)
 	}
 
-	tx = hood.Begin()
+	tx = hd.Begin()
 	table.Id = 0 // force insert by resetting id
 	_, err = tx.Save(&table)
 	if err != nil {
@@ -86,7 +117,7 @@ func TestTransaction(t *testing.T) {
 	}
 
 	out = nil
-	err = hood.Find(&out)
+	err = hd.Find(&out)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -95,33 +126,35 @@ func TestTransaction(t *testing.T) {
 	}
 }
 
-func TestPgSaveAndDelete(t *testing.T) {
-	if disableLiveTests {
-		return
+func TestSaveAndDelete(t *testing.T) {
+	for _, info := range toRun {
+		DoTestSaveAndDelete(t, info)
 	}
-	hood := setupDb(t)
+}
 
-	type pgSaveModel struct {
+func DoTestSaveAndDelete(t *testing.T, info dialectInfo) {
+	hd := info.setupDbFunc(t)
+	type saveModel struct {
 		Id Id
 		A  string
 		B  int
 	}
-	model1 := pgSaveModel{
+	model1 := saveModel{
 		A: "banana",
 		B: 5,
 	}
-	model2 := pgSaveModel{
+	model2 := saveModel{
 		A: "orange",
 		B: 4,
 	}
 
-	hood.DropTable(&model1)
+	hd.DropTable(&model1)
 
-	err := hood.CreateTable(&model1)
+	err := hd.CreateTable(&model1)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
-	id, err := hood.Save(&model1)
+	id, err := hd.Save(&model1)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -132,7 +165,7 @@ func TestPgSaveAndDelete(t *testing.T) {
 	model1.A = "grape"
 	model1.B = 9
 
-	id, err = hood.Save(&model1)
+	id, err = hd.Save(&model1)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -140,7 +173,7 @@ func TestPgSaveAndDelete(t *testing.T) {
 		t.Fatal("wrong id", id)
 	}
 
-	id, err = hood.Save(&model2)
+	id, err = hd.Save(&model2)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -151,7 +184,7 @@ func TestPgSaveAndDelete(t *testing.T) {
 		t.Fatal("id should have been copied", model2.Id)
 	}
 
-	id2, err := hood.Delete(&model2)
+	id2, err := hd.Delete(&model2)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -160,28 +193,32 @@ func TestPgSaveAndDelete(t *testing.T) {
 	}
 }
 
-func TestPgSaveAllDeleteAll(t *testing.T) {
-	if disableLiveTests {
-		return
+func TestSaveAllDeleteAll(t *testing.T) {
+	for _, info := range toRun {
+		DoTestSaveAllDeleteAll(t, info)
 	}
-	type pgSaveAllDeleteAll struct {
+}
+
+func DoTestSaveAllDeleteAll(t *testing.T, info dialectInfo) {
+	type sdAllModel struct {
 		Id Id
 		A  string
 	}
 
-	hood := setupDb(t)
-	hood.DropTable(&pgSaveAllDeleteAll{})
+	hd := info.setupDbFunc(t)
+	hd.DropTable(&sdAllModel{})
 
-	models := []pgSaveAllDeleteAll{
-		pgSaveAllDeleteAll{A: "A"},
-		pgSaveAllDeleteAll{A: "B"},
+	models := []sdAllModel{
+		sdAllModel{A: "A"},
+		sdAllModel{A: "B"},
 	}
-	err := hood.CreateTable(&pgSaveAllDeleteAll{})
+
+	err := hd.CreateTable(&sdAllModel{})
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
 
-	ids, err := hood.SaveAll(&models)
+	ids, err := hd.SaveAll(&models)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -201,20 +238,23 @@ func TestPgSaveAllDeleteAll(t *testing.T) {
 		t.Fatal("wrong id", x)
 	}
 
-	_, err = hood.DeleteAll(&models)
+	_, err = hd.DeleteAll(&models)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
 }
 
-func TestPgFind(t *testing.T) {
-	if disableLiveTests {
-		return
+func TestFind(t *testing.T) {
+	for _, info := range toRun {
+		DoTestFind(t, info)
 	}
-	hood := setupDb(t)
+}
+
+func DoTestFind(t *testing.T, info dialectInfo) {
+	hd := info.setupDbFunc(t)
 	now := time.Now()
 
-	type pgFindModel struct {
+	type findModel struct {
 		Id Id
 		A  string
 		B  int
@@ -233,7 +273,7 @@ func TestPgFind(t *testing.T) {
 		O  VarChar
 		P  time.Time
 	}
-	model1 := pgFindModel{
+	model1 := findModel{
 		A: "string!",
 		B: -1,
 		C: -2,
@@ -252,15 +292,15 @@ func TestPgFind(t *testing.T) {
 		P: now,
 	}
 
-	hood.DropTable(&model1)
+	hd.DropTable(&model1)
 
-	err := hood.CreateTable(&model1)
+	err := hd.CreateTable(&model1)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
 
-	var out []pgFindModel
-	err = hood.Where("a = ? AND j = ?", "string!", 9).Find(&out)
+	var out []findModel
+	err = hd.Where("a = ? AND j = ?", "string!", 9).Find(&out)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -268,7 +308,7 @@ func TestPgFind(t *testing.T) {
 		t.Fatal("output should be nil", out)
 	}
 
-	id, err := hood.Save(&model1)
+	id, err := hd.Save(&model1)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -276,7 +316,7 @@ func TestPgFind(t *testing.T) {
 		t.Fatal("wrong id", id)
 	}
 
-	err = hood.Where("a = ? AND j = ?", "string!", 9).Find(&out)
+	err = hd.Where("a = ? AND j = ?", "string!", 9).Find(&out)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -343,7 +383,7 @@ func TestPgFind(t *testing.T) {
 	model1.Id = 0 // force insert, would update otherwise
 	model1.A = "row2"
 
-	id, err = hood.Save(&model1)
+	id, err = hd.Save(&model1)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -352,7 +392,7 @@ func TestPgFind(t *testing.T) {
 	}
 
 	out = nil
-	err = hood.Where("a = ? AND j = ?", "row2", 9).Find(&out)
+	err = hd.Where("a = ? AND j = ?", "row2", 9).Find(&out)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -361,7 +401,7 @@ func TestPgFind(t *testing.T) {
 	}
 
 	out = nil
-	err = hood.Where("j = ?", 9).Find(&out)
+	err = hd.Where("j = ?", 9).Find(&out)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -370,7 +410,73 @@ func TestPgFind(t *testing.T) {
 	}
 }
 
-func TestSqlType(t *testing.T) {
+func TestCreateTable(t *testing.T) {
+	for _, info := range toRun {
+		DoTestCreateTable(t, info)
+	}
+}
+
+func DoTestCreateTable(t *testing.T, info dialectInfo) {
+	hd := info.setupDbFunc(t)
+	type model struct {
+		Prim   Id
+		First  string `sql:"notnull"`
+		Last   string `sql:"default('defaultValue')"`
+		Amount int
+	}
+	table := &model{}
+
+	hd.DropTable(table)
+	err := hd.CreateTable(table)
+	if err != nil {
+		t.Fatal("error not nil", err)
+	}
+	err = hd.DropTable(table)
+	if err != nil {
+		t.Fatal("error not nil", err)
+	}
+}
+
+func TestCreateTableSql(t *testing.T) {
+	for _, info := range toRun {
+		DoTestCreateTableSql(t, info)
+	}
+}
+
+func DoTestCreateTableSql(t *testing.T, info dialectInfo) {
+	hood := New(nil, info.dialect)
+	type withoutPk struct {
+		First  string
+		Last   string
+		Amount int
+	}
+	table := &withoutPk{"a", "b", 5}
+	model, err := interfaceToModel(table)
+	if err != nil {
+		t.Fatal("error not nil", err)
+	}
+	query := hood.createTableSql(model)
+	if query != info.createTableWithoutPkSql {
+		t.Fatal("wrong query", query)
+	}
+	type withPk struct {
+		Primary Id
+		First   string
+		Last    string
+		Amount  int
+	}
+	table2 := &withPk{First: "a", Last: "b", Amount: 5}
+	model, err = interfaceToModel(table2)
+	if err != nil {
+		t.Fatal("error not nil", err)
+	}
+	query = hood.createTableSql(model)
+	if query != info.createTableWithPkSql {
+		t.Fatal("wrong query", query)
+	}
+}
+
+func TestSqlTypeForPgDialect(t *testing.T) {
 	d := &Postgres{}
 	if x := d.SqlType(true, 0); x != "boolean" {
 		t.Fatal("wrong type", x)
@@ -408,62 +514,40 @@ func TestSqlType(t *testing.T) {
 	}
 }
 
-func TestCreateTableSql(t *testing.T) {
-	hood := New(nil, &Postgres{})
-	type withoutPk struct {
-		First  string
-		Last   string
-		Amount int
+func TestSqlTypeForSqlite3Dialect(t *testing.T) {
+	d := &Sqlite{}
+	if x := d.SqlType(true, 0); x != "integer" {
+		t.Fatal("wrong type", x)
 	}
-	table := &withoutPk{
-		"erik",
-		"aigner",
-		5,
+	var indirect interface{} = true
+	if x := d.SqlType(indirect, 0); x != "integer" {
+		t.Fatal("wrong type", x)
 	}
-	model, err := interfaceToModel(table)
-	if err != nil {
-		t.Fatal("error not nil", err)
+	if x := d.SqlType(uint32(2), 0); x != "integer" {
+		t.Fatal("wrong type", x)
 	}
-	query := hood.createTableSql(model)
-	if query != `CREATE TABLE without_pk ( first text, last text, amount integer )` {
-		t.Fatal("wrong query", query)
+	if x := d.SqlType(Id(1), 0); x != "integer" {
+		t.Fatal("wrong type", x)
 	}
-	type withPk struct {
-		Primary Id
-		First   string
-		Last    string
-		Amount  int
+	if x := d.SqlType(int64(1), 0); x != "integer" {
+		t.Fatal("wrong type", x)
 	}
-	table2 := &withPk{
-		First:  "erik",
-		Last:   "aigner",
-		Amount: 5,
+	if x := d.SqlType(1.8, 0); x != "real" {
+		t.Fatal("wrong type", x)
 	}
-	model, err = interfaceToModel(table2)
-	if err != nil {
-		t.Fatal("error not nil", err)
+	if x := d.SqlType([]byte("asdf"), 0); x != "text" {
+		t.Fatal("wrong type", x)
 	}
-	query = hood.createTableSql(model)
-	if query != `CREATE TABLE with_pk ( primary bigserial PRIMARY KEY, first text, last text, amount integer )` {
-		t.Fatal("wrong query", query)
+	if x := d.SqlType("astring", 0); x != "text" {
+		t.Fatal("wrong type", x)
 	}
-}
-
-func TestCreateTable(t *testing.T) {
-	if disableLiveTests {
-		return
+	if x := d.SqlType(VarChar("a"), 0); x != "text" {
+		t.Fatal("wrong type", x)
 	}
-	hood := setupDb(t)
-
-	table := &PgDialectModel{}
-
-	hood.DropTable(table)
-	err := hood.CreateTable(table)
-	if err != nil {
-		t.Fatal("error not nil", err)
+	if x := d.SqlType(VarChar("b"), 128); x != "text" {
+		t.Fatal("wrong type", x)
 	}
-	err = hood.DropTable(table)
-	if err != nil {
-		t.Fatal("error not nil", err)
+	if x := d.SqlType(time.Now(), 0); x != "text" {
+		t.Fatal("wrong type", x)
 	}
 }

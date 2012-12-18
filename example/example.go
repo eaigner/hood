@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"hood"
+	"github.com/eaigner/hood"
 	"time"
 )
 
