@@ -138,7 +138,7 @@ func (field *Field) Validate() error {
 	// presence
 	if _, ok := field.ValidateTags["presence"]; ok {
 		if field.Zero() {
-			return errors.New("value not set")
+			return NewValidationError(ValidationErrorValueNotSet, "value not set")
 		}
 	}
 	return nil
@@ -162,7 +162,7 @@ func validateLen(s, tuple string) error {
 			panic(err)
 		}
 		if len(s) < min {
-			return errors.New("value too short")
+			return NewValidationError(ValidationErrorValueTooShort, "value too short")
 		}
 	}
 	if len(b) > 0 {
@@ -171,7 +171,7 @@ func validateLen(s, tuple string) error {
 			panic(err)
 		}
 		if len(s) > max {
-			return errors.New("value too long")
+			return NewValidationError(ValidationErrorValueTooLong, "value too long")
 		}
 	}
 	return nil
@@ -185,7 +185,7 @@ func validateRange(i int64, tuple string) error {
 			return err
 		}
 		if i < min {
-			return errors.New("value too small")
+			return NewValidationError(ValidationErrorValueTooSmall, "value too small")
 		}
 	}
 	if len(b) > 0 {
@@ -194,7 +194,7 @@ func validateRange(i int64, tuple string) error {
 			return err
 		}
 		if i > max {
-			return errors.New("value too big")
+			return NewValidationError(ValidationErrorValueTooBig, "value too big")
 		}
 	}
 	return nil

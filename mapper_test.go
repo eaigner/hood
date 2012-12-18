@@ -1,7 +1,6 @@
 package hood
 
 import (
-	"errors"
 	"testing"
 	"time"
 )
@@ -218,14 +217,14 @@ var numValidateFuncCalls = 0
 func (v *validateSchema) ValidateX() error {
 	numValidateFuncCalls++
 	if v.A == "banana" {
-		return errors.New("value cannot be banana")
+		return NewValidationError(1, "value cannot be banana")
 	}
 	return nil
 }
 
 func (v *validateSchema) ValidateY() error {
 	numValidateFuncCalls++
-	return errors.New("ValidateY failed")
+	return NewValidationError(2, "ValidateY failed")
 }
 
 func TestValidationMethods(t *testing.T) {
@@ -234,6 +233,9 @@ func TestValidationMethods(t *testing.T) {
 	err := hd.Validate(m)
 	if err == nil || err.Error() != "ValidateY failed" {
 		t.Fatal("wrong error", err)
+	}
+	if v, ok := err.(*ValidationError); !ok {
+		t.Fatal("should be of type ValidationError", v)
 	}
 	if numValidateFuncCalls != 2 {
 		t.Fatal("should have called validation func")

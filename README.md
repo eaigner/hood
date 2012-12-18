@@ -89,7 +89,7 @@ For example:
 func (u *User) ValidateUsername() error {
 	rx := regexp.MustCompile(`[a-z0-9]+`)
 	if !rx.MatchString(u.Name) {
-		return errors.New("username contains invalid characters")
+		return NewValidationError(1, "username contains invalid characters")
 	}
 	return nil
 }
