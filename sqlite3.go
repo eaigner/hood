@@ -72,7 +72,6 @@ func (d *Sqlite3) ValueToField(value reflect.Value, field reflect.Value) error {
 		}
 	case reflect.Struct:
 		if field.Type() == reflect.TypeOf(time.Time{}) {
-			// TODO(lbolla): fix todo message, and describe what there is to-do here
 			t, err := time.Parse("2006-01-02 15:04:05", value.Elem().String())
 			if err != nil {
 				return err
