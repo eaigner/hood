@@ -539,16 +539,17 @@ func (hood *Hood) Save(f interface{}) (Id, error) {
 			err = callModelMethod(f, "AfterInsert", false)
 		}
 	}
-	if err != nil {
-		return id, err
+	if err == nil {
+		err = callModelMethod(f, "AfterSave", false)
 	}
-	callModelMethod(f, "AfterSave", false)
-	// update model id after save
-	structValue := reflect.Indirect(reflect.ValueOf(f))
-	for i := 0; i < structValue.NumField(); i++ {
-		field := structValue.Field(i)
-		if field.Type() == reflect.TypeOf(Id(0)) {
-			field.SetInt(int64(id))
+	if id != -1 {
+		// update model id after save
+		structValue := reflect.Indirect(reflect.ValueOf(f))
+		for i := 0; i < structValue.NumField(); i++ {
+			field := structValue.Field(i)
+			if field.Type() == reflect.TypeOf(Id(0)) {
+				field.SetInt(int64(id))
+			}
 		}
 	}
 	return id, err
