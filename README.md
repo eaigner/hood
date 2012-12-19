@@ -66,7 +66,15 @@ type Person struct {
 }
 ```
 
-Schema creation is completely optional, you can use any other tool you like.	
+Schema creation is completely optional, you can use any other tool you like.
+
+The following built in field properties are defined (via `sql:` tag):
+
+- `pk` the field is a primary key
+- `notnull` the field must be NOT NULL
+- `size(x)` the field must have the specified size, e.g. for varchar `size(128)`
+- `default(x)` the field has the specified default value, e.g. `default(5)` or `default('orange')`
+
 ## Validation
 
 Besides the `sql:` struct tag, you can specify a `validate:` tag for model validation:
