@@ -1,5 +1,7 @@
 ## Hood
 
+**PLEASE NOTE THAT THIS PROJECT IS CURRENTLY IN THE PROCESS OF DEFINING IT'S API. IT CANNOT BE ASSUMED THAT THE API IS FIXED YET. IF YOU PLAN TO USE HOOD, PLEASE FORK IT!**
+
 Hood is a database agnostic ORM for Go developed by [@eaignr](https://twitter.com/eaignr). It was written with following points in mind:
 
 - Chainable API
@@ -18,7 +20,6 @@ Dialects currently supported
 ** not registered by default, requires some packages installed on the system
 
 Adding a dialect is as simple as copying the original `postgres.go`, replacing the statement and field values with the new dialect versions.
-
 
 ## Documentation
 
