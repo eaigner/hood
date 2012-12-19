@@ -634,6 +634,41 @@ func (hood *Hood) DropTable(table interface{}) error {
 	return nil
 }
 
+// func (hood *Hood) RenameTable(from interface{}, to interface{}) error {
+// 	// TODO: implement
+// 	return nil
+// }
+
+// func (hood *Hood) AddColumns(schema interface{}) error {
+// 	// TODO: implement
+// 	return nil
+// }
+
+// func (hood *Hood) RenameColumns(from interface{}, to interface{}) error {
+// 	// TODO: implement
+// 	return nil
+// }
+
+// func (hood *Hood) ChangeColumns(from interface{}, to interface{}) error {
+// 	// TODO: implement
+// 	return nil
+// }
+
+// func (hood *Hood) RemoveColumns(schema interface{}) error {
+// 	// TODO: implement
+// 	return nil
+// }
+
+// func (hood *Hood) AddIndexes(schema interface{}) error {
+// 	// TODO: implement
+// 	return nil
+// }
+
+// func (hood *Hood) RemoveIndexes(schema interface{}) error {
+// 	// TODO: implement
+// 	return nil
+// }
+
 func (hood *Hood) insert(model *Model) (Id, error) {
 	if model.Pk == nil {
 		panic("no primary key field")
