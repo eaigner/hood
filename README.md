@@ -236,3 +236,7 @@ func main() {
 	hd.DropTable(&Fruit{})
 }
 ```
+
+## Contributors
+
+- [Lorenzo Bolla](github.com/lbolla) (sqlite3)
