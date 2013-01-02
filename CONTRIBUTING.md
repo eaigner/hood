@@ -8,4 +8,5 @@ If you want to contribute, please follow these rules.
 
 ## General
 
-- Pull requests with pending `TODO(xyz):`'s will not be accepted
+- Pull requests containing commit messages with unappropriate content (e.g. smilies) will be rejected
+- Pull requests with pending `TODO(xyz):`'s will be rejected
