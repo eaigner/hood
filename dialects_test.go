@@ -12,10 +12,10 @@ import (
 //
 // ONLY ENABLE THE LIVE TESTS IF NECESSARY
 
-// import (
-// 	_ "github.com/bmizerany/pq"
-// 	_ "github.com/mattn/go-sqlite3"
-// )
+import (
+// _ "github.com/bmizerany/pq"
+// _ "github.com/mattn/go-sqlite3"
+)
 
 var toRun = []dialectInfo{
 // dialectInfo{
@@ -23,12 +23,20 @@ var toRun = []dialectInfo{
 // 	setupPgDb,
 // 	`CREATE TABLE without_pk ( first text, last text, amount integer )`,
 // 	`CREATE TABLE with_pk ( primary bigserial PRIMARY KEY, first text, last text, amount integer )`,
+// 	`INSERT INTO sql_gen_model (first, last, amount) VALUES ($1, $2, $3)`,
+// 	`UPDATE sql_gen_model SET first = $1, last = $2, amount = $3 WHERE prim = $4`,
+// 	`DELETE FROM sql_gen_model WHERE prim = $1`,
+// 	`SELECT * FROM sql_gen_model INNER JOIN orders ON users.id == orders.id WHERE id = $1 AND category_id = $2 GROUP BY name HAVING SUM(price) < $3 ORDER BY first_name LIMIT $4 OFFSET $5`,
 // },
 // dialectInfo{
 // 	&Sqlite3{},
 // 	setupSqlite3Db,
 // 	`CREATE TABLE without_pk ( first text, last text, amount integer )`,
 // 	`CREATE TABLE with_pk ( primary integer PRIMARY KEY AUTOINCREMENT, first text, last text, amount integer )`,
+// 	`INSERT INTO sql_gen_model (first, last, amount) VALUES ($1, $2, $3)`,
+// 	`UPDATE sql_gen_model SET first = $1, last = $2, amount = $3 WHERE prim = $4`,
+// 	`DELETE FROM sql_gen_model WHERE prim = $1`,
+// 	`SELECT * FROM sql_gen_model INNER JOIN orders ON users.id == orders.id WHERE id = $1 AND category_id = $2 GROUP BY name HAVING SUM(price) < $3 ORDER BY first_name LIMIT $4 OFFSET $5`,
 // },
 }
 
@@ -37,6 +45,10 @@ type dialectInfo struct {
 	setupDbFunc             func(t *testing.T) *Hood
 	createTableWithoutPkSql string
 	createTableWithPkSql    string
+	insertSql               string
+	updateSql               string
+	deleteSql               string
+	querySql                string
 }
 
 func setupPgDb(t *testing.T) *Hood {
@@ -551,6 +563,83 @@ func DoTestCreateTableSql(t *testing.T, info dialectInfo) {
 	query = hood.createTableSql(model)
 	if query != info.createTableWithPkSql {
 		t.Fatal("wrong query", query)
+	}
+}
+
+type sqlGenModel struct {
+	Prim   Id
+	First  string
+	Last   string
+	Amount int
+}
+
+var sqlGenSampleData = &sqlGenModel{3, "FirstName", "LastName", 6}
+
+func TestInsertSQL(t *testing.T) {
+	for _, info := range toRun {
+		DoTestInsertSQL(t, info)
+	}
+}
+
+func DoTestInsertSQL(t *testing.T, info dialectInfo) {
+	hood := New(nil, info.dialect)
+	model, _ := interfaceToModel(sqlGenSampleData)
+	sql, _ := hood.insertSql(model)
+	if x := info.insertSql; x != sql {
+		t.Fatalf("invalid sql: '%v'", sql, x)
+	}
+}
+
+func TestUpdateSQL(t *testing.T) {
+	for _, info := range toRun {
+		DoTestUpdateSQL(t, info)
+	}
+}
+
+func DoTestUpdateSQL(t *testing.T, info dialectInfo) {
+	hood := New(nil, info.dialect)
+	model, _ := interfaceToModel(sqlGenSampleData)
+	sql, _ := hood.updateSql(model)
+	if x := info.updateSql; x != sql {
+		t.Fatalf("invalid sql: '%v'", sql, x)
+	}
+}
+
+func TestDeleteSQL(t *testing.T) {
+	for _, info := range toRun {
+		DoTestDeleteSQL(t, info)
+	}
+}
+
+func DoTestDeleteSQL(t *testing.T, info dialectInfo) {
+	hood := New(nil, info.dialect)
+	model, _ := interfaceToModel(sqlGenSampleData)
+	sql, _ := hood.deleteSql(model)
+	if x := info.deleteSql; x != sql {
+		t.Fatalf("invalid sql: '%v'", sql, x)
+	}
+}
+
+func TestQuerySQL(t *testing.T) {
+	for _, info := range toRun {
+		DoTestQuerySQL(t, info)
+	}
+}
+
+func DoTestQuerySQL(t *testing.T, info dialectInfo) {
+	hood := New(nil, info.dialect)
+	hood.Select("*", &sqlGenModel{})
+	hood.Where("id = ?", 2)
+	hood.Where("category_id = ?", 5)
+	hood.Join("INNER", "orders", "users.id == orders.id")
+	hood.GroupBy("name")
+	hood.Having("SUM(price) < ?", 2000)
+	hood.OrderBy("first_name")
+	hood.Offset(3)
+	hood.Limit(10)
+	query := hood.querySql()
+	if x := info.querySql; x != query {
+		t.Fatalf("invalid query: '%v'", query, x)
 	}
 }
 
