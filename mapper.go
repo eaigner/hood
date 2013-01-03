@@ -657,22 +657,22 @@ func (hood *Hood) RenameColumn(table interface{}, from, to string) error {
 	return hood.Dialect.RenameColumn(hood, tableName(table), from, to)
 }
 
-// func (hood *Hood) ChangeColumns(from interface{}, to interface{}) error {
+// func (hood *Hood) ChangeColumn(from interface{}, to interface{}) error {
 // 	// TODO: implement
 // 	return nil
 // }
 
-// func (hood *Hood) RemoveColumns(schema interface{}) error {
+// func (hood *Hood) RemoveColumn(schema interface{}) error {
 // 	// TODO: implement
 // 	return nil
 // }
 
-// func (hood *Hood) AddIndexes(schema interface{}) error {
+// func (hood *Hood) AddIndexe(schema interface{}) error {
 // 	// TODO: implement
 // 	return nil
 // }
 
-// func (hood *Hood) RemoveIndexes(schema interface{}) error {
+// func (hood *Hood) RemoveIndexe(schema interface{}) error {
 // 	// TODO: implement
 // 	return nil
 // }

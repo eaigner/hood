@@ -648,11 +648,35 @@ func DoTestQuerySQL(t *testing.T, info dialectInfo) {
 	}
 }
 
+func TestDropTableSQL(t *testing.T) {
+	// TODO(erik): implement
+}
+
 func TestRenameTableSQL(t *testing.T) {
 	// TODO(erik): implement
 }
 
 func TestAddColumsSQL(t *testing.T) {
+	// TODO(erik): implement
+}
+
+func TestRenameColumnSql(t *testing.T) {
+	// TODO(erik): implement
+}
+
+func TestChangeColumnSql(t *testing.T) {
+	// TODO(erik): implement
+}
+
+func TestRemoveColumnSql(t *testing.T) {
+	// TODO(erik): implement
+}
+
+func TestAddIndexSql(t *testing.T) {
+	// TODO(erik): implement
+}
+
+func TestRemoveIndexSql(t *testing.T) {
 	// TODO(erik): implement
 }
 
