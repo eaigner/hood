@@ -14,20 +14,24 @@ import (
 type (
 	// Hood is an ORM handle.
 	Hood struct {
-		Db        *sql.DB
-		Dialect   Dialect
-		Log       bool
-		qo        qo // the query object
-		selector  string
-		where     []string
-		args      []interface{}
-		markerPos int
-		limit     string
-		offset    string
-		orderBy   string
-		joins     []string
-		groupBy   string
-		having    string
+		Db           *sql.DB
+		Dialect      Dialect
+		Log          bool
+		qo           qo // the query object
+		selectCols   string
+		selectTable  string
+		whereClauses []string
+		whereArgs    []interface{}
+		markerPos    int
+		limit        int
+		offset       int
+		orderBy      string
+		joinOps      []string
+		joinTables   []string
+		joinCond     []string
+		groupBy      string
+		havingCond   string
+		havingArgs   []interface{}
 	}
 
 	// Id represents a auto-incrementing integer primary key type.
@@ -245,16 +249,20 @@ func RegisterDialect(name string, dialect Dialect) {
 
 // Reset resets the internal state.
 func (hood *Hood) Reset() {
-	hood.selector = ""
-	hood.where = make([]string, 0, 10)
-	hood.args = []interface{}{}
+	hood.selectCols = ""
+	hood.selectTable = ""
+	hood.whereClauses = make([]string, 0, 10)
+	hood.whereArgs = make([]interface{}, 0, 10)
 	hood.markerPos = 0
-	hood.limit = ""
-	hood.offset = ""
+	hood.limit = 0
+	hood.offset = 0
 	hood.orderBy = ""
-	hood.joins = []string{}
+	hood.joinOps = []string{}
+	hood.joinTables = []string{}
+	hood.joinCond = []string{}
 	hood.groupBy = ""
-	hood.having = ""
+	hood.havingCond = ""
+	hood.havingArgs = make([]interface{}, 0, 20)
 }
 
 // Begin starts a new transaction and returns a copy of Hood. You have to call
@@ -294,18 +302,15 @@ func (hood *Hood) Select(selector string, table interface{}) *Hood {
 	if selector == "" {
 		selector = "*"
 	}
-	from := ""
+	hood.selectCols = selector
 	switch f := table.(type) {
 	case string:
-		from = f
+		hood.selectTable = f
 	case interface{}:
-		from = interfaceToSnake(f)
+		hood.selectTable = interfaceToSnake(f)
+	default:
+		panic("invalid table")
 	}
-	if from == "" {
-		panic("FROM cannot be empty")
-	}
-	hood.selector = fmt.Sprintf("SELECT %v FROM %v", selector, from)
-
 	return hood
 }
 
@@ -314,49 +319,48 @@ func (hood *Hood) Select(selector string, table interface{}) *Hood {
 // version, for example
 //   Where("id = ?", 3)
 func (hood *Hood) Where(query string, args ...interface{}) *Hood {
-	hood.where = append(hood.where, query)
-	hood.args = append(hood.args, args...)
-
+	hood.whereClauses = append(hood.whereClauses, query)
+	hood.whereArgs = append(hood.whereArgs, args...)
 	return hood
 }
 
 // Limit adds a LIMIT clause to the query.
 func (hood *Hood) Limit(limit int) *Hood {
-	hood.limit = "LIMIT ?"
-	hood.args = append(hood.args, limit)
+	hood.limit = limit
 	return hood
 }
 
 // Offset adds an OFFSET clause to the query.
 func (hood *Hood) Offset(offset int) *Hood {
-	hood.offset = "OFFSET ?"
-	hood.args = append(hood.args, offset)
+	hood.offset = offset
 	return hood
 }
 
 // OrderBy adds an ORDER BY clause to the query.
 func (hood *Hood) OrderBy(key string) *Hood {
-	hood.orderBy = fmt.Sprintf("ORDER BY %v", key)
+	hood.orderBy = key
 	return hood
 }
 
 // Join performs a JOIN on tables, for example
 //   Join("INNER JOIN", "users", "orders.user_id == users.id")
 func (hood *Hood) Join(op, table, condition string) *Hood {
-	hood.joins = append(hood.joins, fmt.Sprintf("%v JOIN %v ON %v", op, table, condition))
+	hood.joinOps = append(hood.joinOps, op)
+	hood.joinTables = append(hood.joinTables, table)
+	hood.joinCond = append(hood.joinCond, condition)
 	return hood
 }
 
 // GroupBy adds a GROUP BY clause to the query.
 func (hood *Hood) GroupBy(key string) *Hood {
-	hood.groupBy = fmt.Sprintf("GROUP BY %v", key)
+	hood.groupBy = key
 	return hood
 }
 
 // Having adds a HAVING clause to the query.
 func (hood *Hood) Having(condition string, args ...interface{}) *Hood {
-	hood.having = fmt.Sprintf("HAVING %v", condition)
-	hood.args = append(hood.args, args...)
+	hood.havingCond = condition
+	hood.havingArgs = append(hood.havingArgs, args...)
 	return hood
 }
 
@@ -378,22 +382,20 @@ func (hood *Hood) Find(out interface{}) error {
 		panic(panicMsg)
 	}
 	// infer the select statement from the type if not set
-	if hood.selector == "" {
+	if hood.selectCols == "" {
 		hood.Select("*", out)
 	}
-	query := hood.querySql()
+	query, args := hood.Dialect.QuerySql(hood)
 	if hood.Log {
 		fmt.Println(query)
+		fmt.Println(args)
 	}
 	stmt, err := hood.qo.Prepare(query)
 	if err != nil {
 		return err
 	}
 	defer stmt.Close()
-	if hood.Log {
-		fmt.Println(hood.args)
-	}
-	rows, err := stmt.Query(hood.args...)
+	rows, err := stmt.Query(args...)
 	if err != nil {
 		return err
 	}
@@ -458,6 +460,7 @@ func (hood *Hood) Exec(query string, args ...interface{}) (sql.Result, error) {
 // QueryRow always return a non-nil value. Errors are deferred until Row's Scan
 // method is called.
 func (hood *Hood) QueryRow(query string, args ...interface{}) *sql.Row {
+	// TODO(erik): model after .Exec(...)
 	if hood.Log {
 		fmt.Println(query)
 		fmt.Println(args...)
@@ -520,12 +523,15 @@ func (hood *Hood) Save(f interface{}) (Id, error) {
 	if err != nil {
 		return id, err
 	}
+	if model.Pk == nil {
+		panic("no primary key field")
+	}
 	if model.Pk != nil && !model.Pk.Zero() {
 		err = callModelMethod(f, "BeforeUpdate", false)
 		if err != nil {
 			return id, err
 		}
-		id, err = hood.update(model)
+		id, err = hood.Dialect.Update(hood, model)
 		if err == nil {
 			err = callModelMethod(f, "AfterUpdate", false)
 		}
@@ -534,7 +540,7 @@ func (hood *Hood) Save(f interface{}) (Id, error) {
 		if err != nil {
 			return id, err
 		}
-		id, err = hood.insert(model)
+		id, err = hood.Dialect.Insert(hood, model)
 		if err == nil {
 			err = callModelMethod(f, "AfterInsert", false)
 		}
@@ -591,14 +597,16 @@ func (hood *Hood) Delete(f interface{}) (Id, error) {
 	}
 	err = callModelMethod(f, "BeforeDelete", false)
 	if err != nil {
-		return -1, nil
+		return -1, err
 	}
-	id, err := hood.delete(model)
+	if model.Pk == nil {
+		panic("no primary key field")
+	}
+	id, err := hood.Dialect.Delete(hood, model)
 	if err != nil {
 		return -1, err
 	}
-	err = callModelMethod(f, "AfterDelete", false)
-	return id, err
+	return id, callModelMethod(f, "AfterDelete", false)
 }
 
 // DeleteAll deletes the rows matching the specified struct slice Ids.
@@ -614,40 +622,40 @@ func (hood *Hood) CreateTable(table interface{}) error {
 	if err != nil {
 		return err
 	}
-	_, err = hood.Exec(hood.createTableSql(model))
-	if err != nil {
-		return err
-	}
-	return nil
+	return hood.Dialect.CreateTable(hood, model)
 }
 
 // DropTable drops the table matching the provided table name.
 func (hood *Hood) DropTable(table interface{}) error {
-	model, err := interfaceToModel(table)
-	if err != nil {
-		return err
-	}
-	_, err = hood.Exec(fmt.Sprintf("DROP TABLE %v", model.Table))
-	if err != nil {
-		return err
-	}
-	return nil
+	return hood.Dialect.DropTable(hood, tableName(table))
 }
 
-// func (hood *Hood) RenameTable(from interface{}, to interface{}) error {
-// 	// TODO: implement
-// 	return nil
-// }
+// RenameTable renames a table. The arguments can either be a schema definition
+// or plain strings.
+func (hood *Hood) RenameTable(from, to interface{}) error {
+	return hood.Dialect.RenameTable(hood, tableName(from), tableName(to))
+}
 
-// func (hood *Hood) AddColumns(schema interface{}) error {
-// 	// TODO: implement
-// 	return nil
-// }
+// AddColumns adds the columns in the specified schema to the table.
+func (hood *Hood) AddColumns(schema interface{}) error {
+	m, err := interfaceToModel(schema)
+	if err != nil {
+		return err
+	}
+	tx := hood.Begin()
+	for _, column := range m.Fields {
+		err = hood.Dialect.AddColumn(tx, m.Table, column)
+		if err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
 
-// func (hood *Hood) RenameColumns(from interface{}, to interface{}) error {
-// 	// TODO: implement
-// 	return nil
-// }
+// RenameColumn renames the column in the specified table.
+func (hood *Hood) RenameColumn(table interface{}, from, to string) error {
+	return hood.Dialect.RenameColumn(hood, tableName(table), from, to)
+}
 
 // func (hood *Hood) ChangeColumns(from interface{}, to interface{}) error {
 // 	// TODO: implement
@@ -669,146 +677,18 @@ func (hood *Hood) DropTable(table interface{}) error {
 // 	return nil
 // }
 
-func (hood *Hood) insert(model *Model) (Id, error) {
-	if model.Pk == nil {
-		panic("no primary key field")
-	}
-	query, values := hood.insertSql(model)
-	// check if dialect requires custom insert (like PostgreSQL)
-	if id, err, ok := hood.Dialect.Insert(hood, model, query, values...); ok {
-		return id, err
-	}
-	result, err := hood.Exec(query, values...)
-	if err != nil {
-		return -1, err
-	}
-	id, err := result.LastInsertId()
-	if err != nil {
-		return -1, err
-	}
-	return Id(id), nil
-}
-
-func (hood *Hood) insertSql(model *Model) (string, []interface{}) {
-	defer hood.Reset()
-	keys, values, markers := hood.keysValuesAndMarkersForModel(model)
-	stmt := fmt.Sprintf(
-		"INSERT INTO %v (%v) VALUES (%v)",
-		model.Table,
-		strings.Join(keys, ", "),
-		strings.Join(markers, ", "),
-	)
-	return stmt, values
-}
-
-func (hood *Hood) update(model *Model) (Id, error) {
-	if model.Pk == nil {
-		panic("no primary key field")
-	}
-	query, values := hood.updateSql(model)
-	_, err := hood.Exec(query, values...)
-	if err != nil {
-		return -1, err
-	}
-	return model.Pk.Value.(Id), nil
-}
-
-func (hood *Hood) updateSql(model *Model) (string, []interface{}) {
-	defer hood.Reset()
-	keys, values, markers := hood.keysValuesAndMarkersForModel(model)
-	pairs := make([]string, 0, len(keys))
-	for i, key := range keys {
-		pairs = append(pairs, fmt.Sprintf("%v = %v", key, markers[i]))
-	}
-	stmt := fmt.Sprintf(
-		"UPDATE %v SET %v WHERE %v = %v",
-		model.Table,
-		strings.Join(pairs, ", "),
-		model.Pk.Name,
-		hood.nextMarker(),
-	)
-	return stmt, append(values, model.Pk.Value)
-}
-
-func (hood *Hood) delete(model *Model) (Id, error) {
-	if model.Pk == nil {
-		panic("no primary key field")
-	}
-	query, values := hood.deleteSql(model)
-	_, err := hood.Exec(query, values...)
-	if err != nil {
-		return -1, err
-	}
-	return model.Pk.Value.(Id), nil
-}
-
-func (hood *Hood) deleteSql(model *Model) (string, []interface{}) {
-	defer hood.Reset()
-	stmt := fmt.Sprintf(
-		"DELETE FROM %v WHERE %v = %v",
-		model.Table,
-		model.Pk.Name,
-		hood.nextMarker(),
-	)
-	return stmt, []interface{}{model.Pk.Value}
-}
-
-func (hood *Hood) querySql() string {
-	query := make([]string, 0, 20)
-	if hood.selector != "" {
-		query = append(query, hood.selector)
-	}
-	for _, join := range hood.joins {
-		query = append(query, join)
-	}
-	if x := hood.where; len(x) > 0 {
-		query = append(query, fmt.Sprintf("WHERE %v", strings.Join(x, " AND ")))
-	}
-	if x := hood.groupBy; x != "" {
-		query = append(query, x)
-	}
-	if x := hood.having; x != "" {
-		query = append(query, x)
-	}
-	if x := hood.orderBy; x != "" {
-		query = append(query, x)
-	}
-	if x := hood.limit; x != "" {
-		query = append(query, x)
-	}
-	if x := hood.offset; x != "" {
-		query = append(query, x)
-	}
-	return hood.substituteMarkers(strings.Join(query, " "))
-}
-
-func (hood *Hood) createTableSql(model *Model) string {
-	a := []string{"CREATE TABLE ", model.Table, " ( "}
-	for i, field := range model.Fields {
-		b := []string{
-			field.Name,
-			hood.Dialect.SqlType(field.Value, field.Size()),
-		}
-		if field.NotNull() {
-			b = append(b, hood.Dialect.KeywordNotNull())
-		}
-		if x := field.Default(); x != "" {
-			b = append(b, hood.Dialect.KeywordDefault(x))
-		}
-		if field.PrimaryKey() {
-			b = append(b, hood.Dialect.KeywordPrimaryKey())
-		}
-		if incKeyword := hood.Dialect.KeywordAutoIncrement(); field.PrimaryKey() && incKeyword != "" {
-			b = append(b, incKeyword)
-		}
-		a = append(a, strings.Join(b, " "))
-		if i < len(model.Fields)-1 {
-			a = append(a, ", ")
-		}
-	}
-	a = append(a, " )")
-
-	return strings.Join(a, "")
+func (hood *Hood) insert(model *Model) {
+	// OLD IMPL
+	//
+	// result, err := hood.Exec(query, values...)
+	// if err != nil {
+	// 	return -1, err
+	// }
+	// id, err := result.LastInsertId()
+	// if err != nil {
+	// 	return -1, err
+	// }
+	// return Id(id), nil
 }
 
 func (hood *Hood) keysValuesAndMarkersForModel(model *Model) ([]string, []interface{}, []string) {
@@ -819,7 +699,7 @@ func (hood *Hood) keysValuesAndMarkersForModel(model *Model) ([]string, []interf
 	for _, field := range model.Fields {
 		if !field.PrimaryKey() {
 			keys = append(keys, field.Name)
-			markers = append(markers, hood.nextMarker())
+			markers = append(markers, hood.Dialect.NextMarker(&hood.markerPos))
 			values = append(values, field.Value)
 		}
 	}
@@ -832,18 +712,12 @@ func (hood *Hood) substituteMarkers(query string) string {
 	chunks := make([]string, 0, len(query)*2)
 	for _, v := range query {
 		if v == '?' {
-			chunks = append(chunks, hood.nextMarker())
+			chunks = append(chunks, hood.Dialect.NextMarker(&hood.markerPos))
 		} else {
 			chunks = append(chunks, string(v))
 		}
 	}
 	return strings.Join(chunks, "")
-}
-
-func (hood *Hood) nextMarker() string {
-	marker := hood.Dialect.Marker(hood.markerPos)
-	hood.markerPos++
-	return marker
 }
 
 func parseTags(s string) map[string]string {
@@ -885,6 +759,18 @@ func interfaceToModel(f interface{}) (*Model, error) {
 		m.Fields = append(m.Fields, fd)
 	}
 	return m, nil
+}
+
+func tableName(f interface{}) string {
+	switch t := f.(type) {
+	case string:
+		return t
+	}
+	m, _ := interfaceToModel(f)
+	if m != nil {
+		return m.Table
+	}
+	panic("invalid table name")
 }
 
 func convertSpecialTypes(a []interface{}) []interface{} {

@@ -2,7 +2,7 @@ package hood
 
 import (
 	"database/sql"
-	"os"
+	// "os"
 	"testing"
 	"time"
 )
@@ -16,31 +16,32 @@ import (
 // CORRESPONDING DIALECT INFO IN THE TO_RUN ARRAY!
 
 import (
-// _ "github.com/bmizerany/pq"
+	_ "github.com/bmizerany/pq"
+
 // _ "github.com/mattn/go-sqlite3"
 )
 
 var toRun = []dialectInfo{
-// dialectInfo{
-// 	&Postgres{},
-// 	setupPgDb,
-// 	`CREATE TABLE without_pk ( first text, last text, amount integer )`,
-// 	`CREATE TABLE with_pk ( primary bigserial PRIMARY KEY, first text, last text, amount integer )`,
-// 	`INSERT INTO sql_gen_model (first, last, amount) VALUES ($1, $2, $3)`,
-// 	`UPDATE sql_gen_model SET first = $1, last = $2, amount = $3 WHERE prim = $4`,
-// 	`DELETE FROM sql_gen_model WHERE prim = $1`,
-// 	`SELECT * FROM sql_gen_model INNER JOIN orders ON users.id == orders.id WHERE id = $1 AND category_id = $2 GROUP BY name HAVING SUM(price) < $3 ORDER BY first_name LIMIT $4 OFFSET $5`,
-// },
-// dialectInfo{
-// 	&Sqlite3{},
-// 	setupSqlite3Db,
-// 	`CREATE TABLE without_pk ( first text, last text, amount integer )`,
-// 	`CREATE TABLE with_pk ( primary integer PRIMARY KEY AUTOINCREMENT, first text, last text, amount integer )`,
-// 	`INSERT INTO sql_gen_model (first, last, amount) VALUES ($1, $2, $3)`,
-// 	`UPDATE sql_gen_model SET first = $1, last = $2, amount = $3 WHERE prim = $4`,
-// 	`DELETE FROM sql_gen_model WHERE prim = $1`,
-// 	`SELECT * FROM sql_gen_model INNER JOIN orders ON users.id == orders.id WHERE id = $1 AND category_id = $2 GROUP BY name HAVING SUM(price) < $3 ORDER BY first_name LIMIT $4 OFFSET $5`,
-// },
+	dialectInfo{
+		&Postgres{},
+		setupPgDb,
+		`CREATE TABLE without_pk ( first text, last text, amount integer )`,
+		`CREATE TABLE with_pk ( primary bigserial PRIMARY KEY, first text, last text, amount integer )`,
+		`INSERT INTO sql_gen_model (first, last, amount) VALUES ($1, $2, $3) RETURNING prim`,
+		`UPDATE sql_gen_model SET first = $1, last = $2, amount = $3 WHERE prim = $4`,
+		`DELETE FROM sql_gen_model WHERE prim = $1`,
+		`SELECT * FROM sql_gen_model INNER JOIN orders ON users.id == orders.id WHERE id = $1 AND category_id = $2 GROUP BY name HAVING SUM(price) < $3 ORDER BY first_name LIMIT $4 OFFSET $5`,
+	},
+	// dialectInfo{
+	// 	&Sqlite3{},
+	// 	setupSqlite3Db,
+	// 	`CREATE TABLE without_pk ( first text, last text, amount integer )`,
+	// 	`CREATE TABLE with_pk ( primary integer PRIMARY KEY AUTOINCREMENT, first text, last text, amount integer )`,
+	// 	`INSERT INTO sql_gen_model (first, last, amount) VALUES ($1, $2, $3)`,
+	// 	`UPDATE sql_gen_model SET first = $1, last = $2, amount = $3 WHERE prim = $4`,
+	// 	`DELETE FROM sql_gen_model WHERE prim = $1`,
+	// 	`SELECT * FROM sql_gen_model INNER JOIN orders ON users.id == orders.id WHERE id = $1 AND category_id = $2 GROUP BY name HAVING SUM(price) < $3 ORDER BY first_name LIMIT $4 OFFSET $5`,
+	// },
 }
 
 type dialectInfo struct {
@@ -64,16 +65,16 @@ func setupPgDb(t *testing.T) *Hood {
 	return hd
 }
 
-func setupSqlite3Db(t *testing.T) *Hood {
-	os.Remove("/tmp/foo.db")
-	db, err := sql.Open("sqlite3", "/tmp/foo.db")
-	if err != nil {
-		t.Fatal("could not open db", err)
-	}
-	hd := New(db, &Sqlite3{})
-	hd.Log = true
-	return hd
-}
+// func setupSqlite3Db(t *testing.T) *Hood {
+// 	os.Remove("/tmp/foo.db")
+// 	db, err := sql.Open("sqlite3", "/tmp/foo.db")
+// 	if err != nil {
+// 		t.Fatal("could not open db", err)
+// 	}
+// 	hd := New(db, &Sqlite3{})
+// 	hd.Log = true
+// 	return hd
+// }
 
 func TestTransaction(t *testing.T) {
 	for _, info := range toRun {
@@ -548,7 +549,7 @@ func DoTestCreateTableSql(t *testing.T, info dialectInfo) {
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
-	query := hood.createTableSql(model)
+	query := info.dialect.CreateTableSql(hood, model)
 	if query != info.createTableWithoutPkSql {
 		t.Fatal("wrong query", query)
 	}
@@ -563,7 +564,7 @@ func DoTestCreateTableSql(t *testing.T, info dialectInfo) {
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
-	query = hood.createTableSql(model)
+	query = info.dialect.CreateTableSql(hood, model)
 	if query != info.createTableWithPkSql {
 		t.Fatal("wrong query", query)
 	}
@@ -587,7 +588,7 @@ func TestInsertSQL(t *testing.T) {
 func DoTestInsertSQL(t *testing.T, info dialectInfo) {
 	hood := New(nil, info.dialect)
 	model, _ := interfaceToModel(sqlGenSampleData)
-	sql, _ := hood.insertSql(model)
+	sql, _ := info.dialect.InsertSql(hood, model)
 	if x := info.insertSql; x != sql {
 		t.Fatalf("invalid sql: '%v'", sql, x)
 	}
@@ -602,7 +603,7 @@ func TestUpdateSQL(t *testing.T) {
 func DoTestUpdateSQL(t *testing.T, info dialectInfo) {
 	hood := New(nil, info.dialect)
 	model, _ := interfaceToModel(sqlGenSampleData)
-	sql, _ := hood.updateSql(model)
+	sql, _ := info.dialect.UpdateSql(hood, model)
 	if x := info.updateSql; x != sql {
 		t.Fatalf("invalid sql: '%v'", sql, x)
 	}
@@ -617,7 +618,7 @@ func TestDeleteSQL(t *testing.T) {
 func DoTestDeleteSQL(t *testing.T, info dialectInfo) {
 	hood := New(nil, info.dialect)
 	model, _ := interfaceToModel(sqlGenSampleData)
-	sql, _ := hood.deleteSql(model)
+	sql, _ := info.dialect.DeleteSql(hood, model)
 	if x := info.deleteSql; x != sql {
 		t.Fatalf("invalid sql: '%v'", sql, x)
 	}
@@ -640,10 +641,19 @@ func DoTestQuerySQL(t *testing.T, info dialectInfo) {
 	hood.OrderBy("first_name")
 	hood.Offset(3)
 	hood.Limit(10)
-	query := hood.querySql()
+	query, _ := hood.Dialect.QuerySql(hood)
+	// TODO: verify 2nd argument ARGS
 	if x := info.querySql; x != query {
 		t.Fatalf("invalid query: '%v'", query, x)
 	}
+}
+
+func TestRenameTableSQL(t *testing.T) {
+	// TODO(erik): implement
+}
+
+func TestAddColumsSQL(t *testing.T) {
+	// TODO(erik): implement
 }
 
 func TestSqlTypeForPgDialect(t *testing.T) {
@@ -684,40 +694,40 @@ func TestSqlTypeForPgDialect(t *testing.T) {
 	}
 }
 
-func TestSqlTypeForSqlite3Dialect(t *testing.T) {
-	d := &Sqlite3{}
-	if x := d.SqlType(true, 0); x != "integer" {
-		t.Fatal("wrong type", x)
-	}
-	var indirect interface{} = true
-	if x := d.SqlType(indirect, 0); x != "integer" {
-		t.Fatal("wrong type", x)
-	}
-	if x := d.SqlType(uint32(2), 0); x != "integer" {
-		t.Fatal("wrong type", x)
-	}
-	if x := d.SqlType(Id(1), 0); x != "integer" {
-		t.Fatal("wrong type", x)
-	}
-	if x := d.SqlType(int64(1), 0); x != "integer" {
-		t.Fatal("wrong type", x)
-	}
-	if x := d.SqlType(1.8, 0); x != "real" {
-		t.Fatal("wrong type", x)
-	}
-	if x := d.SqlType([]byte("asdf"), 0); x != "text" {
-		t.Fatal("wrong type", x)
-	}
-	if x := d.SqlType("astring", 0); x != "text" {
-		t.Fatal("wrong type", x)
-	}
-	if x := d.SqlType(VarChar("a"), 0); x != "text" {
-		t.Fatal("wrong type", x)
-	}
-	if x := d.SqlType(VarChar("b"), 128); x != "text" {
-		t.Fatal("wrong type", x)
-	}
-	if x := d.SqlType(time.Now(), 0); x != "text" {
-		t.Fatal("wrong type", x)
-	}
-}
+// func TestSqlTypeForSqlite3Dialect(t *testing.T) {
+// 	d := &Sqlite3{}
+// 	if x := d.SqlType(true, 0); x != "integer" {
+// 		t.Fatal("wrong type", x)
+// 	}
+// 	var indirect interface{} = true
+// 	if x := d.SqlType(indirect, 0); x != "integer" {
+// 		t.Fatal("wrong type", x)
+// 	}
+// 	if x := d.SqlType(uint32(2), 0); x != "integer" {
+// 		t.Fatal("wrong type", x)
+// 	}
+// 	if x := d.SqlType(Id(1), 0); x != "integer" {
+// 		t.Fatal("wrong type", x)
+// 	}
+// 	if x := d.SqlType(int64(1), 0); x != "integer" {
+// 		t.Fatal("wrong type", x)
+// 	}
+// 	if x := d.SqlType(1.8, 0); x != "real" {
+// 		t.Fatal("wrong type", x)
+// 	}
+// 	if x := d.SqlType([]byte("asdf"), 0); x != "text" {
+// 		t.Fatal("wrong type", x)
+// 	}
+// 	if x := d.SqlType("astring", 0); x != "text" {
+// 		t.Fatal("wrong type", x)
+// 	}
+// 	if x := d.SqlType(VarChar("a"), 0); x != "text" {
+// 		t.Fatal("wrong type", x)
+// 	}
+// 	if x := d.SqlType(VarChar("b"), 128); x != "text" {
+// 		t.Fatal("wrong type", x)
+// 	}
+// 	if x := d.SqlType(time.Now(), 0); x != "text" {
+// 		t.Fatal("wrong type", x)
+// 	}
+// }

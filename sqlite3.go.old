@@ -83,8 +83,39 @@ func (d *Sqlite3) ValueToField(value reflect.Value, field reflect.Value) error {
 	return nil
 }
 
-func (d *Sqlite3) Insert(hood *Hood, model *Model, query string, args ...interface{}) (Id, error, bool) {
-	return -1, nil, false
+func (d *Sqlite3) Insert(hood *Hood, model *Model) (Id, error) {
+	// TODO: implement
+	return -1, fmt.Errorf("not implemented yet")
+}
+
+func (d *Postgres) Delete(hood *Hood, model *Model) (Id, error) {
+	// TODO: implement
+	return -1, fmt.Errorf("not implemented yet")
+}
+
+func (d *Postgres) CreateTable(hood *Hood, model *Model) error {
+	// TODO: implement
+	return fmt.Errorf("not implemented yet")
+}
+
+func (d *Postgres) DropTable(hood *Hood, table string) error {
+	// TODO: implement
+	return fmt.Errorf("not implemented yet")
+}
+
+func (d *Postgres) RenameTable(hood *Hood, from, to string) error {
+	// TODO: implement
+	return fmt.Errorf("not implemented yet")
+}
+
+func (d *Postgres) AddColumn(hood *Hood, table string, column *Field) error {
+	// TODO: implement
+	return fmt.Errorf("not implemented yet")
+}
+
+func (d *Sqlite3) RenameColumn(hood *Hood, table, from, to string) error {
+	// TODO: implement
+	return fmt.Errorf("not implemented yet")
 }
 
 func (d *Sqlite3) KeywordNotNull() string {
