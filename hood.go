@@ -657,10 +657,14 @@ func (hood *Hood) RenameColumn(table interface{}, from, to string) error {
 	return hood.Dialect.RenameColumn(hood, tableName(table), from, to)
 }
 
-// func (hood *Hood) ChangeColumn(from interface{}, to interface{}) error {
-// 	// TODO: implement
-// 	return nil
-// }
+// ChangeColumn changes the data type of the specified column.
+func (hood *Hood) ChangeColumn(table, column interface{}) error {
+	m, err := interfaceToModel(column)
+	if err != nil {
+		return err
+	}
+	return hood.Dialect.ChangeColumn(hood, tableName(table), m.Fields[0])
+}
 
 // func (hood *Hood) RemoveColumn(schema interface{}) error {
 // 	// TODO: implement

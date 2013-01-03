@@ -73,6 +73,12 @@ type Dialect interface {
 	// RenameColumnSql returns the sql for renaming the specified column in table.
 	RenameColumnSql(hood *Hood, table, from, to string) string
 
+	// ChangeColumn changes the data type of the specified column.
+	ChangeColumn(hood *Hood, table string, column *Field) error
+
+	// ChangeColumnSql returns the sql for changing the column data type.
+	ChangeColumnSql(hood *Hood, table string, column *Field) string
+
 	// KeywordNotNull returns the dialect specific keyword for 'NOT NULL'.
 	KeywordNotNull() string
 

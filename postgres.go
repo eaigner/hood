@@ -264,6 +264,15 @@ func (d *Postgres) RenameColumnSql(hood *Hood, table, from, to string) string {
 	return fmt.Sprintf("ALTER TABLE %v RENAME COLUMN %v TO %v", table, from, to)
 }
 
+func (d *Postgres) ChangeColumn(hood *Hood, table string, column *Field) error {
+	_, err := hood.Exec(d.ChangeColumnSql(hood, table, column))
+	return err
+}
+
+func (d *Postgres) ChangeColumnSql(hood *Hood, table string, column *Field) string {
+	return fmt.Sprintf("ALTER TABLE %v ALTER COLUMN %v TYPE %v", table, column.Name, d.SqlType(column.Value, column.Size()))
+}
+
 func (d *Postgres) KeywordNotNull() string {
 	return "NOT NULL"
 }
