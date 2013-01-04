@@ -264,13 +264,45 @@ func (d *Postgres) RenameColumnSql(hood *Hood, table, from, to string) string {
 	return fmt.Sprintf("ALTER TABLE %v RENAME COLUMN %v TO %v", table, from, to)
 }
 
-func (d *Postgres) ChangeColumn(hood *Hood, table string, column *Field) error {
-	_, err := hood.Exec(d.ChangeColumnSql(hood, table, column))
+func (d *Postgres) ChangeColumn(hood *Hood, table, column string, typ interface{}, size int) error {
+	_, err := hood.Exec(d.ChangeColumnSql(hood, table, column, typ, size))
 	return err
 }
 
-func (d *Postgres) ChangeColumnSql(hood *Hood, table string, column *Field) string {
-	return fmt.Sprintf("ALTER TABLE %v ALTER COLUMN %v TYPE %v", table, column.Name, d.SqlType(column.Value, column.Size()))
+func (d *Postgres) ChangeColumnSql(hood *Hood, table, column string, typ interface{}, size int) string {
+	return fmt.Sprintf("ALTER TABLE %v ALTER COLUMN %v TYPE %v", table, column, d.SqlType(typ, size))
+}
+
+func (d *Postgres) RemoveColumn(hood *Hood, table, column string) error {
+	_, err := hood.Exec(d.RemoveColumnSql(hood, table, column))
+	return err
+}
+
+func (d *Postgres) RemoveColumnSql(hood *Hood, table, column string) string {
+	return fmt.Sprintf("ALTER TABLE %v DROP COLUMN %v", table, column)
+}
+
+func (d *Postgres) CreateIndex(hood *Hood, table, column string, unique bool) error {
+	_, err := hood.Exec(d.CreateIndexSql(hood, table, column, unique))
+	return err
+}
+
+func (d *Postgres) CreateIndexSql(hood *Hood, table, column string, unique bool) string {
+	a := []string{"CREATE"}
+	if unique {
+		a = append(a, "UNIQUE")
+	}
+	a = append(a, fmt.Sprintf("INDEX %v_index ON %v (%v)", column, table, column))
+	return strings.Join(a, " ")
+}
+
+func (d *Postgres) DropIndex(hood *Hood, column string) error {
+	_, err := hood.Exec(d.DropIndexSql(hood, column))
+	return err
+}
+
+func (d *Postgres) DropIndexSql(hood *Hood, column string) string {
+	return fmt.Sprintf("DROP INDEX %v_index", column)
 }
 
 func (d *Postgres) KeywordNotNull() string {

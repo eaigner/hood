@@ -74,10 +74,28 @@ type Dialect interface {
 	RenameColumnSql(hood *Hood, table, from, to string) string
 
 	// ChangeColumn changes the data type of the specified column.
-	ChangeColumn(hood *Hood, table string, column *Field) error
+	ChangeColumn(hood *Hood, table, column string, typ interface{}, size int) error
 
 	// ChangeColumnSql returns the sql for changing the column data type.
-	ChangeColumnSql(hood *Hood, table string, column *Field) string
+	ChangeColumnSql(hood *Hood, table, column string, typ interface{}, size int) string
+
+	// ChangeColumn changes the data type of the specified column.
+	RemoveColumn(hood *Hood, table, column string) error
+
+	// ChangeColumnSql returns the sql for changing the column data type.
+	RemoveColumnSql(hood *Hood, table, column string) string
+
+	// CreateIndex creates an index on the specified column.
+	CreateIndex(hood *Hood, table, column string, unique bool) error
+
+	// CreateIndexSql returns the sql for creating an index on the specified column.
+	CreateIndexSql(hood *Hood, table, column string, unique bool) string
+
+	// DropIndex drops the index for the specified column.
+	DropIndex(hood *Hood, column string) error
+
+	// DropIndexSql returns the sql for dropping the index on the specified column.
+	DropIndexSql(hood *Hood, column string) string
 
 	// KeywordNotNull returns the dialect specific keyword for 'NOT NULL'.
 	KeywordNotNull() string

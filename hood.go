@@ -663,23 +663,26 @@ func (hood *Hood) ChangeColumn(table, column interface{}) error {
 	if err != nil {
 		return err
 	}
-	return hood.Dialect.ChangeColumn(hood, tableName(table), m.Fields[0])
+	field := m.Fields[0]
+	return hood.Dialect.ChangeColumn(hood, tableName(table), field.Name, field.Value, field.Size())
 }
 
-// func (hood *Hood) RemoveColumn(schema interface{}) error {
-// 	// TODO: implement
-// 	return nil
-// }
+func (hood *Hood) RemoveColumn(table, column interface{}) error {
+	m, err := interfaceToModel(column)
+	if err != nil {
+		return err
+	}
+	field := m.Fields[0]
+	return hood.Dialect.RemoveColumn(hood, tableName(table), field.Name)
+}
 
-// func (hood *Hood) AddIndexe(schema interface{}) error {
-// 	// TODO: implement
-// 	return nil
-// }
+func (hood *Hood) CreateIndex(table interface{}, column string, unique bool) error {
+	return hood.Dialect.CreateIndex(hood, tableName(table), column, unique)
+}
 
-// func (hood *Hood) RemoveIndexe(schema interface{}) error {
-// 	// TODO: implement
-// 	return nil
-// }
+func (hood *Hood) DropIndex(column string) error {
+	return hood.Dialect.DropIndex(hood, column)
+}
 
 func (hood *Hood) insert(model *Model) {
 	// OLD IMPL
