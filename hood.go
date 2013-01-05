@@ -684,21 +684,6 @@ func (hood *Hood) DropIndex(column string) error {
 	return hood.Dialect.DropIndex(hood, column)
 }
 
-func (hood *Hood) keysValuesAndMarkersForModel(model *Model) ([]string, []interface{}, []string) {
-	max := len(model.Fields)
-	keys := make([]string, 0, max)
-	values := make([]interface{}, 0, max)
-	markers := make([]string, 0, max)
-	for _, field := range model.Fields {
-		if !field.PrimaryKey() {
-			keys = append(keys, field.Name)
-			markers = append(markers, hood.Dialect.NextMarker(&hood.markerPos))
-			values = append(values, field.Value)
-		}
-	}
-	return keys, values, markers
-}
-
 func (hood *Hood) substituteMarkers(query string) string {
 	// in order to use a uniform marker syntax, substitute
 	// all question marks with the dialect marker
