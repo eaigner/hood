@@ -2,3 +2,4 @@
 .DS_Store
 profile
 example/example
+migrate/db/
