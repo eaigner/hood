@@ -85,3 +85,23 @@ func (d *Sqlite3) ValueToField(value reflect.Value, field reflect.Value) error {
 	}
 	return nil
 }
+
+func (d *Sqlite3) RenameColumn(hood *Hood, table, from, to string) error {
+	// TODO: implement column rename via table copy, see
+	// http://stackoverflow.com/questions/805363/how-do-i-rename-a-column-in-a-sqlite-database-table
+	panic("not implemented")
+}
+
+func (d *Sqlite3) RenameColumnSql(table, from, to string) string {
+	return ""
+}
+
+func (d *Sqlite3) ChangeColumn(hood *Hood, table, column string, typ interface{}, size int) error {
+	// TODO: implement column change via table copy, see
+	// http://stackoverflow.com/questions/805363/how-do-i-rename-a-column-in-a-sqlite-database-table
+	panic("not implemented")
+}
+
+func (d *Sqlite3) ChangeColumnSql(table, column string, typ interface{}, size int) string {
+	return ""
+}

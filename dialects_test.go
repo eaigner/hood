@@ -33,6 +33,8 @@ var toRun = []dialectInfo{
 		`DROP TABLE drop_table`,
 		`ALTER TABLE table_a RENAME TO table_b`,
 		`ALTER TABLE a ADD COLUMN c varchar(100)`,
+		`ALTER TABLE a RENAME COLUMN b TO c`,
+		`ALTER TABLE a ALTER COLUMN b TYPE varchar(100)`,
 	},
 	dialectInfo{
 		NewSqlite3(),
@@ -46,6 +48,8 @@ var toRun = []dialectInfo{
 		`DROP TABLE drop_table`,
 		`ALTER TABLE table_a RENAME TO table_b`,
 		`ALTER TABLE a ADD COLUMN c text`,
+		``,
+		``,
 	},
 }
 
@@ -61,6 +65,8 @@ type dialectInfo struct {
 	dropTableSql            string
 	renameTableSql          string
 	addColumnSql            string
+	renameColumnSql         string
+	changeColumnSql         string
 }
 
 func setupPgDb(t *testing.T) *Hood {
@@ -689,11 +695,27 @@ func DoTestAddColumSQL(t *testing.T, info dialectInfo) {
 }
 
 func TestRenameColumnSql(t *testing.T) {
-	// TODO(erik): implement
+	for _, info := range toRun {
+		DoTestRenameColumnSql(t, info)
+	}
+}
+
+func DoTestRenameColumnSql(t *testing.T, info dialectInfo) {
+	if x := info.dialect.RenameColumnSql("a", "b", "c"); x != info.renameColumnSql {
+		t.Fatal("wrong sql", x)
+	}
 }
 
 func TestChangeColumnSql(t *testing.T) {
-	// TODO(erik): implement
+	for _, info := range toRun {
+		DoTestChangeColumnSql(t, info)
+	}
+}
+
+func DoTestChangeColumnSql(t *testing.T, info dialectInfo) {
+	if x := info.dialect.ChangeColumnSql("a", "b", VarChar(""), 100); x != info.changeColumnSql {
+		t.Fatal("wrong sql", x)
+	}
 }
 
 func TestRemoveColumnSql(t *testing.T) {
