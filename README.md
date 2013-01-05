@@ -20,7 +20,7 @@ Dialects currently supported
 
 ** not registered by default, requires some packages installed on the system
 
-Adding a dialect is as simple as copying the original `postgres.go`, replacing the statement and field values with the new dialect versions.
+Adding a dialect is simple. Just create a new file named `<dialect_name>.go` and the corresponding struct type, and mixin the `Base` dialect. Then implement the methods that are specific to the new dialect (for an example see `postgres.go`).
 
 ## Documentation
 
