@@ -30,6 +30,7 @@ var toRun = []dialectInfo{
 		`UPDATE sql_gen_model SET first = $1, last = $2, amount = $3 WHERE prim = $4`,
 		`DELETE FROM sql_gen_model WHERE prim = $1`,
 		`SELECT * FROM sql_gen_model INNER JOIN orders ON users.id == orders.id WHERE id = $1 AND category_id = $2 GROUP BY name HAVING SUM(price) < $3 ORDER BY first_name LIMIT $4 OFFSET $5`,
+		`DROP TABLE drop_table`,
 	},
 	dialectInfo{
 		NewSqlite3(),
@@ -40,6 +41,7 @@ var toRun = []dialectInfo{
 		`UPDATE sql_gen_model SET first = $1, last = $2, amount = $3 WHERE prim = $4`,
 		`DELETE FROM sql_gen_model WHERE prim = $1`,
 		`SELECT * FROM sql_gen_model INNER JOIN orders ON users.id == orders.id WHERE id = $1 AND category_id = $2 GROUP BY name HAVING SUM(price) < $3 ORDER BY first_name LIMIT $4 OFFSET $5`,
+		`DROP TABLE drop_table`,
 	},
 }
 
@@ -52,6 +54,7 @@ type dialectInfo struct {
 	updateSql               string
 	deleteSql               string
 	querySql                string
+	dropTableSql            string
 }
 
 func setupPgDb(t *testing.T) *Hood {
@@ -650,8 +653,9 @@ func TestDropTableSQL(t *testing.T) {
 }
 
 func DoTestDropTableSQL(t *testing.T, info dialectInfo) {
-	// if x := info.dialect.DropTableSql(table)
-	// TODO(erik): implement
+	if x := info.dialect.DropTableSql("drop_table"); x != info.dropTableSql {
+		t.Fatal("wrong sql", x)
+	}
 }
 
 func TestRenameTableSQL(t *testing.T) {
