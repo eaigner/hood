@@ -1,7 +1,6 @@
 package hood
 
 import (
-	"fmt"
 	// _ "github.com/mattn/go-sqlite3"
 	"reflect"
 	"time"
@@ -15,10 +14,14 @@ func init() {
 	// RegisterDialect("sqlite3", &Sqlite3{})
 }
 
-type Sqlite3 struct{}
+type Sqlite3 struct {
+	Base
+}
 
-func (d *Sqlite3) Marker(pos int) string {
-	return fmt.Sprintf("$%d", pos+1)
+func NewSqlite3() Dialect {
+	d := &Sqlite3{}
+	d.Base.Dialect = d
+	return d
 }
 
 func (d *Sqlite3) SqlType(f interface{}, size int) string {
@@ -81,55 +84,4 @@ func (d *Sqlite3) ValueToField(value reflect.Value, field reflect.Value) error {
 		}
 	}
 	return nil
-}
-
-func (d *Sqlite3) Insert(hood *Hood, model *Model) (Id, error) {
-	// TODO: implement
-	return -1, fmt.Errorf("not implemented yet")
-}
-
-func (d *Postgres) Delete(hood *Hood, model *Model) (Id, error) {
-	// TODO: implement
-	return -1, fmt.Errorf("not implemented yet")
-}
-
-func (d *Postgres) CreateTable(hood *Hood, model *Model) error {
-	// TODO: implement
-	return fmt.Errorf("not implemented yet")
-}
-
-func (d *Postgres) DropTable(hood *Hood, table string) error {
-	// TODO: implement
-	return fmt.Errorf("not implemented yet")
-}
-
-func (d *Postgres) RenameTable(hood *Hood, from, to string) error {
-	// TODO: implement
-	return fmt.Errorf("not implemented yet")
-}
-
-func (d *Postgres) AddColumn(hood *Hood, table string, column *Field) error {
-	// TODO: implement
-	return fmt.Errorf("not implemented yet")
-}
-
-func (d *Sqlite3) RenameColumn(hood *Hood, table, from, to string) error {
-	// TODO: implement
-	return fmt.Errorf("not implemented yet")
-}
-
-func (d *Sqlite3) KeywordNotNull() string {
-	return "NOT NULL"
-}
-
-func (d *Sqlite3) KeywordDefault(s string) string {
-	return fmt.Sprintf("DEFAULT %v", s)
-}
-
-func (d *Sqlite3) KeywordPrimaryKey() string {
-	return "PRIMARY KEY"
-}
-
-func (d *Sqlite3) KeywordAutoIncrement() string {
-	return "AUTOINCREMENT"
 }

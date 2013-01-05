@@ -16,9 +16,9 @@ type Postgres struct {
 }
 
 func NewPostgres() Dialect {
-	pg := &Postgres{}
-	pg.Base.Dialect = pg
-	return pg
+	d := &Postgres{}
+	d.Base.Dialect = d
+	return d
 }
 
 func (d *Base) SqlType(f interface{}, size int) string {

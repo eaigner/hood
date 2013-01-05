@@ -2,7 +2,7 @@ package hood
 
 import (
 	"database/sql"
-	// "os"
+	"os"
 	"testing"
 	"time"
 )
@@ -17,8 +17,7 @@ import (
 
 import (
 	_ "github.com/bmizerany/pq"
-
-// _ "github.com/mattn/go-sqlite3"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 var toRun = []dialectInfo{
@@ -32,16 +31,16 @@ var toRun = []dialectInfo{
 		`DELETE FROM sql_gen_model WHERE prim = $1`,
 		`SELECT * FROM sql_gen_model INNER JOIN orders ON users.id == orders.id WHERE id = $1 AND category_id = $2 GROUP BY name HAVING SUM(price) < $3 ORDER BY first_name LIMIT $4 OFFSET $5`,
 	},
-	// dialectInfo{
-	// 	&Sqlite3{},
-	// 	setupSqlite3Db,
-	// 	`CREATE TABLE without_pk ( first text, last text, amount integer )`,
-	// 	`CREATE TABLE with_pk ( primary integer PRIMARY KEY AUTOINCREMENT, first text, last text, amount integer )`,
-	// 	`INSERT INTO sql_gen_model (first, last, amount) VALUES ($1, $2, $3)`,
-	// 	`UPDATE sql_gen_model SET first = $1, last = $2, amount = $3 WHERE prim = $4`,
-	// 	`DELETE FROM sql_gen_model WHERE prim = $1`,
-	// 	`SELECT * FROM sql_gen_model INNER JOIN orders ON users.id == orders.id WHERE id = $1 AND category_id = $2 GROUP BY name HAVING SUM(price) < $3 ORDER BY first_name LIMIT $4 OFFSET $5`,
-	// },
+	dialectInfo{
+		NewSqlite3(),
+		setupSqlite3Db,
+		`CREATE TABLE without_pk ( first text, last text, amount integer )`,
+		`CREATE TABLE with_pk ( primary integer PRIMARY KEY AUTOINCREMENT, first text, last text, amount integer )`,
+		`INSERT INTO sql_gen_model (first, last, amount) VALUES ($1, $2, $3)`,
+		`UPDATE sql_gen_model SET first = $1, last = $2, amount = $3 WHERE prim = $4`,
+		`DELETE FROM sql_gen_model WHERE prim = $1`,
+		`SELECT * FROM sql_gen_model INNER JOIN orders ON users.id == orders.id WHERE id = $1 AND category_id = $2 GROUP BY name HAVING SUM(price) < $3 ORDER BY first_name LIMIT $4 OFFSET $5`,
+	},
 }
 
 type dialectInfo struct {
@@ -65,16 +64,16 @@ func setupPgDb(t *testing.T) *Hood {
 	return hd
 }
 
-// func setupSqlite3Db(t *testing.T) *Hood {
-// 	os.Remove("/tmp/foo.db")
-// 	db, err := sql.Open("sqlite3", "/tmp/foo.db")
-// 	if err != nil {
-// 		t.Fatal("could not open db", err)
-// 	}
-// 	hd := New(db, &Sqlite3{})
-// 	hd.Log = true
-// 	return hd
-// }
+func setupSqlite3Db(t *testing.T) *Hood {
+	os.Remove("/tmp/foo.db")
+	db, err := sql.Open("sqlite3", "/tmp/foo.db")
+	if err != nil {
+		t.Fatal("could not open db", err)
+	}
+	hd := New(db, NewSqlite3())
+	hd.Log = true
+	return hd
+}
 
 func TestTransaction(t *testing.T) {
 	for _, info := range toRun {
@@ -718,40 +717,40 @@ func TestSqlTypeForPgDialect(t *testing.T) {
 	}
 }
 
-// func TestSqlTypeForSqlite3Dialect(t *testing.T) {
-// 	d := &Sqlite3{}
-// 	if x := d.SqlType(true, 0); x != "integer" {
-// 		t.Fatal("wrong type", x)
-// 	}
-// 	var indirect interface{} = true
-// 	if x := d.SqlType(indirect, 0); x != "integer" {
-// 		t.Fatal("wrong type", x)
-// 	}
-// 	if x := d.SqlType(uint32(2), 0); x != "integer" {
-// 		t.Fatal("wrong type", x)
-// 	}
-// 	if x := d.SqlType(Id(1), 0); x != "integer" {
-// 		t.Fatal("wrong type", x)
-// 	}
-// 	if x := d.SqlType(int64(1), 0); x != "integer" {
-// 		t.Fatal("wrong type", x)
-// 	}
-// 	if x := d.SqlType(1.8, 0); x != "real" {
-// 		t.Fatal("wrong type", x)
-// 	}
-// 	if x := d.SqlType([]byte("asdf"), 0); x != "text" {
-// 		t.Fatal("wrong type", x)
-// 	}
-// 	if x := d.SqlType("astring", 0); x != "text" {
-// 		t.Fatal("wrong type", x)
-// 	}
-// 	if x := d.SqlType(VarChar("a"), 0); x != "text" {
-// 		t.Fatal("wrong type", x)
-// 	}
-// 	if x := d.SqlType(VarChar("b"), 128); x != "text" {
-// 		t.Fatal("wrong type", x)
-// 	}
-// 	if x := d.SqlType(time.Now(), 0); x != "text" {
-// 		t.Fatal("wrong type", x)
-// 	}
-// }
+func TestSqlTypeForSqlite3Dialect(t *testing.T) {
+	d := NewSqlite3()
+	if x := d.SqlType(true, 0); x != "integer" {
+		t.Fatal("wrong type", x)
+	}
+	var indirect interface{} = true
+	if x := d.SqlType(indirect, 0); x != "integer" {
+		t.Fatal("wrong type", x)
+	}
+	if x := d.SqlType(uint32(2), 0); x != "integer" {
+		t.Fatal("wrong type", x)
+	}
+	if x := d.SqlType(Id(1), 0); x != "integer" {
+		t.Fatal("wrong type", x)
+	}
+	if x := d.SqlType(int64(1), 0); x != "integer" {
+		t.Fatal("wrong type", x)
+	}
+	if x := d.SqlType(1.8, 0); x != "real" {
+		t.Fatal("wrong type", x)
+	}
+	if x := d.SqlType([]byte("asdf"), 0); x != "text" {
+		t.Fatal("wrong type", x)
+	}
+	if x := d.SqlType("astring", 0); x != "text" {
+		t.Fatal("wrong type", x)
+	}
+	if x := d.SqlType(VarChar("a"), 0); x != "text" {
+		t.Fatal("wrong type", x)
+	}
+	if x := d.SqlType(VarChar("b"), 128); x != "text" {
+		t.Fatal("wrong type", x)
+	}
+	if x := d.SqlType(time.Now(), 0); x != "text" {
+		t.Fatal("wrong type", x)
+	}
+}
