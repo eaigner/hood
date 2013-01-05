@@ -684,20 +684,6 @@ func (hood *Hood) DropIndex(column string) error {
 	return hood.Dialect.DropIndex(hood, column)
 }
 
-func (hood *Hood) insert(model *Model) {
-	// OLD IMPL
-	//
-	// result, err := hood.Exec(query, values...)
-	// if err != nil {
-	// 	return -1, err
-	// }
-	// id, err := result.LastInsertId()
-	// if err != nil {
-	// 	return -1, err
-	// }
-	// return Id(id), nil
-}
-
 func (hood *Hood) keysValuesAndMarkersForModel(model *Model) ([]string, []interface{}, []string) {
 	max := len(model.Fields)
 	keys := make([]string, 0, max)

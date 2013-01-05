@@ -4,11 +4,8 @@ import "reflect"
 
 type Dialect interface {
 	// Marker returns the dialect specific markers for prepared statements,
-	// for instance $1, $2, ... and so on. The position starts at 0.
-	Marker(pos int) string
-
-	// Next marker returns the dialect specific marker for pos and increments
-	// the position by one.
+	// for instance $1, $2, ... and increments the position by one.
+	// The position starts at 0.
 	NextMarker(pos *int) string
 
 	// SqlType returns the SQL type for the provided interface type. The size

@@ -23,7 +23,7 @@ import (
 
 var toRun = []dialectInfo{
 	dialectInfo{
-		&Postgres{},
+		NewPostgres(),
 		setupPgDb,
 		`CREATE TABLE without_pk ( first text, last text, amount integer )`,
 		`CREATE TABLE with_pk ( primary bigserial PRIMARY KEY, first text, last text, amount integer )`,
@@ -60,7 +60,7 @@ func setupPgDb(t *testing.T) *Hood {
 	if err != nil {
 		t.Fatal("could not open db", err)
 	}
-	hd := New(db, &Postgres{})
+	hd := New(db, NewPostgres())
 	hd.Log = true
 	return hd
 }
@@ -681,7 +681,7 @@ func TestRemoveIndexSql(t *testing.T) {
 }
 
 func TestSqlTypeForPgDialect(t *testing.T) {
-	d := &Postgres{}
+	d := NewPostgres()
 	if x := d.SqlType(true, 0); x != "boolean" {
 		t.Fatal("wrong type", x)
 	}
