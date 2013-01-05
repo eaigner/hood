@@ -76,11 +76,11 @@ type Dialect interface {
 	// ChangeColumnSql returns the sql for changing the column data type.
 	ChangeColumnSql(table, column string, typ interface{}, size int) string
 
-	// ChangeColumn changes the data type of the specified column.
-	RemoveColumn(hood *Hood, table, column string) error
+	// DropColumn removes the specified column.
+	DropColumn(hood *Hood, table, column string) error
 
-	// ChangeColumnSql returns the sql for changing the column data type.
-	RemoveColumnSql(table, column string) string
+	// DropColumnSql returns the sql for removing the column.
+	DropColumnSql(table, column string) string
 
 	// CreateIndex creates an index on the specified column.
 	CreateIndex(hood *Hood, table, column string, unique bool) error

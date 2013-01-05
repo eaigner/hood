@@ -673,7 +673,7 @@ func (hood *Hood) RemoveColumn(table, column interface{}) error {
 		return err
 	}
 	field := m.Fields[0]
-	return hood.Dialect.RemoveColumn(hood, tableName(table), field.Name)
+	return hood.Dialect.DropColumn(hood, tableName(table), field.Name)
 }
 
 func (hood *Hood) CreateIndex(table interface{}, column string, unique bool) error {

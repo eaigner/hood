@@ -35,6 +35,7 @@ var toRun = []dialectInfo{
 		`ALTER TABLE a ADD COLUMN c varchar(100)`,
 		`ALTER TABLE a RENAME COLUMN b TO c`,
 		`ALTER TABLE a ALTER COLUMN b TYPE varchar(100)`,
+		`ALTER TABLE a DROP COLUMN b`,
 	},
 	dialectInfo{
 		NewSqlite3(),
@@ -48,6 +49,7 @@ var toRun = []dialectInfo{
 		`DROP TABLE drop_table`,
 		`ALTER TABLE table_a RENAME TO table_b`,
 		`ALTER TABLE a ADD COLUMN c text`,
+		``,
 		``,
 		``,
 	},
@@ -67,6 +69,7 @@ type dialectInfo struct {
 	addColumnSql            string
 	renameColumnSql         string
 	changeColumnSql         string
+	dropColumnSql           string
 }
 
 func setupPgDb(t *testing.T) *Hood {
@@ -719,7 +722,15 @@ func DoTestChangeColumnSql(t *testing.T, info dialectInfo) {
 }
 
 func TestRemoveColumnSql(t *testing.T) {
-	// TODO(erik): implement
+	for _, info := range toRun {
+		DoTestRemoveColumnSql(t, info)
+	}
+}
+
+func DoTestRemoveColumnSql(t *testing.T, info dialectInfo) {
+	if x := info.dialect.DropColumnSql("a", "b"); x != info.dropColumnSql {
+		t.Fatal("wrong sql", x)
+	}
 }
 
 func TestCreateIndexSql(t *testing.T) {

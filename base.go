@@ -230,12 +230,12 @@ func (d *Base) ChangeColumnSql(table, column string, typ interface{}, size int) 
 	return fmt.Sprintf("ALTER TABLE %v ALTER COLUMN %v TYPE %v", table, column, d.Dialect.SqlType(typ, size))
 }
 
-func (d *Base) RemoveColumn(hood *Hood, table, column string) error {
-	_, err := hood.Exec(d.Dialect.RemoveColumnSql(table, column))
+func (d *Base) DropColumn(hood *Hood, table, column string) error {
+	_, err := hood.Exec(d.Dialect.DropColumnSql(table, column))
 	return err
 }
 
-func (d *Base) RemoveColumnSql(table, column string) string {
+func (d *Base) DropColumnSql(table, column string) string {
 	return fmt.Sprintf("ALTER TABLE %v DROP COLUMN %v", table, column)
 }
 
