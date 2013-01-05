@@ -80,7 +80,7 @@ func (d *Base) QuerySql(hood *Hood) (string, []interface{}) {
 }
 
 func (d *Base) Insert(hood *Hood, model *Model) (Id, error) {
-	sql, args := d.Dialect.InsertSql(hood, model)
+	sql, args := d.Dialect.InsertSql(model)
 	result, err := hood.Exec(sql, args...)
 	if err != nil {
 		return -1, err
@@ -92,7 +92,7 @@ func (d *Base) Insert(hood *Hood, model *Model) (Id, error) {
 	return Id(id), nil
 }
 
-func (d *Base) InsertSql(hood *Hood, model *Model) (string, []interface{}) {
+func (d *Base) InsertSql(model *Model) (string, []interface{}) {
 	m := 0
 	columns, markers, values := columnsMarkersAndValuesForModel(d.Dialect, model, &m)
 	sql := fmt.Sprintf(
@@ -105,7 +105,7 @@ func (d *Base) InsertSql(hood *Hood, model *Model) (string, []interface{}) {
 }
 
 func (d *Base) Update(hood *Hood, model *Model) (Id, error) {
-	sql, args := d.Dialect.UpdateSql(hood, model)
+	sql, args := d.Dialect.UpdateSql(model)
 	_, err := hood.Exec(sql, args...)
 	if err != nil {
 		return -1, err
@@ -113,7 +113,7 @@ func (d *Base) Update(hood *Hood, model *Model) (Id, error) {
 	return model.Pk.Value.(Id), nil
 }
 
-func (d *Base) UpdateSql(hood *Hood, model *Model) (string, []interface{}) {
+func (d *Base) UpdateSql(model *Model) (string, []interface{}) {
 	m := 0
 	columns, markers, values := columnsMarkersAndValuesForModel(d.Dialect, model, &m)
 	pairs := make([]string, 0, len(columns))
@@ -132,12 +132,12 @@ func (d *Base) UpdateSql(hood *Hood, model *Model) (string, []interface{}) {
 }
 
 func (d *Base) Delete(hood *Hood, model *Model) (Id, error) {
-	sql, args := d.Dialect.DeleteSql(hood, model)
+	sql, args := d.Dialect.DeleteSql(model)
 	_, err := hood.Exec(sql, args...)
 	return args[0].(Id), err
 }
 
-func (d *Base) DeleteSql(hood *Hood, model *Model) (string, []interface{}) {
+func (d *Base) DeleteSql(model *Model) (string, []interface{}) {
 	n := 0
 	return fmt.Sprintf(
 		"DELETE FROM %v WHERE %v = %v",
@@ -148,11 +148,11 @@ func (d *Base) DeleteSql(hood *Hood, model *Model) (string, []interface{}) {
 }
 
 func (d *Base) CreateTable(hood *Hood, model *Model) error {
-	_, err := hood.Exec(d.Dialect.CreateTableSql(hood, model))
+	_, err := hood.Exec(d.Dialect.CreateTableSql(model))
 	return err
 }
 
-func (d *Base) CreateTableSql(hood *Hood, model *Model) string {
+func (d *Base) CreateTableSql(model *Model) string {
 	a := []string{"CREATE TABLE ", model.Table, " ( "}
 	for i, field := range model.Fields {
 		b := []string{
@@ -181,29 +181,29 @@ func (d *Base) CreateTableSql(hood *Hood, model *Model) string {
 }
 
 func (d *Base) DropTable(hood *Hood, table string) error {
-	_, err := hood.Exec(d.Dialect.DropTableSql(hood, table))
+	_, err := hood.Exec(d.Dialect.DropTableSql(table))
 	return err
 }
 
-func (d *Base) DropTableSql(hood *Hood, table string) string {
+func (d *Base) DropTableSql(table string) string {
 	return fmt.Sprintf("DROP TABLE %v", table)
 }
 
 func (d *Base) RenameTable(hood *Hood, from, to string) error {
-	_, err := hood.Exec(d.Dialect.RenameTableSql(hood, from, to))
+	_, err := hood.Exec(d.Dialect.RenameTableSql(from, to))
 	return err
 }
 
-func (d *Base) RenameTableSql(hood *Hood, from, to string) string {
+func (d *Base) RenameTableSql(from, to string) string {
 	return fmt.Sprintf("ALTER TABLE %v RENAME TO %v", from, to)
 }
 
 func (d *Base) AddColumn(hood *Hood, table string, column *Field) error {
-	_, err := hood.Exec(d.Dialect.AddColumnSql(hood, table, column))
+	_, err := hood.Exec(d.Dialect.AddColumnSql(table, column))
 	return err
 }
 
-func (d *Base) AddColumnSql(hood *Hood, table string, column *Field) string {
+func (d *Base) AddColumnSql(table string, column *Field) string {
 	return fmt.Sprintf(
 		"ALTER TABLE %v ADD COLUMN %v %v",
 		table,
@@ -213,38 +213,38 @@ func (d *Base) AddColumnSql(hood *Hood, table string, column *Field) string {
 }
 
 func (d *Base) RenameColumn(hood *Hood, table, from, to string) error {
-	_, err := hood.Exec(d.Dialect.RenameColumnSql(hood, table, from, to))
+	_, err := hood.Exec(d.Dialect.RenameColumnSql(table, from, to))
 	return err
 }
 
-func (d *Base) RenameColumnSql(hood *Hood, table, from, to string) string {
+func (d *Base) RenameColumnSql(table, from, to string) string {
 	return fmt.Sprintf("ALTER TABLE %v RENAME COLUMN %v TO %v", table, from, to)
 }
 
 func (d *Base) ChangeColumn(hood *Hood, table, column string, typ interface{}, size int) error {
-	_, err := hood.Exec(d.Dialect.ChangeColumnSql(hood, table, column, typ, size))
+	_, err := hood.Exec(d.Dialect.ChangeColumnSql(table, column, typ, size))
 	return err
 }
 
-func (d *Base) ChangeColumnSql(hood *Hood, table, column string, typ interface{}, size int) string {
+func (d *Base) ChangeColumnSql(table, column string, typ interface{}, size int) string {
 	return fmt.Sprintf("ALTER TABLE %v ALTER COLUMN %v TYPE %v", table, column, d.Dialect.SqlType(typ, size))
 }
 
 func (d *Base) RemoveColumn(hood *Hood, table, column string) error {
-	_, err := hood.Exec(d.Dialect.RemoveColumnSql(hood, table, column))
+	_, err := hood.Exec(d.Dialect.RemoveColumnSql(table, column))
 	return err
 }
 
-func (d *Base) RemoveColumnSql(hood *Hood, table, column string) string {
+func (d *Base) RemoveColumnSql(table, column string) string {
 	return fmt.Sprintf("ALTER TABLE %v DROP COLUMN %v", table, column)
 }
 
 func (d *Base) CreateIndex(hood *Hood, table, column string, unique bool) error {
-	_, err := hood.Exec(d.Dialect.CreateIndexSql(hood, table, column, unique))
+	_, err := hood.Exec(d.Dialect.CreateIndexSql(table, column, unique))
 	return err
 }
 
-func (d *Base) CreateIndexSql(hood *Hood, table, column string, unique bool) string {
+func (d *Base) CreateIndexSql(table, column string, unique bool) string {
 	a := []string{"CREATE"}
 	if unique {
 		a = append(a, "UNIQUE")
@@ -254,11 +254,11 @@ func (d *Base) CreateIndexSql(hood *Hood, table, column string, unique bool) str
 }
 
 func (d *Base) DropIndex(hood *Hood, column string) error {
-	_, err := hood.Exec(d.Dialect.DropIndexSql(hood, column))
+	_, err := hood.Exec(d.Dialect.DropIndexSql(column))
 	return err
 }
 
-func (d *Base) DropIndexSql(hood *Hood, column string) string {
+func (d *Base) DropIndexSql(column string) string {
 	return fmt.Sprintf("DROP INDEX %v_index", column)
 }
 

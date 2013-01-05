@@ -49,13 +49,13 @@ func (d *Base) SqlType(f interface{}, size int) string {
 }
 
 func (d *Postgres) Insert(hood *Hood, model *Model) (Id, error) {
-	sql, args := d.Dialect.InsertSql(hood, model)
+	sql, args := d.Dialect.InsertSql(model)
 	var id int64
 	err := hood.QueryRow(sql, args...).Scan(&id)
 	return Id(id), err
 }
 
-func (d *Postgres) InsertSql(hood *Hood, model *Model) (string, []interface{}) {
+func (d *Postgres) InsertSql(model *Model) (string, []interface{}) {
 	m := 0
 	columns, markers, values := columnsMarkersAndValuesForModel(d.Dialect, model, &m)
 	sql := fmt.Sprintf(

@@ -537,7 +537,6 @@ func TestCreateTableSql(t *testing.T) {
 }
 
 func DoTestCreateTableSql(t *testing.T, info dialectInfo) {
-	hood := New(nil, info.dialect)
 	type withoutPk struct {
 		First  string
 		Last   string
@@ -548,7 +547,7 @@ func DoTestCreateTableSql(t *testing.T, info dialectInfo) {
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
-	query := info.dialect.CreateTableSql(hood, model)
+	query := info.dialect.CreateTableSql(model)
 	if query != info.createTableWithoutPkSql {
 		t.Fatal("wrong query", query)
 	}
@@ -563,7 +562,7 @@ func DoTestCreateTableSql(t *testing.T, info dialectInfo) {
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
-	query = info.dialect.CreateTableSql(hood, model)
+	query = info.dialect.CreateTableSql(model)
 	if query != info.createTableWithPkSql {
 		t.Fatal("wrong query", query)
 	}
@@ -585,9 +584,8 @@ func TestInsertSQL(t *testing.T) {
 }
 
 func DoTestInsertSQL(t *testing.T, info dialectInfo) {
-	hood := New(nil, info.dialect)
 	model, _ := interfaceToModel(sqlGenSampleData)
-	sql, _ := info.dialect.InsertSql(hood, model)
+	sql, _ := info.dialect.InsertSql(model)
 	if x := info.insertSql; x != sql {
 		t.Fatalf("invalid sql: '%v'", sql, x)
 	}
@@ -600,9 +598,8 @@ func TestUpdateSQL(t *testing.T) {
 }
 
 func DoTestUpdateSQL(t *testing.T, info dialectInfo) {
-	hood := New(nil, info.dialect)
 	model, _ := interfaceToModel(sqlGenSampleData)
-	sql, _ := info.dialect.UpdateSql(hood, model)
+	sql, _ := info.dialect.UpdateSql(model)
 	if x := info.updateSql; x != sql {
 		t.Fatalf("invalid sql: '%v'", sql, x)
 	}
@@ -615,9 +612,8 @@ func TestDeleteSQL(t *testing.T) {
 }
 
 func DoTestDeleteSQL(t *testing.T, info dialectInfo) {
-	hood := New(nil, info.dialect)
 	model, _ := interfaceToModel(sqlGenSampleData)
-	sql, _ := info.dialect.DeleteSql(hood, model)
+	sql, _ := info.dialect.DeleteSql(model)
 	if x := info.deleteSql; x != sql {
 		t.Fatalf("invalid sql: '%v'", sql, x)
 	}
@@ -648,6 +644,13 @@ func DoTestQuerySQL(t *testing.T, info dialectInfo) {
 }
 
 func TestDropTableSQL(t *testing.T) {
+	for _, info := range toRun {
+		DoTestDropTableSQL(t, info)
+	}
+}
+
+func DoTestDropTableSQL(t *testing.T, info dialectInfo) {
+	// if x := info.dialect.DropTableSql(table)
 	// TODO(erik): implement
 }
 
@@ -671,11 +674,11 @@ func TestRemoveColumnSql(t *testing.T) {
 	// TODO(erik): implement
 }
 
-func TestAddIndexSql(t *testing.T) {
+func TestCreateIndexSql(t *testing.T) {
 	// TODO(erik): implement
 }
 
-func TestRemoveIndexSql(t *testing.T) {
+func TestDropIndexSql(t *testing.T) {
 	// TODO(erik): implement
 }
 
