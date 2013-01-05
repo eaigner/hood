@@ -198,17 +198,17 @@ func (d *Base) RenameTableSql(from, to string) string {
 	return fmt.Sprintf("ALTER TABLE %v RENAME TO %v", from, to)
 }
 
-func (d *Base) AddColumn(hood *Hood, table string, column *Field) error {
-	_, err := hood.Exec(d.Dialect.AddColumnSql(table, column))
+func (d *Base) AddColumn(hood *Hood, table, column string, typ interface{}, size int) error {
+	_, err := hood.Exec(d.Dialect.AddColumnSql(table, column, typ, size))
 	return err
 }
 
-func (d *Base) AddColumnSql(table string, column *Field) string {
+func (d *Base) AddColumnSql(table, column string, typ interface{}, size int) string {
 	return fmt.Sprintf(
 		"ALTER TABLE %v ADD COLUMN %v %v",
 		table,
-		column.Name,
-		d.Dialect.SqlType(column.Value, column.Size()),
+		column,
+		d.Dialect.SqlType(typ, size),
 	)
 }
 

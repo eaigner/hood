@@ -32,6 +32,7 @@ var toRun = []dialectInfo{
 		`SELECT * FROM sql_gen_model INNER JOIN orders ON users.id == orders.id WHERE id = $1 AND category_id = $2 GROUP BY name HAVING SUM(price) < $3 ORDER BY first_name LIMIT $4 OFFSET $5`,
 		`DROP TABLE drop_table`,
 		`ALTER TABLE table_a RENAME TO table_b`,
+		`ALTER TABLE a ADD COLUMN c varchar(100)`,
 	},
 	dialectInfo{
 		NewSqlite3(),
@@ -44,6 +45,7 @@ var toRun = []dialectInfo{
 		`SELECT * FROM sql_gen_model INNER JOIN orders ON users.id == orders.id WHERE id = $1 AND category_id = $2 GROUP BY name HAVING SUM(price) < $3 ORDER BY first_name LIMIT $4 OFFSET $5`,
 		`DROP TABLE drop_table`,
 		`ALTER TABLE table_a RENAME TO table_b`,
+		`ALTER TABLE a ADD COLUMN c text`,
 	},
 }
 
@@ -58,6 +60,7 @@ type dialectInfo struct {
 	querySql                string
 	dropTableSql            string
 	renameTableSql          string
+	addColumnSql            string
 }
 
 func setupPgDb(t *testing.T) *Hood {
@@ -673,8 +676,16 @@ func DoTestRenameTableSQL(t *testing.T, info dialectInfo) {
 	}
 }
 
-func TestAddColumsSQL(t *testing.T) {
-	// TODO(erik): implement
+func TestAddColumSQL(t *testing.T) {
+	for _, info := range toRun {
+		DoTestAddColumSQL(t, info)
+	}
+}
+
+func DoTestAddColumSQL(t *testing.T, info dialectInfo) {
+	if x := info.dialect.AddColumnSql("a", "c", VarChar(""), 100); x != info.addColumnSql {
+		t.Fatal("wrong sql", x)
+	}
 }
 
 func TestRenameColumnSql(t *testing.T) {

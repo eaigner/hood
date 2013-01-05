@@ -644,7 +644,7 @@ func (hood *Hood) AddColumns(schema interface{}) error {
 	}
 	tx := hood.Begin()
 	for _, column := range m.Fields {
-		err = hood.Dialect.AddColumn(tx, m.Table, column)
+		err = hood.Dialect.AddColumn(tx, m.Table, column.Name, column.Value, column.Size())
 		if err != nil {
 			return err
 		}

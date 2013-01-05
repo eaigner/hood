@@ -59,10 +59,10 @@ type Dialect interface {
 	RenameTableSql(from, to string) string
 
 	// AddColumn adds the columns to the corresponding table.
-	AddColumn(hood *Hood, table string, column *Field) error
+	AddColumn(hood *Hood, table, column string, typ interface{}, size int) error
 
 	// AddColumnSql returns the sql for adding the specified column in table.
-	AddColumnSql(table string, column *Field) string
+	AddColumnSql(table, column string, typ interface{}, size int) string
 
 	// RenameColumn renames a table column in the specified table.
 	RenameColumn(hood *Hood, table, from, to string) error
