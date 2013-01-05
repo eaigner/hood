@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	// "github.com/eaigner/hood"
 	"io/ioutil"
 	"log"
 	"os"
@@ -47,8 +46,10 @@ func createMigration(name string) {
 		return
 	}
 	ts := time.Now().Unix()
-	fileName := fmt.Sprintf("db/%s_%d.go", name, ts)
-	err = ioutil.WriteFile(fileName, []byte(migrationTemplate), 0644)
+	mgrName := fmt.Sprintf("%s_%d", name, ts)
+	fileName := fmt.Sprintf("db/%s.go", mgrName)
+	template := fmt.Sprintf(migrationTemplate, mgrName, mgrName, mgrName)
+	err = ioutil.WriteFile(fileName, []byte(template), 0644)
 	if err != nil {
 		log.Println(err.Error())
 		return
@@ -68,4 +69,18 @@ func dbMigrate() {
 
 }
 
-var migrationTemplate = `TODO: MIGRATION TEMPLATE`
+var migrationTemplate = `package migrations
+
+import (
+	"github.com/eaigner/hood"
+)
+
+type %v struct {}
+
+func (migration *%v) Up(hood *hood.Hood) {
+	// implement
+}
+
+func (migration *%v) Down(hood *hood.Hood) {
+	// implement
+}`
