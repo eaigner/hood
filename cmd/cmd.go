@@ -14,11 +14,15 @@ func main() {
 			ns := c[0]
 			cmd := c[1]
 			rargs := args[2:]
+			status := ""
 			switch ns {
 			case "create":
-				create(cmd, rargs)
+				status = create(cmd, rargs)
 			case "db":
-				db(cmd, rargs)
+				status = db(cmd, rargs)
+			}
+			if status != "" {
+				log.Println(status)
 			}
 		}
 	} else {
