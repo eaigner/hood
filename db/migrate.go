@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 )
 
 func main() {
@@ -46,13 +47,9 @@ func createMigration(name string) {
 		if err != nil {
 			return err.Error()
 		}
-		info, err := ioutil.ReadDir(dbDir)
-		if err != nil {
-			return err.Error()
-		}
-		i := len(info) + 1
-		fileName := fmt.Sprintf("%s/%06d_%s.go", dbDir, i, name)
-		structName := fmt.Sprintf("%s_%06d", name, i)
+		ts := time.Now().Unix()
+		fileName := fmt.Sprintf("%s/%d_%s.go", dbDir, ts, name)
+		structName := fmt.Sprintf("%s_%d", name, ts)
 		template := fmt.Sprintf(migrationTemplate, structName, structName, structName)
 		err = ioutil.WriteFile(fileName, []byte(template), 0644)
 		if err != nil {
