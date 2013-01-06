@@ -41,14 +41,17 @@ func createMigration(name string) {
 		return
 	}
 	do := func() string {
-		dbDir := "migrations"
-
-		err := os.MkdirAll(dbDir, 0777)
+		pwd, err := os.Getwd()
+		if err != nil {
+			return err.Error()
+		}
+		migrationsDir := pwd + "/migrations"
+		err = os.MkdirAll(migrationsDir, 0777)
 		if err != nil {
 			return err.Error()
 		}
 		ts := time.Now().Unix()
-		fileName := fmt.Sprintf("%s/%d_%s.go", dbDir, ts, name)
+		fileName := fmt.Sprintf("%s/%d_%s.go", migrationsDir, ts, name)
 		structName := fmt.Sprintf("%s_%d", name, ts)
 		template := fmt.Sprintf(migrationTemplate, structName, structName, structName)
 		err = ioutil.WriteFile(fileName, []byte(template), 0644)
