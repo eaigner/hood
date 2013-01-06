@@ -5,27 +5,8 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"strings"
 	"time"
 )
-
-func main() {
-	args := os.Args
-	if len(args) >= 2 {
-		c := strings.Split(args[1], ":")
-		if len(c) == 2 {
-			ns := c[0]
-			cmd := c[1]
-			rargs := args[2:]
-			switch ns {
-			case "create":
-				create(cmd, rargs)
-			case "db":
-				db(cmd, rargs)
-			}
-		}
-	}
-}
 
 func create(cmd string, args []string) {
 	switch cmd {
@@ -61,17 +42,6 @@ func createMigration(name string) {
 		return fmt.Sprintf("created migration %s", fileName)
 	}
 	log.Println(do())
-}
-
-func db(cmd string, args []string) {
-	switch cmd {
-	case "migrate":
-		dbMigrate()
-	}
-}
-
-func dbMigrate() {
-
 }
 
 var migrationTemplate = `package migrations
