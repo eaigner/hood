@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"strings"
-	"time"
 )
 
 func main() {
@@ -25,13 +24,14 @@ func main() {
 			}
 		}
 	}
-	// fmt.Println("ARGS", args)
 }
 
 func create(cmd string, args []string) {
 	switch cmd {
 	case "migration":
-		createMigration(args[0])
+		if len(args) > 0 {
+			createMigration(args[0])
+		}
 	}
 }
 
@@ -39,23 +39,28 @@ func createMigration(name string) {
 	if name == "" {
 		return
 	}
-	dbDir := "db"
-	err := os.MkdirAll(dbDir, 0777)
-	if err != nil {
-		log.Println(err.Error())
-		return
+	do := func() string {
+		dbDir := "migrations"
+
+		err := os.MkdirAll(dbDir, 0777)
+		if err != nil {
+			return err.Error()
+		}
+		info, err := ioutil.ReadDir(dbDir)
+		if err != nil {
+			return err.Error()
+		}
+		i := len(info) + 1
+		fileName := fmt.Sprintf("%s/%06d_%s.go", dbDir, i, name)
+		structName := fmt.Sprintf("%s_%06d", name, i)
+		template := fmt.Sprintf(migrationTemplate, structName, structName, structName)
+		err = ioutil.WriteFile(fileName, []byte(template), 0644)
+		if err != nil {
+			return err.Error()
+		}
+		return fmt.Sprintf("created migration %s", fileName)
 	}
-	ts := time.Now().Unix()
-	mgrName := fmt.Sprintf("%s_%d", name, ts)
-	fileName := fmt.Sprintf("db/%s.go", mgrName)
-	template := fmt.Sprintf(migrationTemplate, mgrName, mgrName, mgrName)
-	err = ioutil.WriteFile(fileName, []byte(template), 0644)
-	if err != nil {
-		log.Println(err.Error())
-		return
-	} else {
-		log.Printf("created migration %s", fileName)
-	}
+	log.Println(do())
 }
 
 func db(cmd string, args []string) {
