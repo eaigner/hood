@@ -16,7 +16,6 @@ func db(cmd string, args []string) string {
 }
 
 func dbMigrate() string {
-	// TODO: implement
 	wd, err := os.Getwd()
 	if err != nil {
 		return err.Error()
