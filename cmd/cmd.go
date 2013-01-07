@@ -6,6 +6,13 @@ import (
 	"strings"
 )
 
+var (
+	kDbDir      = "db"
+	kMgrDir     = "migrations"
+	kConfFile   = "config.json"
+	kRunnerFile = "runner.go"
+)
+
 func main() {
 	args := os.Args
 	if len(args) >= 2 {

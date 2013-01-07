@@ -1,14 +1,24 @@
 package main
 
 import (
+	"encoding/json"
 	"github.com/eaigner/hood"
+	"os"
+	"path"
 	"reflect"
 	"sort"
 	"strconv"
 	"strings"
 )
 
+import (
+	"fmt"
+)
+
 type M struct{}
+
+type environments map[string]config
+type config map[string]string
 
 func main() {
 	v := reflect.ValueOf(&M{})
@@ -31,6 +41,8 @@ func main() {
 		}
 	}
 	sort.Ints(stamps)
+	env := readConfig()
+	fmt.Println(env)
 	for _, ts := range stamps {
 		// TODO: check if was already run
 		// TODO: pass real hood instance
@@ -38,4 +50,23 @@ func main() {
 		ups[ts].Call([]reflect.Value{v, reflect.ValueOf(hood)})
 		downs[ts].Call([]reflect.Value{v, reflect.ValueOf(hood)})
 	}
+}
+
+func readConfig() environments {
+	wd, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	sf, err := os.Open(path.Join(wd, "db", "config.json"))
+	if err != nil {
+		panic(err)
+	}
+	defer sf.Close()
+	dec := json.NewDecoder(sf)
+	var env environments
+	err = dec.Decode(&env)
+	if err != nil {
+		panic(err)
+	}
+	return env
 }

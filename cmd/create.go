@@ -9,11 +9,6 @@ import (
 	"time"
 )
 
-var (
-	dbDir  = "db"
-	mgrDir = "migrations"
-)
-
 func create(cmd string, args []string) string {
 	switch cmd {
 	case "migration":
@@ -31,11 +26,11 @@ func createDbConfig() string {
 	if err != nil {
 		panic(err)
 	}
-	err = os.MkdirAll(path.Join(wd, dbDir), 0777)
+	err = os.MkdirAll(path.Join(wd, kDbDir), 0777)
 	if err != nil {
 		panic(err)
 	}
-	confPath := path.Join(dbDir, "config.json")
+	confPath := path.Join(kDbDir, kConfFile)
 	err = ioutil.WriteFile(path.Join(wd, confPath), []byte(confTmpl), 0666)
 	if err != nil {
 		panic(err)
@@ -51,12 +46,12 @@ func createMigration(name string) string {
 	if err != nil {
 		return err.Error()
 	}
-	err = os.MkdirAll(path.Join(wd, dbDir, mgrDir), 0777)
+	err = os.MkdirAll(path.Join(wd, kDbDir, kMgrDir), 0777)
 	if err != nil {
 		panic(err)
 	}
 	ts := time.Now().Unix()
-	fileName := path.Join(dbDir, mgrDir, fmt.Sprintf("%d_%s.go", ts, name))
+	fileName := path.Join(kDbDir, kMgrDir, fmt.Sprintf("%d_%s.go", ts, name))
 	f, err := os.OpenFile(path.Join(wd, fileName), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		panic(err)
