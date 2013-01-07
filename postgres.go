@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	RegisterDialect("postgres", &Postgres{})
+	RegisterDialect("postgres", NewPostgres())
 }
 
 type Postgres struct {
