@@ -618,9 +618,22 @@ func (hood *Hood) DeleteAll(f interface{}) ([]Id, error) {
 
 // CreateTable creates a new table based on the provided schema.
 func (hood *Hood) CreateTable(table interface{}) error {
+	return hood.createTable(table, false)
+}
+
+// CreateTableIfNotExists creates a new table based on the provided schema
+// if it does not exist yet.
+func (hood *Hood) CreateTableIfNotExists(table interface{}) error {
+	return hood.createTable(table, true)
+}
+
+func (hood *Hood) createTable(table interface{}, ifNotExists bool) error {
 	model, err := interfaceToModel(table)
 	if err != nil {
 		return err
+	}
+	if ifNotExists {
+		return hood.Dialect.CreateTableIfNotExists(hood, model)
 	}
 	return hood.Dialect.CreateTable(hood, model)
 }
@@ -628,6 +641,11 @@ func (hood *Hood) CreateTable(table interface{}) error {
 // DropTable drops the table matching the provided table name.
 func (hood *Hood) DropTable(table interface{}) error {
 	return hood.Dialect.DropTable(hood, tableName(table))
+}
+
+// DropTableIfExists drops the table matching the provided table name if it exists.
+func (hood *Hood) DropTableIfExists(table interface{}) error {
+	return hood.Dialect.DropTableIfExists(hood, tableName(table))
 }
 
 // RenameTable renames a table. The arguments can either be a schema definition
