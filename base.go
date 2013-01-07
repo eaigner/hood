@@ -148,12 +148,21 @@ func (d *Base) DeleteSql(model *Model) (string, []interface{}) {
 }
 
 func (d *Base) CreateTable(hood *Hood, model *Model) error {
-	_, err := hood.Exec(d.Dialect.CreateTableSql(model))
+	_, err := hood.Exec(d.Dialect.CreateTableSql(model, false))
 	return err
 }
 
-func (d *Base) CreateTableSql(model *Model) string {
-	a := []string{"CREATE TABLE ", model.Table, " ( "}
+func (d *Base) CreateTableIfNotExists(hood *Hood, model *Model) error {
+	_, err := hood.Exec(d.Dialect.CreateTableSql(model, true))
+	return err
+}
+
+func (d *Base) CreateTableSql(model *Model, ifNotExists bool) string {
+	a := []string{"CREATE TABLE "}
+	if ifNotExists {
+		a = append(a, "IF NOT EXISTS ")
+	}
+	a = append(a, model.Table, " ( ")
 	for i, field := range model.Fields {
 		b := []string{
 			field.Name,
@@ -181,12 +190,22 @@ func (d *Base) CreateTableSql(model *Model) string {
 }
 
 func (d *Base) DropTable(hood *Hood, table string) error {
-	_, err := hood.Exec(d.Dialect.DropTableSql(table))
+	_, err := hood.Exec(d.Dialect.DropTableSql(table, false))
 	return err
 }
 
-func (d *Base) DropTableSql(table string) string {
-	return fmt.Sprintf("DROP TABLE %v", table)
+func (d *Base) DropTableIfExists(hood *Hood, table string) error {
+	_, err := hood.Exec(d.Dialect.DropTableSql(table, true))
+	return err
+}
+
+func (d *Base) DropTableSql(table string, ifExists bool) string {
+	a := []string{"DROP TABLE"}
+	if ifExists {
+		a = append(a, "IF EXISTS")
+	}
+	a = append(a, table)
+	return strings.Join(a, " ")
 }
 
 func (d *Base) RenameTable(hood *Hood, from, to string) error {

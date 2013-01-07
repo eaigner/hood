@@ -25,12 +25,14 @@ var toRun = []dialectInfo{
 // 	NewPostgres(),
 // 	setupPgDb,
 // 	`CREATE TABLE without_pk ( first text, last text, amount integer )`,
+// 	`CREATE TABLE IF NOT EXISTS without_pk ( first text, last text, amount integer )`,
 // 	`CREATE TABLE with_pk ( primary bigserial PRIMARY KEY, first text, last text, amount integer )`,
 // 	`INSERT INTO sql_gen_model (first, last, amount) VALUES ($1, $2, $3) RETURNING prim`,
 // 	`UPDATE sql_gen_model SET first = $1, last = $2, amount = $3 WHERE prim = $4`,
 // 	`DELETE FROM sql_gen_model WHERE prim = $1`,
 // 	`SELECT * FROM sql_gen_model INNER JOIN orders ON users.id == orders.id WHERE id = $1 AND category_id = $2 GROUP BY name HAVING SUM(price) < $3 ORDER BY first_name LIMIT $4 OFFSET $5`,
 // 	`DROP TABLE drop_table`,
+// 	`DROP TABLE IF EXISTS drop_table`,
 // 	`ALTER TABLE table_a RENAME TO table_b`,
 // 	`ALTER TABLE a ADD COLUMN c varchar(100)`,
 // 	`ALTER TABLE a RENAME COLUMN b TO c`,
@@ -44,12 +46,14 @@ var toRun = []dialectInfo{
 // 	NewSqlite3(),
 // 	setupSqlite3Db,
 // 	`CREATE TABLE without_pk ( first text, last text, amount integer )`,
+// 	`CREATE TABLE IF NOT EXISTS without_pk ( first text, last text, amount integer )`,
 // 	`CREATE TABLE with_pk ( primary integer PRIMARY KEY AUTOINCREMENT, first text, last text, amount integer )`,
 // 	`INSERT INTO sql_gen_model (first, last, amount) VALUES ($1, $2, $3)`,
 // 	`UPDATE sql_gen_model SET first = $1, last = $2, amount = $3 WHERE prim = $4`,
 // 	`DELETE FROM sql_gen_model WHERE prim = $1`,
 // 	`SELECT * FROM sql_gen_model INNER JOIN orders ON users.id == orders.id WHERE id = $1 AND category_id = $2 GROUP BY name HAVING SUM(price) < $3 ORDER BY first_name LIMIT $4 OFFSET $5`,
 // 	`DROP TABLE drop_table`,
+// 	`DROP TABLE IF EXISTS drop_table`,
 // 	`ALTER TABLE table_a RENAME TO table_b`,
 // 	`ALTER TABLE a ADD COLUMN c text`,
 // 	``, // not supported by sql command
@@ -62,23 +66,25 @@ var toRun = []dialectInfo{
 }
 
 type dialectInfo struct {
-	dialect                 Dialect
-	setupDbFunc             func(t *testing.T) *Hood
-	createTableWithoutPkSql string
-	createTableWithPkSql    string
-	insertSql               string
-	updateSql               string
-	deleteSql               string
-	querySql                string
-	dropTableSql            string
-	renameTableSql          string
-	addColumnSql            string
-	renameColumnSql         string
-	changeColumnSql         string
-	dropColumnSql           string
-	createUniqueIndexSql    string
-	createIndexSql          string
-	dropIndexSql            string
+	dialect                         Dialect
+	setupDbFunc                     func(t *testing.T) *Hood
+	createTableWithoutPkSql         string
+	createTableWithoutPkIfExistsSql string
+	createTableWithPkSql            string
+	insertSql                       string
+	updateSql                       string
+	deleteSql                       string
+	querySql                        string
+	dropTableSql                    string
+	dropTableIfExistsSql            string
+	renameTableSql                  string
+	addColumnSql                    string
+	renameColumnSql                 string
+	changeColumnSql                 string
+	dropColumnSql                   string
+	createUniqueIndexSql            string
+	createIndexSql                  string
+	dropIndexSql                    string
 }
 
 func setupPgDb(t *testing.T) *Hood {
@@ -574,9 +580,11 @@ func DoTestCreateTableSql(t *testing.T, info dialectInfo) {
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
-	query := info.dialect.CreateTableSql(model)
-	if query != info.createTableWithoutPkSql {
-		t.Fatal("wrong query", query)
+	if x := info.dialect.CreateTableSql(model, false); x != info.createTableWithoutPkSql {
+		t.Fatal("wrong sql", x)
+	}
+	if x := info.dialect.CreateTableSql(model, true); x != info.createTableWithoutPkIfExistsSql {
+		t.Fatal("wrong sql", x)
 	}
 	type withPk struct {
 		Primary Id
@@ -589,9 +597,8 @@ func DoTestCreateTableSql(t *testing.T, info dialectInfo) {
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
-	query = info.dialect.CreateTableSql(model)
-	if query != info.createTableWithPkSql {
-		t.Fatal("wrong query", query)
+	if x := info.dialect.CreateTableSql(model, false); x != info.createTableWithPkSql {
+		t.Fatal("wrong query", x)
 	}
 }
 
@@ -677,7 +684,10 @@ func TestDropTableSQL(t *testing.T) {
 }
 
 func DoTestDropTableSQL(t *testing.T, info dialectInfo) {
-	if x := info.dialect.DropTableSql("drop_table"); x != info.dropTableSql {
+	if x := info.dialect.DropTableSql("drop_table", false); x != info.dropTableSql {
+		t.Fatal("wrong sql", x)
+	}
+	if x := info.dialect.DropTableSql("drop_table", true); x != info.dropTableIfExistsSql {
 		t.Fatal("wrong sql", x)
 	}
 }

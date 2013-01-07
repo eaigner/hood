@@ -43,14 +43,20 @@ type Dialect interface {
 	// CreateTable creates the table specified in model.
 	CreateTable(hood *Hood, model *Model) error
 
+	// CreateTableIfNotExists creates the table specified in model if it does not exist.
+	CreateTableIfNotExists(hood *Hood, model *Model) error
+
 	// CreateTableSql returns the sql for creating a table.
-	CreateTableSql(model *Model) string
+	CreateTableSql(model *Model, ifNotExists bool) string
 
 	// DropTable drops the specified table.
 	DropTable(hood *Hood, table string) error
 
+	// DropTableIfExists drops the table if it exists.
+	DropTableIfExists(hood *Hood, table string) error
+
 	// DropTableSql returns the sql for dropping the specified table.
-	DropTableSql(table string) string
+	DropTableSql(table string, ifExists bool) string
 
 	// RenameTable renames the specified table.
 	RenameTable(hood *Hood, from, to string) error
