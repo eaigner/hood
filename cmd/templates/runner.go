@@ -20,7 +20,12 @@ type M struct{}
 type environments map[string]config
 type config map[string]string
 
+type Migrations struct {
+	Current int
+}
+
 func main() {
+	// Get up/down migration methods
 	v := reflect.ValueOf(&M{})
 	numMethods := v.NumMethod()
 	stamps := make([]int, 0, numMethods)
@@ -41,14 +46,40 @@ func main() {
 		}
 	}
 	sort.Ints(stamps)
-	env := readConfig()
-	fmt.Println(env)
+	// Get config for set environment
+	env := "development"
+	if x := os.Getenv("HOOD_ENV"); x != "" {
+		env = x
+	}
+	cfg := readConfig()[env]
+	// Open hood
+	hd, err := hood.Open(cfg["driver"], cfg["source"])
+	if err != nil {
+		panic(err)
+	}
+	// Check migration table
+	err = hd.CreateTableIfNotExists(&Migrations{})
+	if err != nil {
+		panic(err)
+	}
+	var rows []Migrations
+	err = hd.Find(&rows)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("rows", rows)
+	// TODO: implement
+
+	// TODO: Migrate up or down
 	for _, ts := range stamps {
 		// TODO: check if was already run
-		// TODO: pass real hood instance
-		hood := &hood.Hood{}
-		ups[ts].Call([]reflect.Value{v, reflect.ValueOf(hood)})
-		downs[ts].Call([]reflect.Value{v, reflect.ValueOf(hood)})
+		tx := hd.Begin()
+		ups[ts].Call([]reflect.Value{v, reflect.ValueOf(tx)})
+		err = tx.Commit()
+		if err != nil {
+			panic(err)
+		}
+		// downs[ts].Call([]reflect.Value{v, reflect.ValueOf(hd)})
 	}
 }
 
