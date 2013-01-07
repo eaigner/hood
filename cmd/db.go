@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -31,8 +30,7 @@ func dbMigrate() string {
 	if err != nil {
 		return err.Error()
 	}
-	// defer os.RemoveAll(tmpDir)
-	fmt.Println("tmpdir:", tmpDir)
+	defer os.RemoveAll(tmpDir)
 	files := []string{}
 	for _, file := range info {
 		dstFile := tmpDir + "/" + file.Name()
