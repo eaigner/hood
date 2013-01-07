@@ -8,10 +8,6 @@ import (
 	"path"
 )
 
-import (
-	"fmt"
-)
-
 func db(cmd string, args []string) string {
 	switch cmd {
 	case "migrate":
@@ -34,8 +30,7 @@ func dbMigrate() string {
 	if err != nil {
 		return err.Error()
 	}
-	fmt.Println(tmpDir)
-	// defer os.RemoveAll(tmpDir)
+	defer os.RemoveAll(tmpDir)
 	files := []string{}
 	for _, file := range info {
 		dstFile := path.Join(tmpDir, file.Name())

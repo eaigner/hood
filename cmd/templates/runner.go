@@ -15,22 +15,23 @@ import (
 	"fmt"
 )
 
-type M struct{}
-
-type environments map[string]config
-type config map[string]string
-
-type Migrations struct {
-	Current int
-}
+type (
+	M          struct{}
+	Migrations struct {
+		Id      hood.Id
+		Current int
+	}
+	environments map[string]config
+	config       map[string]string
+)
 
 func main() {
 	// Get up/down migration methods
 	v := reflect.ValueOf(&M{})
 	numMethods := v.NumMethod()
 	stamps := make([]int, 0, numMethods)
-	ups := make(map[int]reflect.Value)
-	downs := make(map[int]reflect.Value)
+	ups := make(map[int]reflect.Method)
+	downs := make(map[int]reflect.Method)
 	for i := 0; i < numMethods; i++ {
 		method := v.Type().Method(i)
 		chunks := strings.Split(method.Name, "_")
@@ -38,10 +39,10 @@ func main() {
 			ts, _ := strconv.Atoi(chunks[l-2])
 			direction := chunks[l-1]
 			if strings.ToLower(direction) == "up" {
-				ups[ts] = method.Func
+				ups[ts] = method
 				stamps = append(stamps, ts)
 			} else {
-				downs[ts] = method.Func
+				downs[ts] = method
 			}
 		}
 	}
@@ -67,20 +68,29 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("rows", rows)
-	// TODO: implement
-
-	// TODO: Migrate up or down
+	info := Migrations{}
+	if len(rows) > 0 {
+		info = rows[0]
+	}
+	runCount := 0
 	for _, ts := range stamps {
-		// TODO: check if was already run
-		tx := hd.Begin()
-		ups[ts].Call([]reflect.Value{v, reflect.ValueOf(tx)})
-		err = tx.Commit()
-		if err != nil {
-			panic(err)
+		if ts > info.Current {
+			tx := hd.Begin()
+			method := ups[ts]
+			method.Func.Call([]reflect.Value{v, reflect.ValueOf(tx)})
+			info.Current = ts
+			tx.Save(&info)
+			err = tx.Commit()
+			if err != nil {
+				panic(err)
+			} else {
+				runCount++
+				fmt.Printf("applied %s\n", method.Name)
+			}
 		}
 		// downs[ts].Call([]reflect.Value{v, reflect.ValueOf(hd)})
 	}
+	fmt.Printf("applied %d migrations\n", runCount)
 }
 
 func readConfig() environments {
