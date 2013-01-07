@@ -2,6 +2,5 @@
 .DS_Store
 profile
 example/example
-db/migrations
-migrations/
 cmd/templates.go
+db/

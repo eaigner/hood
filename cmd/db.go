@@ -43,7 +43,7 @@ func dbMigrate() string {
 		files = append(files, dstFile)
 	}
 	main := tmpDir + "/runner.go"
-	err = ioutil.WriteFile(main, []byte(runnerTmpl), 0644)
+	err = ioutil.WriteFile(main, []byte(runnerTmpl), 0666)
 	if err != nil {
 		return err.Error()
 	}

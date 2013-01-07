@@ -22,7 +22,7 @@ func main() {
 				status = db(cmd, rargs)
 			}
 			if status != "" {
-				log.Println(status)
+				log.Printf("\x1b[32m%s\x1b[0m", status)
 			}
 		}
 	} else {
