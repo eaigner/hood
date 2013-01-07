@@ -240,7 +240,3 @@ func main() {
 ## Contributors
 
 - [Lorenzo Bolla](github.com/lbolla) (sqlite3)
-
-## TODO
-
-- Implement `RenameColumn`, `ChangeColumn` and `DropColumn` for sqlite3
