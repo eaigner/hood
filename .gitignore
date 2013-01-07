@@ -4,3 +4,4 @@ profile
 example/example
 db/migrations
 migrations/
+cmd/templates.go

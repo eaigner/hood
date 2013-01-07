@@ -37,7 +37,7 @@ func createMigration(name string) string {
 		return err.Error()
 	}
 	defer f.Close()
-	err = tmpl.Execute(f, &Migration{
+	err = migrationTemplate.Execute(f, &Migration{
 		Timestamp: ts,
 		Name:      name,
 	})
@@ -52,16 +52,4 @@ type Migration struct {
 	Name      string
 }
 
-var tmpl = template.Must(template.New("migration").Parse(`package main
-
-import (
-	"github.com/eaigner/hood"
-)
-
-func (m *Migration) {{.Name}}_{{.Timestamp}}_Up(hood *hood.Hood) {
-	// TODO: implement
-}
-
-func (m *Migration) {{.Name}}_{{.Timestamp}}_Down(hood *hood.Hood) {
-	// TODO: implement
-}`))
+var migrationTemplate = template.Must(template.New("migration").Parse(migrationTmpl))

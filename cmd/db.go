@@ -5,6 +5,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
 )
 
 func db(cmd string, args []string) string {
@@ -30,16 +31,32 @@ func dbMigrate() string {
 	if err != nil {
 		return err.Error()
 	}
-	fmt.Println(tmpDir)
 	// defer os.RemoveAll(tmpDir)
+	fmt.Println("tmpdir:", tmpDir)
+	files := []string{}
 	for _, file := range info {
+		dstFile := tmpDir + "/" + file.Name()
 		_, err = copyFile(
-			tmpDir+"/"+file.Name(),
+			dstFile,
 			mgrDir+"/"+file.Name(),
 		)
 		if err != nil {
 			return err.Error()
 		}
+		files = append(files, dstFile)
+	}
+	main := tmpDir + "/runner.go"
+	err = ioutil.WriteFile(main, []byte(runnerTmpl), 0644)
+	if err != nil {
+		return err.Error()
+	}
+	files = append(files, main)
+	cmd := exec.Command("go", "run")
+	cmd.Args = append(cmd.Args, files...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err = cmd.Run(); err != nil {
+		return err.Error()
 	}
 	return ""
 }

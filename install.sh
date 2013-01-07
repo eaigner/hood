@@ -1,3 +1,3 @@
-HOOD=$GOPATH/bin/hood
-go build -o $HOOD github.com/eaigner/hood/cmd
-chmod +x $HOOD
+#!/bin/sh
+go run cmd/gen/templates.go
+go build -o $GOPATH/bin/hood github.com/eaigner/hood/cmd
