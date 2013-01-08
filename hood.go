@@ -743,10 +743,17 @@ func interfaceToModel(f interface{}) (*Model, error) {
 	}
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
+
+		// omit tag
+		sqltag := field.Tag.Get("sql")
+		if sqltag == "-" {
+			continue
+		}
+
 		fd := &Field{
 			Name:         toSnake(field.Name),
 			Value:        v.FieldByName(field.Name).Interface(),
-			SqlTags:      parseTags(field.Tag.Get("sql")),
+			SqlTags:      parseTags(sqltag),
 			ValidateTags: parseTags(field.Tag.Get("validate")),
 		}
 		if fd.PrimaryKey() {

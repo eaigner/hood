@@ -114,6 +114,17 @@ func TestFieldValidate(t *testing.T) {
 	}
 }
 
+func TestFieldOmit(t *testing.T) {
+	type Schema struct {
+		A string `sql:"-"`
+		B string
+	}
+	m, _ := interfaceToModel(&Schema{})
+	if x := len(m.Fields); x != 1 {
+		t.Fatal("wrong len", x)
+	}
+}
+
 type validateSchema struct {
 	A string
 }
