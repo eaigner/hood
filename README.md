@@ -1,13 +1,14 @@
 ## Index
 
-- [Overview](https://github.com/eaigner/hood#overview)
-- [Documentation](https://github.com/eaigner/hood#documentation)
-- [Opening a Database](https://github.com/eaigner/hood#opening-a-database)
-- [Schemas](https://github.com/eaigner/hood#schemas)
-- [Migrations](https://github.com/eaigner/hood#migrations)
-- [Validation](https://github.com/eaigner/hood#validation)
-- [Hooks](https://github.com/eaigner/hood#hooks)
-- [Basic Example](https://github.com/eaigner/hood#basic-example)
+- [Overview](#overview)
+- [Documentation](#documentation)
+- [Opening a Database](#opening-a-database)
+- [Schemas](#schemas)
+- [Migrations](#migrations)
+- [Validation](#validation)
+- [Hooks](#hooks)
+- [Basic Example](#basic-example)
+- [Contributors](#contributors)
 
 ## Overview
 
@@ -98,7 +99,7 @@ Before we can use migrations we have to create a database configuration file fir
 
     hood create:config
 
-This command will create a `db/config.json` file in your current directory. It will look like this:
+This command will create a `db/config.json` file relative to your current directory. It will look something like this:
 
 ```javascript
 {
