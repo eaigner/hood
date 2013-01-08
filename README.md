@@ -1,7 +1,15 @@
-## Hood
+## Index
 
-**PLEASE NOTE THAT THIS PROJECT IS CURRENTLY IN THE PROCESS OF DEFINING ITS API.
-IT CANNOT BE ASSUMED THAT THE API IS FIXED YET. IF YOU PLAN TO USE HOOD, PLEASE FORK IT!**
+- [Overview](https://github.com/eaigner/hood#overview)
+- [Documentation](https://github.com/eaigner/hood#documentation)
+- [Opening a Database](https://github.com/eaigner/hood#opening-a-database)
+- [Schemas](https://github.com/eaigner/hood#schemas)
+- [Migrations](https://github.com/eaigner/hood#migrations)
+- [Validation](https://github.com/eaigner/hood#validation)
+- [Hooks](https://github.com/eaigner/hood#hooks)
+- [Basic Example](https://github.com/eaigner/hood#basic-example)
+
+## Overview
 
 Hood is a database agnostic ORM for Go developed by [@eaignr](https://twitter.com/eaignr). It was written with following points in mind:
 
@@ -24,9 +32,9 @@ Adding a dialect is simple. Just create a new file named `<dialect_name>.go` and
 
 ## Documentation
 
-[GoDoc](http://godoc.org/github.com/eaigner/hood)
+You can find the documentation over at [GoDoc](http://godoc.org/github.com/eaigner/hood)
 
-## Open
+## Opening a Database
 
 If the dialect is registered, you can open the database directly using
 
@@ -77,6 +85,68 @@ The following built in field properties are defined (via `sql:` tag):
 - `size(x)` the field must have the specified size, e.g. for varchar `size(128)`
 - `default(x)` the field has the specified default value, e.g. `default(5)` or `default('orange')`
 
+## Migrations
+
+To use migrations, you first have to install the `hood` tool. To do that run the following:
+
+    go get github.com/eaigner/hood
+    cd $GOPATH/src/github.com/eaigner/hood
+    ./install.sh
+
+Assuming you have your `$GOPATH/bin` directory in your `PATH`, you can now invoke the hood tool with `hood`.
+Before we can use migrations we have to create a database configuration file first. To do this type
+
+    hood create:config
+
+This command will create a `db/config.json` file in your current directory. It will look like this:
+
+```javascript
+{
+  "development": {
+    "driver": "",
+    "source": ""
+  },
+  "production": {
+    "driver": "",
+    "source": ""
+  },
+  "test": {
+    "driver": "",
+    "source": ""
+  }
+}
+```
+
+Populate it with your database credentials. The `driver` and `source` fields are the strings you would pass
+to the `sql.Open(2)` function. Now hood knows about our database, so let's create our first migration with
+
+    hood create:migration CreateUserTable
+
+This command creates a new migration in `db/migrations/<timestamp>_CreateUserTable.go`. Next we have to populate the
+generated migrations `Up` and `Down` methods like so:
+
+```go
+func (m *M) CreateUserTable_1357605106_Up(hood *hood.Hood) {
+	// users is the schema struct for the table, see the schema
+	// section for more info on this topic
+	hood.CreateTable(&users{})
+}
+```
+
+The passed in `hood` instance is a transaction that will be committed after this method.
+
+Now we can run migrations with
+
+	hood db:migrate
+
+and roll back with
+
+	hood db:rollback
+
+If you want to run a environment configuration other than `development`, you have to set an environment variable first like this:
+
+	export HOOD_ENV=production
+
 ## Validation
 
 Besides the `sql:` struct tag, you can specify a `validate:` tag for model validation:
@@ -126,7 +196,7 @@ The following hooks are defined:
 - `Before/AfterUpdate`
 - `Before/AfterDelete`
 
-## Example
+## Basic Example
 
 ```go
 
