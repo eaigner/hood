@@ -8,7 +8,7 @@
 - [Validation](#validation)
 - [Hooks](#hooks)
 - [Basic Example](#basic-example)
-- [Contributors](#contributors)
+- [Contributors](hood/graphs/contributors)
 
 ## Overview
 
@@ -307,7 +307,3 @@ func main() {
 	hd.DropTable(&Fruit{})
 }
 ```
-
-## Contributors
-
-- [Lorenzo Bolla](github.com/lbolla) (sqlite3)
