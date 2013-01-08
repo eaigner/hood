@@ -43,7 +43,7 @@ If the dialect is registered, you can open the database directly using
     
 or you can pass an existing database and dialect to `hood.New(*sql.DB, hood.Dialect)`
 
-	hd, err := hood.New(db, &Postgres{})
+	hd, err := hood.New(db, NewPostgres())
 	
 ## Schemas
 
