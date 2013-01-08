@@ -26,6 +26,18 @@ type (
 )
 
 func main() {
+	// Determine direction
+	up := true
+	if len(os.Args) > 1 {
+		if x := os.Args[1]; x == "down" {
+			up = false
+		}
+	}
+	if up {
+		fmt.Println("applying migrations...")
+	} else {
+		fmt.Println("rolling back...")
+	}
 	// Get up/down migration methods
 	v := reflect.ValueOf(&M{})
 	numMethods := v.NumMethod()
@@ -73,24 +85,49 @@ func main() {
 		info = rows[0]
 	}
 	runCount := 0
-	for _, ts := range stamps {
-		if ts > info.Current {
-			tx := hd.Begin()
-			method := ups[ts]
-			method.Func.Call([]reflect.Value{v, reflect.ValueOf(tx)})
-			info.Current = ts
-			tx.Save(&info)
-			err = tx.Commit()
-			if err != nil {
-				panic(err)
-			} else {
-				runCount++
-				fmt.Printf("applied %s\n", method.Name)
+	for i, ts := range stamps {
+		if up {
+			if ts > info.Current {
+				tx := hd.Begin()
+				method := ups[ts]
+				method.Func.Call([]reflect.Value{v, reflect.ValueOf(tx)})
+				info.Current = ts
+				tx.Save(&info)
+				err = tx.Commit()
+				if err != nil {
+					panic(err)
+				} else {
+					runCount++
+					fmt.Printf("applied %s\n", method.Name)
+				}
+			}
+		} else {
+			if info.Current == ts {
+				tx := hd.Begin()
+				method := downs[ts]
+				method.Func.Call([]reflect.Value{v, reflect.ValueOf(tx)})
+				if i > 0 {
+					info.Current = stamps[i-1]
+				} else {
+					info.Current = 0
+				}
+				tx.Save(&info)
+				err = tx.Commit()
+				if err != nil {
+					panic(err)
+				} else {
+					runCount++
+					fmt.Printf("rolled back %s\n", method.Name)
+					break
+				}
 			}
 		}
-		// downs[ts].Call([]reflect.Value{v, reflect.ValueOf(hd)})
 	}
-	fmt.Printf("applied %d migrations\n", runCount)
+	if up {
+		fmt.Printf("applied %d migrations\n", runCount)
+	} else {
+		fmt.Printf("rolled back %d migrations\n", runCount)
+	}
 }
 
 func readConfig() environments {

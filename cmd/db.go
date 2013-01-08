@@ -11,12 +11,14 @@ import (
 func db(cmd string, args []string) string {
 	switch cmd {
 	case "migrate":
-		return dbMigrate()
+		return dbMigrate(true)
+	case "rollback":
+		return dbMigrate(false)
 	}
 	return ""
 }
 
-func dbMigrate() string {
+func dbMigrate(up bool) string {
 	wd, err := os.Getwd()
 	if err != nil {
 		return err.Error()
@@ -51,6 +53,11 @@ func dbMigrate() string {
 	files = append(files, main)
 	cmd := exec.Command("go", "run")
 	cmd.Args = append(cmd.Args, files...)
+	if up {
+		cmd.Args = append(cmd.Args, "up")
+	} else {
+		cmd.Args = append(cmd.Args, "down")
+	}
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err = cmd.Run(); err != nil {
