@@ -38,8 +38,11 @@ type (
 	// Id represents a auto-incrementing integer primary key type.
 	Id int64
 
-	// Index represents an anonymous schema field type for creating indexes.
+	// Index represents an schema field type for indexes.
 	Index int
+
+	// UniqueIndex represents an schema field type for unique indexes.
+	UniqueIndex int
 
 	// Varchar represents a VARCHAR type.
 	VarChar string
@@ -787,6 +790,16 @@ func parseTags(s string) map[string]string {
 	return m
 }
 
+func addIndex(m *Model, field reflect.StructField, unique bool, sqlTags map[string]string) {
+	if t, ok := sqlTags["columns"]; ok {
+		m.Indexes = append(m.Indexes, &ModelIndex{
+			Name:    toSnake(field.Name),
+			Columns: strings.Split(t, ":"),
+			Unique:  unique,
+		})
+	}
+}
+
 func addFields(m *Model, t reflect.Type, v reflect.Value) {
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
@@ -798,16 +811,23 @@ func addFields(m *Model, t reflect.Type, v reflect.Value) {
 			addFields(m, field.Type, v.Field(i))
 			continue
 		}
-		fd := &ModelField{
-			Name:         toSnake(field.Name),
-			Value:        v.FieldByName(field.Name).Interface(),
-			SqlTags:      parseTags(sqlTag),
-			ValidateTags: parseTags(field.Tag.Get("validate")),
+		parsedSqlTags := parseTags(sqlTag)
+		if field.Type == reflect.TypeOf(Index(0)) {
+			addIndex(m, field, false, parsedSqlTags)
+		} else if field.Type == reflect.TypeOf(UniqueIndex(0)) {
+			addIndex(m, field, true, parsedSqlTags)
+		} else {
+			fd := &ModelField{
+				Name:         toSnake(field.Name),
+				Value:        v.FieldByName(field.Name).Interface(),
+				SqlTags:      parsedSqlTags,
+				ValidateTags: parseTags(field.Tag.Get("validate")),
+			}
+			if fd.PrimaryKey() {
+				m.Pk = fd
+			}
+			m.Fields = append(m.Fields, fd)
 		}
-		if fd.PrimaryKey() {
-			m.Pk = fd
-		}
-		m.Fields = append(m.Fields, fd)
 	}
 }
 
@@ -818,9 +838,10 @@ func interfaceToModel(f interface{}) (*Model, error) {
 	}
 	t := v.Type()
 	m := &Model{
-		Pk:     nil,
-		Table:  interfaceToSnake(f),
-		Fields: []*ModelField{},
+		Pk:      nil,
+		Table:   interfaceToSnake(f),
+		Fields:  []*ModelField{},
+		Indexes: []*ModelIndex{},
 	}
 	addFields(m, t, v)
 	return m, nil

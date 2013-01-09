@@ -1,6 +1,7 @@
 package hood
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
@@ -168,7 +169,6 @@ func TestValidationMethods(t *testing.T) {
 	}
 }
 
-// test interfacetomodel with an embedded struct
 func TestInterfaceToModelWithEmbedded(t *testing.T) {
 	type embed struct {
 		Name  string
@@ -198,6 +198,8 @@ func TestInterfaceToModel(t *testing.T) {
 		ColNotNull    string  `sql:"notnull,default('banana')"`
 		ColVarChar    VarChar `sql:"size(64)"`
 		ColTime       time.Time
+		MyIndex       Index       `sql:"columns(col_primary:col_time)"`
+		MyUniqueIndex UniqueIndex `sql:"columns(col_var_char:col_time)"`
 	}
 	now := time.Now()
 	table1 := &table{
@@ -218,6 +220,27 @@ func TestInterfaceToModel(t *testing.T) {
 	}
 	if x := len(m.Fields); x != 5 {
 		t.Fatal("wrong value", x)
+	}
+	if x := len(m.Indexes); x != 2 {
+		t.Fatal("wrong value", x)
+	}
+	if x := m.Indexes[0].Name; x != "my_index" {
+		t.Fatal("wrong index name", x)
+	}
+	if x := m.Indexes[0].Columns; strings.Join(x, ":") != "col_primary:col_time" {
+		t.Fatal("wrong index columns", x)
+	}
+	if x := m.Indexes[0].Unique; x != false {
+		t.Fatal("wrong index uniqueness", x)
+	}
+	if x := m.Indexes[1].Name; x != "my_unique_index" {
+		t.Fatal("wrong index name", x)
+	}
+	if x := m.Indexes[1].Columns; strings.Join(x, ":") != "col_var_char:col_time" {
+		t.Fatal("wrong index columns", x)
+	}
+	if x := m.Indexes[1].Unique; x != true {
+		t.Fatal("wrong index uniqueness", x)
 	}
 	f := m.Fields[0]
 	if x, ok := f.Value.(Id); !ok || x != 6 {
