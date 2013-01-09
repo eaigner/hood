@@ -168,6 +168,29 @@ func TestValidationMethods(t *testing.T) {
 	}
 }
 
+// test interfacetomodel with an embedded struct
+func TestInterfaceToModelWithEmbedded(t *testing.T) {
+	type embed struct {
+		Name  string
+		Value string
+	}
+	type table struct {
+		ColPrimary Id
+		embed
+	}
+	table1 := &table{
+		6, embed{"Mrs. A", "infinite"},
+	}
+	m, err := interfaceToModel(table1)
+	if err != nil {
+		t.Fatal("error not nil", err)
+	}
+	f := m.Fields[1]
+	if x, ok := f.Value.(string); !ok || x != "Mrs. A" {
+		t.Fatal("wrong value from embedded struct")
+	}
+}
+
 func TestInterfaceToModel(t *testing.T) {
 	type table struct {
 		ColPrimary    Id
