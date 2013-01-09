@@ -57,7 +57,7 @@ type (
 		ValidateTags map[string]string // The validate struct tags for this field
 	}
 
-	// Index represents a schema index of a parsed model.
+	// ModelIndex represents a schema index of a parsed model.
 	ModelIndex struct {
 		Name    string
 		Columns []string
