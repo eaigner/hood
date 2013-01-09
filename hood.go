@@ -730,19 +730,13 @@ func parseTags(s string) map[string]string {
 	return m
 }
 
-func interfaceToModel(f interface{}) (*Model, error) {
-	v := reflect.Indirect(reflect.ValueOf(f))
-	if v.Kind() != reflect.Struct {
-		return nil, errors.New("model is not a struct")
-	}
-	t := v.Type()
-	m := &Model{
-		Pk:     nil,
-		Table:  interfaceToSnake(f),
-		Fields: []*Field{},
-	}
+func addFields(m *Model, t reflect.Type, v reflect.Value) {
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
+		if field.Anonymous && field.Type.Kind() == reflect.Struct {
+			addFields(m, field.Type, v.Field(i))
+			continue
+		}
 		sqlTag := field.Tag.Get("sql")
 		if sqlTag == "-" {
 			continue
@@ -758,6 +752,20 @@ func interfaceToModel(f interface{}) (*Model, error) {
 		}
 		m.Fields = append(m.Fields, fd)
 	}
+}
+
+func interfaceToModel(f interface{}) (*Model, error) {
+	v := reflect.Indirect(reflect.ValueOf(f))
+	if v.Kind() != reflect.Struct {
+		return nil, errors.New("model is not a struct")
+	}
+	t := v.Type()
+	m := &Model{
+		Pk:     nil,
+		Table:  interfaceToSnake(f),
+		Fields: []*Field{},
+	}
+	addFields(m, t, v)
 	return m, nil
 }
 
