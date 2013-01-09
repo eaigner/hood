@@ -545,10 +545,11 @@ func TestCreateTable(t *testing.T) {
 func DoTestCreateTable(t *testing.T, info dialectInfo) {
 	hd := info.setupDbFunc(t)
 	type model struct {
-		Prim   Id
-		First  string `sql:"notnull"`
-		Last   string `sql:"default('defaultValue')"`
-		Amount int
+		Prim      Id
+		First     string `sql:"notnull"`
+		Last      string `sql:"default('defaultValue')"`
+		Amount    int
+		NameIndex UniqueIndex `sql:"columns(first:last)"`
 	}
 	table := &model{}
 
