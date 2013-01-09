@@ -29,6 +29,10 @@ type Person struct {
 	// Validates number range
 	Balance int `validate:"range(10:20)"`
 
+	// Create named multi column indexes
+	TagIndex  hood.Index       `sql:"columns(tag)"`
+	NameIndex hood.UniqueIndex `sql:"columns(first_name:last_name)"`
+
 	// ... and other built in types (int, uint, float...)
 }
 
