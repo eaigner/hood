@@ -17,7 +17,8 @@ type (
 		Db           *sql.DB
 		Dialect      Dialect
 		Log          bool
-		qo           qo // the query object
+		qo           qo       // the query object
+		schema       []*Model // keeping track of the schema
 		selectCols   string
 		selectTable  string
 		whereClauses []string
@@ -633,25 +634,46 @@ func (hood *Hood) createTable(table interface{}, ifNotExists bool) error {
 		return err
 	}
 	if ifNotExists {
-		return hood.Dialect.CreateTableIfNotExists(hood, model)
+		err = hood.Dialect.CreateTableIfNotExists(hood, model)
 	}
-	return hood.Dialect.CreateTable(hood, model)
+	err = hood.Dialect.CreateTable(hood, model)
+	if err == nil {
+		// TODO: update schema
+	}
+	return err
 }
 
 // DropTable drops the table matching the provided table name.
 func (hood *Hood) DropTable(table interface{}) error {
-	return hood.Dialect.DropTable(hood, tableName(table))
+	return hood.dropTable(table, false)
 }
 
 // DropTableIfExists drops the table matching the provided table name if it exists.
 func (hood *Hood) DropTableIfExists(table interface{}) error {
-	return hood.Dialect.DropTableIfExists(hood, tableName(table))
+	return hood.dropTable(table, true)
+}
+
+func (hood *Hood) dropTable(table interface{}, ifExists bool) error {
+	var err error = nil
+	if ifExists {
+		err = hood.Dialect.DropTableIfExists(hood, tableName(table))
+	} else {
+		err = hood.Dialect.DropTable(hood, tableName(table))
+	}
+	if err == nil {
+		// TODO: update schema
+	}
+	return err
 }
 
 // RenameTable renames a table. The arguments can either be a schema definition
 // or plain strings.
 func (hood *Hood) RenameTable(from, to interface{}) error {
-	return hood.Dialect.RenameTable(hood, tableName(from), tableName(to))
+	err := hood.Dialect.RenameTable(hood, tableName(from), tableName(to))
+	if err == nil {
+		// TODO: update schema
+	}
+	return err
 }
 
 // AddColumns adds the columns in the specified schema to the table.
@@ -667,12 +689,20 @@ func (hood *Hood) AddColumns(schema interface{}) error {
 			return err
 		}
 	}
-	return tx.Commit()
+	err = tx.Commit()
+	if err == nil {
+		// TODO: update schema
+	}
+	return err
 }
 
 // RenameColumn renames the column in the specified table.
 func (hood *Hood) RenameColumn(table interface{}, from, to string) error {
-	return hood.Dialect.RenameColumn(hood, tableName(table), from, to)
+	err := hood.Dialect.RenameColumn(hood, tableName(table), from, to)
+	if err == nil {
+		// TODO: update schema
+	}
+	return err
 }
 
 // ChangeColumn changes the data type of the specified column.
@@ -682,7 +712,11 @@ func (hood *Hood) ChangeColumn(table, column interface{}) error {
 		return err
 	}
 	field := m.Fields[0]
-	return hood.Dialect.ChangeColumn(hood, tableName(table), field.Name, field.Value, field.Size())
+	err = hood.Dialect.ChangeColumn(hood, tableName(table), field.Name, field.Value, field.Size())
+	if err == nil {
+		// TODO: update schema
+	}
+	return err
 }
 
 func (hood *Hood) RemoveColumn(table, column interface{}) error {
@@ -691,15 +725,27 @@ func (hood *Hood) RemoveColumn(table, column interface{}) error {
 		return err
 	}
 	field := m.Fields[0]
-	return hood.Dialect.DropColumn(hood, tableName(table), field.Name)
+	err = hood.Dialect.DropColumn(hood, tableName(table), field.Name)
+	if err == nil {
+		// TODO: update schema
+	}
+	return err
 }
 
 func (hood *Hood) CreateIndex(table interface{}, column string, unique bool) error {
-	return hood.Dialect.CreateIndex(hood, tableName(table), column, unique)
+	err := hood.Dialect.CreateIndex(hood, tableName(table), column, unique)
+	if err == nil {
+		// TODO: update schema
+	}
+	return err
 }
 
 func (hood *Hood) DropIndex(column string) error {
-	return hood.Dialect.DropIndex(hood, column)
+	err := hood.Dialect.DropIndex(hood, column)
+	if err == nil {
+		// TODO: update schema
+	}
+	return err
 }
 
 func (hood *Hood) substituteMarkers(query string) string {
