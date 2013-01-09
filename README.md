@@ -85,6 +85,7 @@ The following built in field properties are defined (via `sql:` tag):
 - `notnull` the field must be NOT NULL
 - `size(x)` the field must have the specified size, e.g. for varchar `size(128)`
 - `default(x)` the field has the specified default value, e.g. `default(5)` or `default('orange')`
+- `-` ignores the field
 
 ## Migrations
 
