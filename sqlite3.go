@@ -10,8 +10,8 @@ import (
 func init() {
 	// It's probably not a good idea to register the dialect by default since
 	// it requires specific packages to be installed on the target system!
-	// 
-	// RegisterDialect("sqlite3", &Sqlite3{})
+	//
+	// RegisterDialect("sqlite3", NewSqlite3())
 }
 
 type Sqlite3 struct {
