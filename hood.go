@@ -38,6 +38,9 @@ type (
 	// Id represents a auto-incrementing integer primary key type.
 	Id int64
 
+	// Index represents an anonymous schema field type for creating indexes.
+	Index int
+
 	// Varchar represents a VARCHAR type.
 	VarChar string
 
