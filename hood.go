@@ -790,12 +790,12 @@ func parseTags(s string) map[string]string {
 func addFields(m *Model, t reflect.Type, v reflect.Value) {
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
-		if field.Anonymous && field.Type.Kind() == reflect.Struct {
-			addFields(m, field.Type, v.Field(i))
-			continue
-		}
 		sqlTag := field.Tag.Get("sql")
 		if sqlTag == "-" {
+			continue
+		}
+		if field.Anonymous && field.Type.Kind() == reflect.Struct {
+			addFields(m, field.Type, v.Field(i))
 			continue
 		}
 		fd := &ModelField{
