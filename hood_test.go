@@ -20,7 +20,7 @@ func TestParseTags(t *testing.T) {
 }
 
 func TestFieldZero(t *testing.T) {
-	field := &Field{}
+	field := &ModelField{}
 	field.Value = nil
 	if !field.Zero() {
 		t.Fatal("should be zero")

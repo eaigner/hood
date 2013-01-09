@@ -43,17 +43,25 @@ type (
 
 	// Model represents a parsed schema interface{}.
 	Model struct {
-		Pk     *Field
-		Table  string
-		Fields []*Field
+		Pk      *ModelField
+		Table   string
+		Fields  []*ModelField
+		Indexes []*ModelIndex
 	}
 
-	// Field represents a schema field.
-	Field struct {
+	// ModelField represents a schema field of a parsed model.
+	ModelField struct {
 		Name         string            // Column name
 		Value        interface{}       // Value
 		SqlTags      map[string]string // The sql struct tags for this field
 		ValidateTags map[string]string // The validate struct tags for this field
+	}
+
+	// Index represents a schema index of a parsed model.
+	ModelIndex struct {
+		Name    string
+		Columns []string
+		Unique  bool
 	}
 	qo interface {
 		Prepare(query string) (*sql.Stmt, error)
@@ -62,25 +70,25 @@ type (
 )
 
 // PrimaryKey tests if the field is declared using the sql tag "pk" or is of type Id
-func (field *Field) PrimaryKey() bool {
+func (field *ModelField) PrimaryKey() bool {
 	_, isPk := field.SqlTags["pk"]
 	_, isId := field.Value.(Id)
 	return isPk || isId
 }
 
 // NotNull tests if the field is declared as NOT NULL
-func (field *Field) NotNull() bool {
+func (field *ModelField) NotNull() bool {
 	_, ok := field.SqlTags["notnull"]
 	return ok
 }
 
 // Default returns the default value for the field
-func (field *Field) Default() string {
+func (field *ModelField) Default() string {
 	return field.SqlTags["default"]
 }
 
 // Size returns the field size, e.g. for varchars
-func (field *Field) Size() int {
+func (field *ModelField) Size() int {
 	v, ok := field.SqlTags["size"]
 	if ok {
 		i, _ := strconv.Atoi(v)
@@ -90,14 +98,14 @@ func (field *Field) Size() int {
 }
 
 // Zero tests wether or not the field is set
-func (field *Field) Zero() bool {
+func (field *ModelField) Zero() bool {
 	x := field.Value
 	return x == nil || x == reflect.Zero(reflect.TypeOf(x)).Interface()
 }
 
 // String returns the field string value and a bool flag indicating if the
 // conversion was successful
-func (field *Field) String() (string, bool) {
+func (field *ModelField) String() (string, bool) {
 	switch t := field.Value.(type) {
 	case string:
 		return t, true
@@ -109,7 +117,7 @@ func (field *Field) String() (string, bool) {
 
 // Int returns the field int value and a bool flag indication if the conversion
 // was successful
-func (field *Field) Int() (int64, bool) {
+func (field *ModelField) Int() (int64, bool) {
 	switch t := field.Value.(type) {
 	case int, int8, int16, int32, int64:
 		return reflect.ValueOf(t).Int(), true
@@ -121,7 +129,7 @@ func (field *Field) Int() (int64, bool) {
 
 // Validate tests if the field conforms to it's validation constraints specified
 // int the "validate" struct tag
-func (field *Field) Validate() error {
+func (field *ModelField) Validate() error {
 	// length
 	if tuple, ok := field.ValidateTags["len"]; ok {
 		s, ok := field.String()
@@ -787,7 +795,7 @@ func addFields(m *Model, t reflect.Type, v reflect.Value) {
 		if sqlTag == "-" {
 			continue
 		}
-		fd := &Field{
+		fd := &ModelField{
 			Name:         toSnake(field.Name),
 			Value:        v.FieldByName(field.Name).Interface(),
 			SqlTags:      parseTags(sqlTag),
@@ -809,7 +817,7 @@ func interfaceToModel(f interface{}) (*Model, error) {
 	m := &Model{
 		Pk:     nil,
 		Table:  interfaceToSnake(f),
-		Fields: []*Field{},
+		Fields: []*ModelField{},
 	}
 	addFields(m, t, v)
 	return m, nil
