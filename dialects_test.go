@@ -38,9 +38,9 @@ var toRun = []dialectInfo{
 // 	`ALTER TABLE a RENAME COLUMN b TO c`,
 // 	`ALTER TABLE a ALTER COLUMN b TYPE varchar(100)`,
 // 	`ALTER TABLE a DROP COLUMN b`,
-// 	`CREATE UNIQUE INDEX b_index ON a (b)`,
-// 	`CREATE INDEX b_index ON a (b)`,
-// 	`DROP INDEX a_index`,
+// 	`CREATE UNIQUE INDEX iname ON itable (a, b, c)`,
+// 	`CREATE INDEX iname2 ON itable2 (d, e)`,
+// 	`DROP INDEX iname`,
 // },
 // dialectInfo{
 // 	NewSqlite3(),
@@ -59,9 +59,9 @@ var toRun = []dialectInfo{
 // 	``, // not supported by sql command
 // 	``, // not supported by sql command
 // 	``, // not supported by sql command
-// 	`CREATE UNIQUE INDEX b_index ON a (b)`,
-// 	`CREATE INDEX b_index ON a (b)`,
-// 	`DROP INDEX a_index`,
+// 	`CREATE UNIQUE INDEX iname ON itable (a, b, c)`,
+// 	`CREATE INDEX iname2 ON itable2 (d, e)`,
+// 	`DROP INDEX iname`,
 // },
 }
 
@@ -759,10 +759,10 @@ func TestCreateIndexSql(t *testing.T) {
 }
 
 func DoTestCreateIndexSql(t *testing.T, info dialectInfo) {
-	if x := info.dialect.CreateIndexSql("a", "b", true); x != info.createUniqueIndexSql {
+	if x := info.dialect.CreateIndexSql("iname", "itable", true, "a", "b", "c"); x != info.createUniqueIndexSql {
 		t.Fatal("wrong sql", x)
 	}
-	if x := info.dialect.CreateIndexSql("a", "b", false); x != info.createIndexSql {
+	if x := info.dialect.CreateIndexSql("iname2", "itable2", false, "d", "e"); x != info.createIndexSql {
 		t.Fatal("wrong sql", x)
 	}
 }
@@ -774,7 +774,7 @@ func TestDropIndexSql(t *testing.T) {
 }
 
 func DoTestDropIndexSql(t *testing.T, info dialectInfo) {
-	if x := info.dialect.DropIndexSql("a"); x != info.dropIndexSql {
+	if x := info.dialect.DropIndexSql("iname"); x != info.dropIndexSql {
 		t.Fatal("wrong sql", x)
 	}
 }

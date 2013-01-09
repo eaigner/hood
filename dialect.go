@@ -89,16 +89,16 @@ type Dialect interface {
 	DropColumnSql(table, column string) string
 
 	// CreateIndex creates an index on the specified column.
-	CreateIndex(hood *Hood, table, column string, unique bool) error
+	CreateIndex(hood *Hood, name, table string, unique bool, columns ...string) error
 
 	// CreateIndexSql returns the sql for creating an index on the specified column.
-	CreateIndexSql(table, column string, unique bool) string
+	CreateIndexSql(name, table string, unique bool, columns ...string) string
 
-	// DropIndex drops the index for the specified column.
-	DropIndex(hood *Hood, column string) error
+	// DropIndex drops the index.
+	DropIndex(hood *Hood, name string) error
 
-	// DropIndexSql returns the sql for dropping the index on the specified column.
-	DropIndexSql(column string) string
+	// DropIndexSql returns the sql for dropping the index.
+	DropIndexSql(name string) string
 
 	// KeywordNotNull returns the dialect specific keyword for 'NOT NULL'.
 	KeywordNotNull() string

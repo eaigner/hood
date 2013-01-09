@@ -732,16 +732,16 @@ func (hood *Hood) RemoveColumn(table, column interface{}) error {
 	return err
 }
 
-func (hood *Hood) CreateIndex(table interface{}, column string, unique bool) error {
-	err := hood.Dialect.CreateIndex(hood, tableName(table), column, unique)
+func (hood *Hood) CreateIndex(name string, table interface{}, unique bool, columns ...string) error {
+	err := hood.Dialect.CreateIndex(hood, name, tableName(table), unique, columns...)
 	if err == nil {
 		// TODO: update schema
 	}
 	return err
 }
 
-func (hood *Hood) DropIndex(column string) error {
-	err := hood.Dialect.DropIndex(hood, column)
+func (hood *Hood) DropIndex(name string) error {
+	err := hood.Dialect.DropIndex(hood, name)
 	if err == nil {
 		// TODO: update schema
 	}

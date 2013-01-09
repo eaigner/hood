@@ -258,27 +258,28 @@ func (d *Base) DropColumnSql(table, column string) string {
 	return fmt.Sprintf("ALTER TABLE %v DROP COLUMN %v", table, column)
 }
 
-func (d *Base) CreateIndex(hood *Hood, table, column string, unique bool) error {
-	_, err := hood.Exec(d.Dialect.CreateIndexSql(table, column, unique))
+func (d *Base) CreateIndex(hood *Hood, name, table string, unique bool, columns ...string) error {
+	_, err := hood.Exec(d.Dialect.CreateIndexSql(name, table, unique, columns...))
 	return err
 }
 
-func (d *Base) CreateIndexSql(table, column string, unique bool) string {
+func (d *Base) CreateIndexSql(name, table string, unique bool, columns ...string) string {
 	a := []string{"CREATE"}
 	if unique {
 		a = append(a, "UNIQUE")
 	}
-	a = append(a, fmt.Sprintf("INDEX %v_index ON %v (%v)", column, table, column))
+	c := strings.Join(columns, ", ")
+	a = append(a, fmt.Sprintf("INDEX %v ON %v (%v)", name, table, c))
 	return strings.Join(a, " ")
 }
 
-func (d *Base) DropIndex(hood *Hood, column string) error {
-	_, err := hood.Exec(d.Dialect.DropIndexSql(column))
+func (d *Base) DropIndex(hood *Hood, name string) error {
+	_, err := hood.Exec(d.Dialect.DropIndexSql(name))
 	return err
 }
 
-func (d *Base) DropIndexSql(column string) string {
-	return fmt.Sprintf("DROP INDEX %v_index", column)
+func (d *Base) DropIndexSql(name string) string {
+	return fmt.Sprintf("DROP INDEX %v", name)
 }
 
 func (d *Base) KeywordNotNull() string {
