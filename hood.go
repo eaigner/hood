@@ -19,6 +19,7 @@ type (
 		Log          bool
 		qo           qo       // the query object
 		schema       []*Model // keeping track of the schema
+		dryRun       bool     // if actual sql is executed or not
 		selectCols   string
 		selectTable  string
 		whereClauses []string
@@ -647,6 +648,10 @@ func (hood *Hood) createTable(table interface{}, ifNotExists bool) error {
 	if err != nil {
 		return err
 	}
+	hood.schema = append(hood.schema, model)
+	if hood.dryRun {
+		return nil
+	}
 	tx := hood.Begin()
 	if ifNotExists {
 		tx.Dialect.CreateTableIfNotExists(hood, model)
@@ -656,11 +661,7 @@ func (hood *Hood) createTable(table interface{}, ifNotExists bool) error {
 	for _, i := range model.Indexes {
 		tx.Dialect.CreateIndex(tx, i.Name, model.Table, i.Unique, i.Columns...)
 	}
-	err = tx.Commit()
-	if err == nil {
-		// TODO: update schema
-	}
-	return err
+	return tx.Commit()
 }
 
 // DropTable drops the table matching the provided table name.
@@ -674,98 +675,189 @@ func (hood *Hood) DropTableIfExists(table interface{}) error {
 }
 
 func (hood *Hood) dropTable(table interface{}, ifExists bool) error {
-	var err error = nil
+	s := []*Model{}
+	for _, m := range hood.schema {
+		if m.Table != tableName(table) {
+			s = append(s, m)
+		}
+	}
+	hood.schema = s
+	if hood.dryRun {
+		return nil
+	}
 	if ifExists {
-		err = hood.Dialect.DropTableIfExists(hood, tableName(table))
-	} else {
-		err = hood.Dialect.DropTable(hood, tableName(table))
+		return hood.Dialect.DropTableIfExists(hood, tableName(table))
 	}
-	if err == nil {
-		// TODO: update schema
-	}
-	return err
+	return hood.Dialect.DropTable(hood, tableName(table))
 }
 
 // RenameTable renames a table. The arguments can either be a schema definition
 // or plain strings.
 func (hood *Hood) RenameTable(from, to interface{}) error {
-	err := hood.Dialect.RenameTable(hood, tableName(from), tableName(to))
-	if err == nil {
-		// TODO: update schema
+	for _, m := range hood.schema {
+		if m.Table == tableName(from) {
+			m.Table = tableName(to)
+		}
 	}
-	return err
+	if hood.dryRun {
+		return nil
+	}
+	return hood.Dialect.RenameTable(hood, tableName(from), tableName(to))
 }
 
 // AddColumns adds the columns in the specified schema to the table.
-func (hood *Hood) AddColumns(schema interface{}) error {
-	m, err := interfaceToModel(schema)
+func (hood *Hood) AddColumns(table, columns interface{}) error {
+	m, err := interfaceToModel(columns)
 	if err != nil {
 		return err
 	}
+	for _, s := range hood.schema {
+		if s.Table == tableName(table) {
+			if m.Pk != nil {
+				panic("primary keys can only be specified on table create (for now)")
+			}
+			s.Fields = append(s.Fields, m.Fields...)
+		}
+	}
+	if hood.dryRun {
+		return nil
+	}
 	tx := hood.Begin()
 	for _, column := range m.Fields {
-		err = hood.Dialect.AddColumn(tx, m.Table, column.Name, column.Value, column.Size())
+		err = hood.Dialect.AddColumn(tx, tableName(table), column.Name, column.Value, column.Size())
 		if err != nil {
 			return err
 		}
 	}
-	err = tx.Commit()
-	if err == nil {
-		// TODO: update schema
-	}
-	return err
+	return tx.Commit()
 }
 
 // RenameColumn renames the column in the specified table.
 func (hood *Hood) RenameColumn(table interface{}, from, to string) error {
-	err := hood.Dialect.RenameColumn(hood, tableName(table), from, to)
-	if err == nil {
-		// TODO: update schema
+	for _, s := range hood.schema {
+		if s.Table == tableName(table) {
+			for _, f := range s.Fields {
+				if f.Name == from {
+					f.Name = to
+				}
+			}
+		}
 	}
-	return err
+	if hood.dryRun {
+		return nil
+	}
+	return hood.Dialect.RenameColumn(hood, tableName(table), from, to)
 }
 
 // ChangeColumn changes the data type of the specified column.
-func (hood *Hood) ChangeColumn(table, column interface{}) error {
+func (hood *Hood) ChangeColumns(table, column interface{}) error {
 	m, err := interfaceToModel(column)
 	if err != nil {
 		return err
 	}
-	field := m.Fields[0]
-	err = hood.Dialect.ChangeColumn(hood, tableName(table), field.Name, field.Value, field.Size())
-	if err == nil {
-		// TODO: update schema
+	for _, s := range hood.schema {
+		if s.Table == tableName(table) {
+			fields := []*ModelField{}
+			for _, oldField := range s.Fields {
+				for _, newField := range m.Fields {
+					if newField.Name == oldField.Name {
+						fields = append(fields, newField)
+					} else {
+						fields = append(fields, oldField)
+					}
+				}
+			}
+			s.Fields = fields
+		}
 	}
-	return err
+	if hood.dryRun {
+		return nil
+	}
+	tx := hood.Begin()
+	for _, column := range m.Fields {
+		err = hood.Dialect.ChangeColumn(tx, tableName(table), column.Name, column.Value, column.Size())
+		if err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
 }
 
-func (hood *Hood) RemoveColumn(table, column interface{}) error {
-	m, err := interfaceToModel(column)
+func (hood *Hood) RemoveColumns(table, columns interface{}) error {
+	m, err := interfaceToModel(columns)
 	if err != nil {
 		return err
 	}
-	field := m.Fields[0]
-	err = hood.Dialect.DropColumn(hood, tableName(table), field.Name)
-	if err == nil {
-		// TODO: update schema
+	for _, s := range hood.schema {
+		if s.Table == tableName(table) {
+			fields := []*ModelField{}
+			for _, field := range s.Fields {
+				remove := false
+				for _, fieldToRemove := range m.Fields {
+					if field.Name == fieldToRemove.Name {
+						remove = true
+						break
+					}
+				}
+				if !remove {
+					fields = append(fields, field)
+				}
+			}
+			s.Fields = fields
+		}
 	}
-	return err
+	if hood.dryRun {
+		return nil
+	}
+	tx := hood.Begin()
+	for _, column := range m.Fields {
+		err = hood.Dialect.DropColumn(tx, tableName(table), column.Name)
+		if err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
 }
 
-func (hood *Hood) CreateIndex(name string, table interface{}, unique bool, columns ...string) error {
-	err := hood.Dialect.CreateIndex(hood, name, tableName(table), unique, columns...)
-	if err == nil {
-		// TODO: update schema
+func (hood *Hood) CreateIndex(name string, table, index interface{}) error {
+	m, err := interfaceToModel(index)
+	if err != nil {
+		return err
 	}
-	return err
+	for _, s := range hood.schema {
+		if s.Table == tableName(table) {
+			s.Indexes = append(s.Indexes, m.Indexes...)
+		}
+	}
+	if hood.dryRun {
+		return nil
+	}
+	tx := hood.Begin()
+	for _, index := range m.Indexes {
+		err = hood.Dialect.CreateIndex(tx, index.Name, tableName(table), index.Unique, index.Columns...)
+		if err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
 }
 
-func (hood *Hood) DropIndex(name string) error {
-	err := hood.Dialect.DropIndex(hood, name)
-	if err == nil {
-		// TODO: update schema
+func (hood *Hood) DropIndex(name string, table interface{}) error {
+	for _, s := range hood.schema {
+		if s.Table == tableName(table) {
+			indexes := []*ModelIndex{}
+			for _, i := range s.Indexes {
+				if i.Name != name {
+					indexes = append(indexes, i)
+				}
+			}
+			s.Indexes = indexes
+		}
 	}
-	return err
+	if hood.dryRun {
+		return nil
+	}
+	return hood.Dialect.DropIndex(hood, name)
 }
 
 func (hood *Hood) substituteMarkers(query string) string {

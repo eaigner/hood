@@ -1,6 +1,7 @@
 package hood
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -276,5 +277,121 @@ func TestInterfaceToModel(t *testing.T) {
 	f = m.Fields[4]
 	if x, ok := f.Value.(time.Time); !ok || !now.Equal(x) {
 		t.Fatal("wrong value", x)
+	}
+}
+
+func TestSchemaGeneration(t *testing.T) {
+	hd := New(nil, NewPostgres())
+	hd.dryRun = true
+	if x := len(hd.schema); x != 0 {
+		t.Fatal("invalid schema state", x)
+	}
+	type Users struct {
+		Id        Id
+		First     string
+		Last      string
+		NameIndex UniqueIndex `sql:"columns(first:last)"`
+	}
+	hd.CreateTable(&Users{})
+	if x := len(hd.schema); x != 1 {
+		t.Fatal("invalid schema state", x)
+	}
+	if x := len(hd.schema[0].Indexes); x != 1 {
+		t.Fatal("invalid schema state", x)
+	}
+	if x := len(hd.schema[0].Fields); x != 3 {
+		t.Fatal("invalid schema state", x)
+	}
+	type DropMe struct {
+		Id Id
+	}
+	hd.CreateTable(&DropMe{})
+	if x := len(hd.schema); x != 2 {
+		t.Fatal("invalid schema state", x)
+	}
+	hd.DropTable(&DropMe{})
+	if x := len(hd.schema); x != 1 {
+		t.Fatal("invalid schema state", x)
+	}
+	if x := hd.schema[0].Table; x != "users" {
+		t.Fatal("invalid schema state", x)
+	}
+	hd.RenameTable(&Users{}, "customers")
+	if x := len(hd.schema); x != 1 {
+		t.Fatal("invalid schema state", x)
+	}
+	if x := hd.schema[0].Table; x != "customers" {
+		t.Fatal("invalid schema state", x)
+	}
+	hd.AddColumns("customers", struct {
+		Balance int
+	}{})
+	if x := len(hd.schema); x != 1 {
+		t.Fatal("invalid schema state", x)
+	}
+	if x := len(hd.schema[0].Fields); x != 4 {
+		t.Fatal("invalid schema state", x)
+	}
+	if x := hd.schema[0].Fields[3].Name; x != "balance" {
+		t.Fatal("invalid schema state", x)
+	}
+	hd.RenameColumn("customers", "balance", "amount")
+	if x := len(hd.schema); x != 1 {
+		t.Fatal("invalid schema state", x)
+	}
+	if x := len(hd.schema[0].Fields); x != 4 {
+		t.Fatal("invalid schema state", x)
+	}
+	if x := hd.schema[0].Fields[3].Name; x != "amount" {
+		t.Fatal("invalid schema state", x)
+	}
+	if x := hd.schema[0].Fields[3].Value; reflect.TypeOf(x) != reflect.TypeOf(int(0)) {
+		t.Fatal("invalid schema state", x)
+	}
+	hd.ChangeColumns("customers", struct {
+		Amount string
+	}{})
+	if x := len(hd.schema); x != 1 {
+		t.Fatal("invalid schema state", x)
+	}
+	if x := len(hd.schema[0].Fields); x != 4 {
+		t.Fatal("invalid schema state", x)
+	}
+	if x := hd.schema[0].Fields[3].Name; x != "amount" {
+		t.Fatal("invalid schema state", x)
+	}
+	if x := hd.schema[0].Fields[3].Value; reflect.TypeOf(x) != reflect.TypeOf("") {
+		t.Fatal("invalid schema state", x)
+	}
+	hd.RemoveColumns("customers", struct {
+		First string
+		Last  string
+	}{})
+	if x := len(hd.schema); x != 1 {
+		t.Fatal("invalid schema state", x)
+	}
+	if x := len(hd.schema[0].Fields); x != 2 {
+		t.Fatal("invalid schema state", x)
+	}
+	if x := hd.schema[0].Fields[0].Name; x != "id" {
+		t.Fatal("invalid schema state", x)
+	}
+	if x := hd.schema[0].Fields[1].Name; x != "amount" {
+		t.Fatal("invalid schema state", x)
+	}
+	hd.CreateIndex("my_index", "customers", struct {
+		AmountIndex Index `sql:"columns(amount)"`
+	}{})
+	if x := len(hd.schema); x != 1 {
+		t.Fatal("invalid schema state", x)
+	}
+	if x := len(hd.schema[0].Indexes); x != 2 {
+		t.Fatal("invalid schema state", x)
+	}
+	if x := hd.schema[0].Indexes[0].Name; x != "name_index" {
+		t.Fatal("invalid schema state", x)
+	}
+	if x := hd.schema[0].Indexes[1].Name; x != "amount_index" {
+		t.Fatal("invalid schema state", x)
 	}
 }
