@@ -725,9 +725,9 @@ func (hood *Hood) createTable(table interface{}, ifNotExists bool) error {
 	}
 	tx := hood.Begin()
 	if ifNotExists {
-		tx.Dialect.CreateTableIfNotExists(hood, model)
+		tx.Dialect.CreateTableIfNotExists(tx, model)
 	} else {
-		tx.Dialect.CreateTable(hood, model)
+		tx.Dialect.CreateTable(tx, model)
 	}
 	for _, i := range model.Indexes {
 		tx.Dialect.CreateIndex(tx, i.Name, model.Table, i.Unique, i.Columns...)
