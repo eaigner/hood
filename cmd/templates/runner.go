@@ -29,10 +29,16 @@ type (
 
 func main() {
 	// Determine direction
-	up := true
-	if len(os.Args) > 1 {
-		if x := os.Args[1]; x == "down" {
-			up = false
+	up := false
+	verbose := false
+	if n := len(os.Args); n > 1 {
+		for i := 1; i < n; i++ {
+			switch os.Args[i] {
+			case "db:migrate":
+				up = true
+			case "-v":
+				verbose = true
+			}
 		}
 	}
 	if up {
@@ -91,6 +97,7 @@ func main() {
 		if up {
 			if ts > info.Current {
 				tx := hd.Begin()
+				tx.Log = verbose
 				method := ups[ts]
 				method.Func.Call([]reflect.Value{v, reflect.ValueOf(tx)})
 				info.Current = ts
@@ -106,6 +113,7 @@ func main() {
 		} else {
 			if info.Current == ts {
 				tx := hd.Begin()
+				tx.Log = verbose
 				method := downs[ts]
 				method.Func.Call([]reflect.Value{v, reflect.ValueOf(tx)})
 				if i > 0 {
