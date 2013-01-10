@@ -16,6 +16,7 @@ Hood is a database agnostic ORM for Go developed by [@eaignr](https://twitter.co
 
 - Chainable API
 - Transaction support
+- Migration and schema generation
 - Model validations
 - Model event hooks
 - Database dialect interface
@@ -128,14 +129,29 @@ to the `sql.Open(2)` function. Now hood knows about our database, so let's creat
 
     hood create:migration CreateUserTable
 
-This command creates a new migration in `db/migrations/<timestamp>_CreateUserTable.go`. Next we have to populate the
-generated migrations `Up` and `Down` methods like so:
+and another one
+
+		hood create:migration AddUserNameIndex
+
+This command creates new migrations in `db/migrations`. Next we have to populate the
+generated migrations `Up` (and `Down`) methods like so:
 
 ```go
-func (m *M) CreateUserTable_1357605106_Up(hood *hood.Hood) {
-	// users is the schema struct for the table, see the schema
-	// section for more info on this topic
-	hood.CreateTable(&users{})
+func (m *M) CreateUserTable_1357605106_Up(hd *hood.Hood) {
+	type Users struct {
+		Id		hood.Id
+		First	string
+		Last	string
+	}
+	hd.CreateTable(&Users{})
+}
+```
+
+```go
+func (m *M) AddUserNameIndex_1357605116_Up(hd *hood.Hood) {
+	hd.CreateIndex("users", struct{
+		NameIndex hood.UniqueIndex `sql:"columns(first:last)"`
+	}{})
 }
 ```
 
@@ -152,6 +168,20 @@ and roll back with
 If you want to run a environment configuration other than `development`, you have to set an environment variable first like this:
 
 	export HOOD_ENV=production
+
+A `schema.go` file is **automatically generated** in the `db` directory. This file reflects the
+current state of the database! It will look like this:
+
+```go
+type Users struct {
+	Id		hood.Id
+	First	string
+	Last	string
+
+	// Indexes
+	NameIndex	hood.UniqueIndex	`sql:"columns(first:last)"`
+}
+```
 
 ## Validation
 
