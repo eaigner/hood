@@ -5,6 +5,7 @@ import (
 	"github.com/eaigner/hood"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path"
 	"reflect"
 	"sort"
@@ -147,6 +148,10 @@ func main() {
 	)
 	schemaPath := path.Join(wd, "db", "schema.go")
 	err = ioutil.WriteFile(schemaPath, []byte(schema), 0666)
+	if err != nil {
+		panic(err)
+	}
+	err = exec.Command("go", "fmt", schemaPath).Run()
 	if err != nil {
 		panic(err)
 	}
