@@ -127,31 +127,31 @@ This command will create a `db/config.json` file relative to your current direct
 Populate it with your database credentials. The `driver` and `source` fields are the strings you would pass
 to the `sql.Open(2)` function. Now hood knows about our database, so let's create our first migration with
 
-    hood create:migration CreateUserTable
+  hood create:migration CreateUserTable
 
 and another one
 
-		hood create:migration AddUserNameIndex
+  hood create:migration AddUserNameIndex
 
 This command creates new migrations in `db/migrations`. Next we have to populate the
 generated migrations `Up` (and `Down`) methods like so:
 
 ```go
 func (m *M) CreateUserTable_1357605106_Up(hd *hood.Hood) {
-	type Users struct {
-		Id		hood.Id
-		First	string
-		Last	string
-	}
-	hd.CreateTable(&Users{})
+  type Users struct {
+    Id		hood.Id
+    First	string
+    Last	string
+  }
+  hd.CreateTable(&Users{})
 }
 ```
 
 ```go
 func (m *M) AddUserNameIndex_1357605116_Up(hd *hood.Hood) {
-	hd.CreateIndex("users", struct{
-		NameIndex hood.UniqueIndex `sql:"columns(first:last)"`
-	}{})
+  hd.CreateIndex("users", struct{
+    NameIndex hood.UniqueIndex `sql:"columns(first:last)"`
+  }{})
 }
 ```
 
@@ -176,16 +176,16 @@ current state of the database! It will look like this:
 package db
 
 import (
-	"github.com/eaigner/hood"
+  "github.com/eaigner/hood"
 )
 
 type Users struct {
-	Id		hood.Id
-	First	string
-	Last	string
-
-	// Indexes
-	NameIndex	hood.UniqueIndex	`sql:"columns(first:last)"`
+  Id		hood.Id
+  First	string
+  Last	string
+  
+  // Indexes
+  NameIndex	hood.UniqueIndex	`sql:"columns(first:last)"`
 }
 ```
 
