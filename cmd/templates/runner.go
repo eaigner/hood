@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"github.com/eaigner/hood"
+	"io/ioutil"
 	"os"
 	"path"
 	"reflect"
@@ -128,6 +129,29 @@ func main() {
 	} else {
 		fmt.Printf("rolled back %d migrations\n", runCount)
 	}
+	fmt.Println("generating new schema...")
+	dry := hood.Dry()
+	for _, ts := range stamps {
+		if ts <= info.Current {
+			method := ups[ts]
+			method.Func.Call([]reflect.Value{v, reflect.ValueOf(dry)})
+		}
+	}
+	wd, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	schema := fmt.Sprintf(
+		"package db\n\nimport (\n\t\"github.com/eaigner/hood\"\n)\n\n%s",
+		dry.SchemaDefinition(),
+	)
+	schemaPath := path.Join(wd, "db", "schema.go")
+	err = ioutil.WriteFile(schemaPath, []byte(schema), 0666)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("wrote schema %s\n", schemaPath)
+	fmt.Println("done.")
 }
 
 func readConfig() environments {

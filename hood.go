@@ -303,6 +303,13 @@ func New(database *sql.DB, dialect Dialect) *Hood {
 	return hood
 }
 
+// Dry creates a new Hood instance for schema generation.
+func Dry() *Hood {
+	hd := New(nil, nil)
+	hd.dryRun = true
+	return hd
+}
+
 // Open opens a new database connection using the specified driver and data
 // source name. It matches the sql.Open method signature.
 func Open(driverName, dataSourceName string) (*Hood, error) {
@@ -368,6 +375,11 @@ func (hood *Hood) Rollback() error {
 		return v.Rollback()
 	}
 	return nil
+}
+
+// SchemaDefinition returns a string of the schema represented as Go structs.
+func (hood *Hood) SchemaDefinition() string {
+	return hood.schema.GoDeclaration()
 }
 
 // Select adds a SELECT clause to the query with the specified columsn and table.

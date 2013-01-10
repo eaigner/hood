@@ -288,8 +288,7 @@ func makeWhitespaceVisible(s string) string {
 }
 
 func TestSchemaGeneration(t *testing.T) {
-	hd := New(nil, NewPostgres())
-	hd.dryRun = true
+	hd := Dry()
 	if x := len(hd.schema); x != 0 {
 		t.Fatal("invalid schema state", x)
 	}
