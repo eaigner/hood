@@ -127,11 +127,11 @@ This command will create a `db/config.json` file relative to your current direct
 Populate it with your database credentials. The `driver` and `source` fields are the strings you would pass
 to the `sql.Open(2)` function. Now hood knows about our database, so let's create our first migration with
 
-  hood create:migration CreateUserTable
+	hood create:migration CreateUserTable
 
 and another one
 
-  hood create:migration AddUserNameIndex
+	hood create:migration AddUserNameIndex
 
 This command creates new migrations in `db/migrations`. Next we have to populate the
 generated migrations `Up` (and `Down`) methods like so:
