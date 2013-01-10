@@ -17,9 +17,9 @@ type (
 		Db           *sql.DB
 		Dialect      Dialect
 		Log          bool
-		qo           qo       // the query object
-		schema       []*Model // keeping track of the schema
-		dryRun       bool     // if actual sql is executed or not
+		qo           qo     // the query object
+		schema       Schema // keeping track of the schema
+		dryRun       bool   // if actual sql is executed or not
 		selectCols   string
 		selectTable  string
 		whereClauses []string
@@ -62,6 +62,7 @@ type (
 		Value        interface{}       // Value
 		SqlTags      map[string]string // The sql struct tags for this field
 		ValidateTags map[string]string // The validate struct tags for this field
+		RawTag       reflect.StructTag // The raw tag
 	}
 
 	// ModelIndex represents a schema index of a parsed model.
@@ -69,7 +70,12 @@ type (
 		Name    string
 		Columns []string
 		Unique  bool
+		RawTag  reflect.StructTag // The raw tag
 	}
+
+	// Schema is a collection of models
+	Schema []*Model
+
 	qo interface {
 		Prepare(query string) (*sql.Stmt, error)
 		QueryRow(query string, args ...interface{}) *sql.Row
@@ -132,6 +138,19 @@ func (field *ModelField) Int() (int64, bool) {
 		return int64(reflect.ValueOf(t).Uint()), true
 	}
 	return 0, false
+}
+
+func (field *ModelField) GoDeclaration() string {
+	t := ""
+	if x := field.RawTag; len(x) > 0 {
+		t = fmt.Sprintf("\t`%s`", x)
+	}
+	return fmt.Sprintf(
+		"%s\t%s%s",
+		snakeToUpperCamel(field.Name),
+		reflect.TypeOf(field.Value).String(),
+		t,
+	)
 }
 
 // Validate tests if the field conforms to it's validation constraints specified
@@ -220,6 +239,23 @@ func validateRange(i int64, tuple string) error {
 	return nil
 }
 
+func (index *ModelIndex) GoDeclaration() string {
+	typ := reflect.TypeOf(Index(0)).String()
+	if index.Unique {
+		typ = reflect.TypeOf(UniqueIndex(0)).String()
+	}
+	t := ""
+	if x := index.RawTag; len(x) > 0 {
+		t = fmt.Sprintf("\t`%s`", index.RawTag)
+	}
+	return fmt.Sprintf(
+		"%s\t%s%s",
+		snakeToUpperCamel(index.Name),
+		typ,
+		t,
+	)
+}
+
 func (model *Model) Validate() error {
 	for _, field := range model.Fields {
 		err := field.Validate()
@@ -228,6 +264,29 @@ func (model *Model) Validate() error {
 		}
 	}
 	return nil
+}
+
+func (model *Model) GoDeclaration() string {
+	a := []string{fmt.Sprintf("type %s struct {", snakeToUpperCamel(model.Table))}
+	for _, f := range model.Fields {
+		a = append(a, "\t"+f.GoDeclaration())
+	}
+	if len(model.Indexes) > 0 {
+		a = append(a, "", "\t// Indexes")
+	}
+	for _, i := range model.Indexes {
+		a = append(a, "\t"+i.GoDeclaration())
+	}
+	a = append(a, "}")
+	return strings.Join(a, "\n")
+}
+
+func (schema Schema) GoDeclaration() string {
+	a := []string{}
+	for _, m := range schema {
+		a = append(a, m.GoDeclaration())
+	}
+	return strings.Join(a, "\n\n")
 }
 
 var registeredDialects map[string]Dialect = make(map[string]Dialect)
@@ -819,7 +878,7 @@ func (hood *Hood) RemoveColumns(table, columns interface{}) error {
 	return tx.Commit()
 }
 
-func (hood *Hood) CreateIndex(name string, table, index interface{}) error {
+func (hood *Hood) CreateIndex(table, index interface{}) error {
 	m, err := interfaceToModel(index)
 	if err != nil {
 		return err
@@ -888,12 +947,13 @@ func parseTags(s string) map[string]string {
 	return m
 }
 
-func addIndex(m *Model, field reflect.StructField, unique bool, sqlTags map[string]string) {
+func addIndex(m *Model, field reflect.StructField, unique bool, sqlTags map[string]string, tag reflect.StructTag) {
 	if t, ok := sqlTags["columns"]; ok {
 		m.Indexes = append(m.Indexes, &ModelIndex{
 			Name:    toSnake(field.Name),
 			Columns: strings.Split(t, ":"),
 			Unique:  unique,
+			RawTag:  tag,
 		})
 	}
 }
@@ -911,15 +971,16 @@ func addFields(m *Model, t reflect.Type, v reflect.Value) {
 		}
 		parsedSqlTags := parseTags(sqlTag)
 		if field.Type == reflect.TypeOf(Index(0)) {
-			addIndex(m, field, false, parsedSqlTags)
+			addIndex(m, field, false, parsedSqlTags, field.Tag)
 		} else if field.Type == reflect.TypeOf(UniqueIndex(0)) {
-			addIndex(m, field, true, parsedSqlTags)
+			addIndex(m, field, true, parsedSqlTags, field.Tag)
 		} else {
 			fd := &ModelField{
 				Name:         toSnake(field.Name),
 				Value:        v.FieldByName(field.Name).Interface(),
 				SqlTags:      parsedSqlTags,
 				ValidateTags: parseTags(field.Tag.Get("validate")),
+				RawTag:       field.Tag,
 			}
 			if fd.PrimaryKey() {
 				m.Pk = fd

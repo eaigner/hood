@@ -1,7 +1,6 @@
 package hood
 
 import (
-	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -280,6 +279,14 @@ func TestInterfaceToModel(t *testing.T) {
 	}
 }
 
+func makeWhitespaceVisible(s string) string {
+	s = strings.Replace(s, "\t", "\\t", -1)
+	s = strings.Replace(s, "\r\n", "\\r\\n", -1)
+	s = strings.Replace(s, "\r", "\\r", -1)
+	s = strings.Replace(s, "\n", "\\n", -1)
+	return s
+}
+
 func TestSchemaGeneration(t *testing.T) {
 	hd := New(nil, NewPostgres())
 	hd.dryRun = true
@@ -288,110 +295,137 @@ func TestSchemaGeneration(t *testing.T) {
 	}
 	type Users struct {
 		Id        Id
-		First     string
+		First     VarChar `sql:"size(30)"`
 		Last      string
 		NameIndex UniqueIndex `sql:"columns(first:last)"`
 	}
 	hd.CreateTable(&Users{})
-	if x := len(hd.schema); x != 1 {
-		t.Fatal("invalid schema state", x)
-	}
-	if x := len(hd.schema[0].Indexes); x != 1 {
-		t.Fatal("invalid schema state", x)
-	}
-	if x := len(hd.schema[0].Fields); x != 3 {
-		t.Fatal("invalid schema state", x)
+	decl1 := "type Users struct {\n" +
+		"\tId\thood.Id\n" +
+		"\tFirst\thood.VarChar\t`sql:\"size(30)\"`\n" +
+		"\tLast\tstring\n" +
+		"\n" +
+		"\t// Indexes\n" +
+		"\tNameIndex\thood.UniqueIndex\t`sql:\"columns(first:last)\"`\n" +
+		"}"
+	if x := hd.schema.GoDeclaration(); x != decl1 {
+		t.Fatalf("invalid schema\n%s\n\n%s", makeWhitespaceVisible(x), makeWhitespaceVisible(decl1))
 	}
 	type DropMe struct {
 		Id Id
 	}
 	hd.CreateTable(&DropMe{})
-	if x := len(hd.schema); x != 2 {
-		t.Fatal("invalid schema state", x)
+	decl2 := "type Users struct {\n" +
+		"\tId\thood.Id\n" +
+		"\tFirst\thood.VarChar\t`sql:\"size(30)\"`\n" +
+		"\tLast\tstring\n" +
+		"\n" +
+		"\t// Indexes\n" +
+		"\tNameIndex\thood.UniqueIndex\t`sql:\"columns(first:last)\"`\n" +
+		"}\n" +
+		"\n" +
+		"type DropMe struct {\n" +
+		"\tId\thood.Id\n" +
+		"}"
+	if x := hd.schema.GoDeclaration(); x != decl2 {
+		t.Fatalf("invalid schema\n%s\n\n%s", makeWhitespaceVisible(x), makeWhitespaceVisible(decl2))
 	}
 	hd.DropTable(&DropMe{})
-	if x := len(hd.schema); x != 1 {
-		t.Fatal("invalid schema state", x)
-	}
-	if x := hd.schema[0].Table; x != "users" {
-		t.Fatal("invalid schema state", x)
+	if x := hd.schema.GoDeclaration(); x != decl1 {
+		t.Fatalf("invalid schema\n%s\n\n%s", makeWhitespaceVisible(x), makeWhitespaceVisible(decl1))
 	}
 	hd.RenameTable(&Users{}, "customers")
-	if x := len(hd.schema); x != 1 {
-		t.Fatal("invalid schema state", x)
-	}
-	if x := hd.schema[0].Table; x != "customers" {
-		t.Fatal("invalid schema state", x)
+	decl3 := "type Customers struct {\n" +
+		"\tId\thood.Id\n" +
+		"\tFirst\thood.VarChar\t`sql:\"size(30)\"`\n" +
+		"\tLast\tstring\n" +
+		"\n" +
+		"\t// Indexes\n" +
+		"\tNameIndex\thood.UniqueIndex\t`sql:\"columns(first:last)\"`\n" +
+		"}"
+	if x := hd.schema.GoDeclaration(); x != decl3 {
+		t.Fatalf("invalid schema\n%s\n\n%s", makeWhitespaceVisible(x), makeWhitespaceVisible(decl3))
 	}
 	hd.AddColumns("customers", struct {
 		Balance int
 	}{})
-	if x := len(hd.schema); x != 1 {
-		t.Fatal("invalid schema state", x)
-	}
-	if x := len(hd.schema[0].Fields); x != 4 {
-		t.Fatal("invalid schema state", x)
-	}
-	if x := hd.schema[0].Fields[3].Name; x != "balance" {
-		t.Fatal("invalid schema state", x)
+	decl4 := "type Customers struct {\n" +
+		"\tId\thood.Id\n" +
+		"\tFirst\thood.VarChar\t`sql:\"size(30)\"`\n" +
+		"\tLast\tstring\n" +
+		"\tBalance\tint\n" +
+		"\n" +
+		"\t// Indexes\n" +
+		"\tNameIndex\thood.UniqueIndex\t`sql:\"columns(first:last)\"`\n" +
+		"}"
+	if x := hd.schema.GoDeclaration(); x != decl4 {
+		t.Fatalf("invalid schema\n%s\n\n%s", makeWhitespaceVisible(x), makeWhitespaceVisible(decl4))
 	}
 	hd.RenameColumn("customers", "balance", "amount")
-	if x := len(hd.schema); x != 1 {
-		t.Fatal("invalid schema state", x)
-	}
-	if x := len(hd.schema[0].Fields); x != 4 {
-		t.Fatal("invalid schema state", x)
-	}
-	if x := hd.schema[0].Fields[3].Name; x != "amount" {
-		t.Fatal("invalid schema state", x)
-	}
-	if x := hd.schema[0].Fields[3].Value; reflect.TypeOf(x) != reflect.TypeOf(int(0)) {
-		t.Fatal("invalid schema state", x)
+	decl5 := "type Customers struct {\n" +
+		"\tId\thood.Id\n" +
+		"\tFirst\thood.VarChar\t`sql:\"size(30)\"`\n" +
+		"\tLast\tstring\n" +
+		"\tAmount\tint\n" +
+		"\n" +
+		"\t// Indexes\n" +
+		"\tNameIndex\thood.UniqueIndex\t`sql:\"columns(first:last)\"`\n" +
+		"}"
+	if x := hd.schema.GoDeclaration(); x != decl5 {
+		t.Fatalf("invalid schema\n%s\n\n%s", makeWhitespaceVisible(x), makeWhitespaceVisible(decl5))
 	}
 	hd.ChangeColumns("customers", struct {
 		Amount string
 	}{})
-	if x := len(hd.schema); x != 1 {
-		t.Fatal("invalid schema state", x)
-	}
-	if x := len(hd.schema[0].Fields); x != 4 {
-		t.Fatal("invalid schema state", x)
-	}
-	if x := hd.schema[0].Fields[3].Name; x != "amount" {
-		t.Fatal("invalid schema state", x)
-	}
-	if x := hd.schema[0].Fields[3].Value; reflect.TypeOf(x) != reflect.TypeOf("") {
-		t.Fatal("invalid schema state", x)
+	decl6 := "type Customers struct {\n" +
+		"\tId\thood.Id\n" +
+		"\tFirst\thood.VarChar\t`sql:\"size(30)\"`\n" +
+		"\tLast\tstring\n" +
+		"\tAmount\tstring\n" +
+		"\n" +
+		"\t// Indexes\n" +
+		"\tNameIndex\thood.UniqueIndex\t`sql:\"columns(first:last)\"`\n" +
+		"}"
+	if x := hd.schema.GoDeclaration(); x != decl6 {
+		t.Fatalf("invalid schema\n%s\n\n%s", makeWhitespaceVisible(x), makeWhitespaceVisible(decl6))
 	}
 	hd.RemoveColumns("customers", struct {
 		First string
 		Last  string
 	}{})
-	if x := len(hd.schema); x != 1 {
-		t.Fatal("invalid schema state", x)
+	decl7 := "type Customers struct {\n" +
+		"\tId\thood.Id\n" +
+		"\tAmount\tstring\n" +
+		"\n" +
+		"\t// Indexes\n" +
+		"\tNameIndex\thood.UniqueIndex\t`sql:\"columns(first:last)\"`\n" +
+		"}"
+	if x := hd.schema.GoDeclaration(); x != decl7 {
+		t.Fatalf("invalid schema\n%s\n\n%s", makeWhitespaceVisible(x), makeWhitespaceVisible(decl7))
 	}
-	if x := len(hd.schema[0].Fields); x != 2 {
-		t.Fatal("invalid schema state", x)
-	}
-	if x := hd.schema[0].Fields[0].Name; x != "id" {
-		t.Fatal("invalid schema state", x)
-	}
-	if x := hd.schema[0].Fields[1].Name; x != "amount" {
-		t.Fatal("invalid schema state", x)
-	}
-	hd.CreateIndex("my_index", "customers", struct {
+	hd.CreateIndex("customers", struct {
 		AmountIndex Index `sql:"columns(amount)"`
 	}{})
-	if x := len(hd.schema); x != 1 {
-		t.Fatal("invalid schema state", x)
+	decl8 := "type Customers struct {\n" +
+		"\tId\thood.Id\n" +
+		"\tAmount\tstring\n" +
+		"\n" +
+		"\t// Indexes\n" +
+		"\tNameIndex\thood.UniqueIndex\t`sql:\"columns(first:last)\"`\n" +
+		"\tAmountIndex\thood.Index\t`sql:\"columns(amount)\"`\n" +
+		"}"
+	if x := hd.schema.GoDeclaration(); x != decl8 {
+		t.Fatalf("invalid schema\n%s\n\n%s", makeWhitespaceVisible(x), makeWhitespaceVisible(decl8))
 	}
-	if x := len(hd.schema[0].Indexes); x != 2 {
-		t.Fatal("invalid schema state", x)
-	}
-	if x := hd.schema[0].Indexes[0].Name; x != "name_index" {
-		t.Fatal("invalid schema state", x)
-	}
-	if x := hd.schema[0].Indexes[1].Name; x != "amount_index" {
-		t.Fatal("invalid schema state", x)
+	hd.DropIndex("name_index", "customers")
+	decl9 := "type Customers struct {\n" +
+		"\tId\thood.Id\n" +
+		"\tAmount\tstring\n" +
+		"\n" +
+		"\t// Indexes\n" +
+		"\tAmountIndex\thood.Index\t`sql:\"columns(amount)\"`\n" +
+		"}"
+	if x := hd.schema.GoDeclaration(); x != decl9 {
+		t.Fatalf("invalid schema\n%s\n\n%s", makeWhitespaceVisible(x), makeWhitespaceVisible(decl9))
 	}
 }
