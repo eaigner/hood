@@ -155,7 +155,7 @@ func (m *M) AddUserNameIndex_1357605116_Up(hd *hood.Hood) {
 }
 ```
 
-The passed in `hood` instance is a transaction that will be committed after this method.
+The passed in `hood` instance is a transaction that will be committed after the method.
 
 Now we can run migrations with
 
@@ -170,7 +170,7 @@ If you want to run a environment configuration other than `development`, you hav
 	export HOOD_ENV=production
 
 A `schema.go` file is **automatically generated** in the `db` directory. This file reflects the
-current state of the database! It will look like this:
+current state of the database! In our example, it will look like this:
 
 ```go
 package db
