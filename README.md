@@ -173,6 +173,12 @@ A `schema.go` file is **automatically generated** in the `db` directory. This fi
 current state of the database! It will look like this:
 
 ```go
+package db
+
+import (
+	"github.com/eaigner/hood"
+)
+
 type Users struct {
 	Id		hood.Id
 	First	string
