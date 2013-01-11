@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type (
@@ -47,6 +48,16 @@ type (
 
 	// Varchar represents a VARCHAR type.
 	VarChar string
+
+	// Created denotes a timestamp field that is automatically set on insert.
+	Created struct {
+		time.Time
+	}
+
+	// Updated denotes a timestamp field that is automatically set on update.
+	Updated struct {
+		time.Time
+	}
 
 	// Model represents a parsed schema interface{}.
 	Model struct {
@@ -509,7 +520,7 @@ func (hood *Hood) Find(out interface{}) error {
 			name := snakeToUpperCamel(key)
 			field := rowValue.Elem().FieldByName(name)
 			if field.IsValid() {
-				err = hood.Dialect.ValueToField(value, field)
+				err = hood.Dialect.SetModelValue(value, field)
 				if err != nil {
 					return err
 				}
@@ -536,7 +547,7 @@ func (hood *Hood) Exec(query string, args ...interface{}) (sql.Result, error) {
 	if hood.Log {
 		fmt.Println(args...)
 	}
-	result, err := stmt.Exec(convertSpecialTypes(args)...)
+	result, err := stmt.Exec(hood.convertSpecialTypes(args)...)
 	if err != nil {
 		return nil, err
 	}
@@ -552,7 +563,15 @@ func (hood *Hood) QueryRow(query string, args ...interface{}) *sql.Row {
 		fmt.Println(query)
 		fmt.Println(args...)
 	}
-	return hood.qo.QueryRow(query, convertSpecialTypes(args)...)
+	return hood.qo.QueryRow(query, hood.convertSpecialTypes(args)...)
+}
+
+func (hood *Hood) convertSpecialTypes(a []interface{}) []interface{} {
+	args := make([]interface{}, 0, len(a))
+	for _, v := range a {
+		args = append(args, hood.Dialect.ConvertHoodType(v))
+	}
+	return args
 }
 
 // Validate validates the provided struct
@@ -613,10 +632,18 @@ func (hood *Hood) Save(f interface{}) (Id, error) {
 	if model.Pk == nil {
 		panic("no primary key field")
 	}
-	if model.Pk != nil && !model.Pk.Zero() {
+	now := time.Now()
+	isUpdate := model.Pk != nil && !model.Pk.Zero()
+	if isUpdate {
 		err = callModelMethod(f, "BeforeUpdate", false)
 		if err != nil {
 			return id, err
+		}
+		for _, f := range model.Fields {
+			switch f.Value.(type) {
+			case Updated:
+				f.Value = now
+			}
 		}
 		id, err = hood.Dialect.Update(hood, model)
 		if err == nil {
@@ -626,6 +653,12 @@ func (hood *Hood) Save(f interface{}) (Id, error) {
 		err = callModelMethod(f, "BeforeInsert", false)
 		if err != nil {
 			return id, err
+		}
+		for _, f := range model.Fields {
+			switch f.Value.(type) {
+			case Created, Updated:
+				f.Value = now
+			}
 		}
 		id, err = hood.Dialect.Insert(hood, model)
 		if err == nil {
@@ -642,6 +675,10 @@ func (hood *Hood) Save(f interface{}) (Id, error) {
 			field := structValue.Field(i)
 			if field.Type() == reflect.TypeOf(Id(0)) {
 				field.SetInt(int64(id))
+			} else if field.Type() == reflect.TypeOf(Updated{}) {
+				field.Set(reflect.ValueOf(Updated{now}))
+			} else if !isUpdate && field.Type() == reflect.TypeOf(Created{}) {
+				field.Set(reflect.ValueOf(Created{now}))
 			}
 		}
 	}
@@ -1028,20 +1065,4 @@ func tableName(f interface{}) string {
 		return m.Table
 	}
 	panic("invalid table name")
-}
-
-func convertSpecialTypes(a []interface{}) []interface{} {
-	args := make([]interface{}, 0, len(a))
-	for _, v := range a {
-		args = append(args, convertSpecialType(v))
-	}
-	return args
-}
-
-func convertSpecialType(f interface{}) interface{} {
-	switch t := f.(type) {
-	case VarChar:
-		return string(t)
-	}
-	return f
 }

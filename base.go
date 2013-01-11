@@ -17,32 +17,46 @@ func (d *Base) NextMarker(pos *int) string {
 	return m
 }
 
-func (d *Base) ValueToField(value reflect.Value, field reflect.Value) error {
-	switch field.Type().Kind() {
+func (d *Base) SetModelValue(driverValue, fieldValue reflect.Value) error {
+	switch fieldValue.Type().Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		field.SetInt(value.Elem().Int())
+		fieldValue.SetInt(driverValue.Elem().Int())
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		// reading uint from int value causes panic
-		switch value.Elem().Kind() {
+		switch driverValue.Elem().Kind() {
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			field.SetUint(uint64(value.Elem().Int()))
+			fieldValue.SetUint(uint64(driverValue.Elem().Int()))
 		default:
-			field.SetUint(value.Elem().Uint())
+			fieldValue.SetUint(driverValue.Elem().Uint())
 		}
 	case reflect.Float32, reflect.Float64:
-		field.SetFloat(value.Elem().Float())
+		fieldValue.SetFloat(driverValue.Elem().Float())
 	case reflect.String:
-		field.SetString(string(value.Elem().Bytes()))
+		fieldValue.SetString(string(driverValue.Elem().Bytes()))
 	case reflect.Slice:
-		if reflect.TypeOf(value.Interface()).Elem().Kind() == reflect.Uint8 {
-			field.SetBytes(value.Elem().Bytes())
+		if reflect.TypeOf(driverValue.Interface()).Elem().Kind() == reflect.Uint8 {
+			fieldValue.SetBytes(driverValue.Elem().Bytes())
 		}
 	case reflect.Struct:
-		if field.Type() == reflect.TypeOf(time.Time{}) {
-			field.Set(value.Elem())
+		if fieldValue.Type() == reflect.TypeOf(time.Time{}) {
+			fieldValue.Set(driverValue.Elem())
 		}
 	}
 	return nil
+}
+
+func (d *Base) ConvertHoodType(f interface{}) interface{} {
+	switch t := f.(type) {
+	case VarChar:
+		return string(t)
+	}
+	if t, ok := f.(Created); ok {
+		return t.Time
+	}
+	if t, ok := f.(Updated); ok {
+		return t.Time
+	}
+	return f
 }
 
 func (d *Base) QuerySql(hood *Hood) (string, []interface{}) {

@@ -30,7 +30,7 @@ func (d *Base) SqlType(f interface{}, size int) string {
 			size = 255
 		}
 		return fmt.Sprintf("varchar(%d)", size)
-	case time.Time:
+	case time.Time, Created, Updated:
 		return "timestamp"
 	case bool:
 		return "boolean"

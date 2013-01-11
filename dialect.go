@@ -12,11 +12,15 @@ type Dialect interface {
 	// parameter delcares the data size for the column (e.g. for VARCHARs).
 	SqlType(f interface{}, size int) string
 
-	// ValueToField converts from an SQL Value to the coresponding interface Value.
-	// It is the opposite of SqlType, in a sense.
+	// SetModelValue sets a model field from a db value.
+	//
 	// For example: time.Time objects needs to be marshalled back and forth
 	// as Strings for databases that don't have a native "time" type.
-	ValueToField(value reflect.Value, field reflect.Value) error
+	SetModelValue(value reflect.Value, field reflect.Value) error
+
+	// ConvertHoodType converts special types such as Created or Updated to
+	// values the driver can understand.
+	ConvertHoodType(f interface{}) interface{}
 
 	// QuerySql returns the resulting query sql and attributes.
 	QuerySql(hood *Hood) (sql string, args []interface{})

@@ -2,7 +2,6 @@ package hood
 
 import (
 	"database/sql"
-	"os"
 	"testing"
 	"time"
 )
@@ -16,8 +15,7 @@ import (
 // CORRESPONDING DIALECT INFO IN THE TO_RUN ARRAY!
 
 import (
-// _ "github.com/bmizerany/pq"
-// _ "github.com/mattn/go-sqlite3"
+	_ "github.com/bmizerany/pq"
 )
 
 var toRun = []dialectInfo{
@@ -38,27 +36,6 @@ var toRun = []dialectInfo{
 // 	`ALTER TABLE a RENAME COLUMN b TO c`,
 // 	`ALTER TABLE a ALTER COLUMN b TYPE varchar(100)`,
 // 	`ALTER TABLE a DROP COLUMN b`,
-// 	`CREATE UNIQUE INDEX iname ON itable (a, b, c)`,
-// 	`CREATE INDEX iname2 ON itable2 (d, e)`,
-// 	`DROP INDEX iname`,
-// },
-// dialectInfo{
-// 	NewSqlite3(),
-// 	setupSqlite3Db,
-// 	`CREATE TABLE without_pk ( first text, last text, amount integer )`,
-// 	`CREATE TABLE IF NOT EXISTS without_pk ( first text, last text, amount integer )`,
-// 	`CREATE TABLE with_pk ( primary integer PRIMARY KEY AUTOINCREMENT, first text, last text, amount integer )`,
-// 	`INSERT INTO sql_gen_model (first, last, amount) VALUES ($1, $2, $3)`,
-// 	`UPDATE sql_gen_model SET first = $1, last = $2, amount = $3 WHERE prim = $4`,
-// 	`DELETE FROM sql_gen_model WHERE prim = $1`,
-// 	`SELECT * FROM sql_gen_model INNER JOIN orders ON users.id == orders.id WHERE id = $1 AND category_id = $2 GROUP BY name HAVING SUM(price) < $3 ORDER BY first_name LIMIT $4 OFFSET $5`,
-// 	`DROP TABLE drop_table`,
-// 	`DROP TABLE IF EXISTS drop_table`,
-// 	`ALTER TABLE table_a RENAME TO table_b`,
-// 	`ALTER TABLE a ADD COLUMN c text`,
-// 	``, // not supported by sql command
-// 	``, // not supported by sql command
-// 	``, // not supported by sql command
 // 	`CREATE UNIQUE INDEX iname ON itable (a, b, c)`,
 // 	`CREATE INDEX iname2 ON itable2 (d, e)`,
 // 	`DROP INDEX iname`,
@@ -97,17 +74,6 @@ func setupPgDb(t *testing.T) *Hood {
 	return hd
 }
 
-func setupSqlite3Db(t *testing.T) *Hood {
-	os.Remove("/tmp/foo.db")
-	db, err := sql.Open("sqlite3", "/tmp/foo.db")
-	if err != nil {
-		t.Fatal("could not open db", err)
-	}
-	hd := New(db, NewSqlite3())
-	hd.Log = true
-	return hd
-}
-
 func TestTransaction(t *testing.T) {
 	for _, info := range toRun {
 		DoTestTransaction(t, info)
@@ -115,6 +81,7 @@ func TestTransaction(t *testing.T) {
 }
 
 func DoTestTransaction(t *testing.T, info dialectInfo) {
+	t.Logf("Dialect %T\n", info.dialect)
 	hd := info.setupDbFunc(t)
 	type txModel struct {
 		Id Id
@@ -183,11 +150,15 @@ func TestSaveAndDelete(t *testing.T) {
 }
 
 func DoTestSaveAndDelete(t *testing.T, info dialectInfo) {
+	t.Logf("Dialect %T\n", info.dialect)
+	now := time.Now()
 	hd := info.setupDbFunc(t)
 	type saveModel struct {
-		Id Id
-		A  string
-		B  int
+		Id      Id
+		A       string
+		B       int
+		Updated Updated
+		Created Created
 	}
 	model1 := saveModel{
 		A: "banana",
@@ -211,6 +182,14 @@ func DoTestSaveAndDelete(t *testing.T, info dialectInfo) {
 	if id != 1 {
 		t.Fatal("wrong id", id)
 	}
+	if x := model1.Created; x.Sub(now) <= 0 {
+		t.Fatal("wrong timestamp", x, now)
+	}
+	if x := model1.Updated; x.Sub(now) <= 0 {
+		t.Fatal("wrong timestamp", x, now)
+	}
+	oldCreate := model1.Created
+	oldUpdate := model1.Updated
 
 	model1.A = "grape"
 	model1.B = 9
@@ -221,6 +200,12 @@ func DoTestSaveAndDelete(t *testing.T, info dialectInfo) {
 	}
 	if id != 1 {
 		t.Fatal("wrong id", id)
+	}
+	if x := model1.Created; !x.Equal(oldCreate.Time) {
+		t.Fatal("wrong timestamp", x)
+	}
+	if x := model1.Updated; x.Sub(oldUpdate.Time) <= 0 {
+		t.Fatal("wrong timestamp", x, oldUpdate)
 	}
 
 	id, err = hd.Save(&model2)
@@ -297,6 +282,7 @@ func (m *sdAllModel) AfterDelete() error {
 }
 
 func DoTestSaveDeleteAllAndHooks(t *testing.T, info dialectInfo) {
+	t.Logf("Dialect %T\n", info.dialect)
 	hd := info.setupDbFunc(t)
 	hd.DropTable(&sdAllModel{})
 
@@ -377,6 +363,7 @@ func TestFind(t *testing.T) {
 }
 
 func DoTestFind(t *testing.T, info dialectInfo) {
+	t.Logf("Dialect %T\n", info.dialect)
 	hd := info.setupDbFunc(t)
 	now := time.Now()
 
@@ -398,6 +385,8 @@ func DoTestFind(t *testing.T, info dialectInfo) {
 		N  []byte
 		O  VarChar
 		P  time.Time
+		Q  Created
+		R  Updated
 	}
 	model1 := findModel{
 		A: "string!",
@@ -502,7 +491,7 @@ func DoTestFind(t *testing.T, info dialectInfo) {
 			t.Fatal("invalid value", x)
 		}
 		if x := v.P; now.Equal(x) {
-			t.Fatal("invalid value", x)
+			t.Fatal("invalid value", x, now)
 		}
 	}
 
@@ -543,6 +532,7 @@ func TestCreateTable(t *testing.T) {
 }
 
 func DoTestCreateTable(t *testing.T, info dialectInfo) {
+	t.Logf("Dialect %T\n", info.dialect)
 	hd := info.setupDbFunc(t)
 	type model struct {
 		Prim      Id
@@ -571,6 +561,7 @@ func TestCreateTableSql(t *testing.T) {
 }
 
 func DoTestCreateTableSql(t *testing.T, info dialectInfo) {
+	t.Logf("Dialect %T\n", info.dialect)
 	type withoutPk struct {
 		First  string
 		Last   string
@@ -619,6 +610,7 @@ func TestInsertSQL(t *testing.T) {
 }
 
 func DoTestInsertSQL(t *testing.T, info dialectInfo) {
+	t.Logf("Dialect %T\n", info.dialect)
 	model, _ := interfaceToModel(sqlGenSampleData)
 	sql, _ := info.dialect.InsertSql(model)
 	if x := info.insertSql; x != sql {
@@ -633,6 +625,7 @@ func TestUpdateSQL(t *testing.T) {
 }
 
 func DoTestUpdateSQL(t *testing.T, info dialectInfo) {
+	t.Logf("Dialect %T\n", info.dialect)
 	model, _ := interfaceToModel(sqlGenSampleData)
 	sql, _ := info.dialect.UpdateSql(model)
 	if x := info.updateSql; x != sql {
@@ -647,6 +640,7 @@ func TestDeleteSQL(t *testing.T) {
 }
 
 func DoTestDeleteSQL(t *testing.T, info dialectInfo) {
+	t.Logf("Dialect %T\n", info.dialect)
 	model, _ := interfaceToModel(sqlGenSampleData)
 	sql, _ := info.dialect.DeleteSql(model)
 	if x := info.deleteSql; x != sql {
@@ -661,6 +655,7 @@ func TestQuerySQL(t *testing.T) {
 }
 
 func DoTestQuerySQL(t *testing.T, info dialectInfo) {
+	t.Logf("Dialect %T\n", info.dialect)
 	hood := New(nil, info.dialect)
 	hood.Select("*", &sqlGenModel{})
 	hood.Where("id = ?", 2)
@@ -685,6 +680,7 @@ func TestDropTableSQL(t *testing.T) {
 }
 
 func DoTestDropTableSQL(t *testing.T, info dialectInfo) {
+	t.Logf("Dialect %T\n", info.dialect)
 	if x := info.dialect.DropTableSql("drop_table", false); x != info.dropTableSql {
 		t.Fatal("wrong sql", x)
 	}
@@ -700,6 +696,7 @@ func TestRenameTableSQL(t *testing.T) {
 }
 
 func DoTestRenameTableSQL(t *testing.T, info dialectInfo) {
+	t.Logf("Dialect %T\n", info.dialect)
 	if x := info.dialect.RenameTableSql("table_a", "table_b"); x != info.renameTableSql {
 		t.Fatal("wrong sql", x)
 	}
@@ -712,6 +709,7 @@ func TestAddColumSQL(t *testing.T) {
 }
 
 func DoTestAddColumSQL(t *testing.T, info dialectInfo) {
+	t.Logf("Dialect %T\n", info.dialect)
 	if x := info.dialect.AddColumnSql("a", "c", VarChar(""), 100); x != info.addColumnSql {
 		t.Fatal("wrong sql", x)
 	}
@@ -724,6 +722,7 @@ func TestRenameColumnSql(t *testing.T) {
 }
 
 func DoTestRenameColumnSql(t *testing.T, info dialectInfo) {
+	t.Logf("Dialect %T\n", info.dialect)
 	if x := info.dialect.RenameColumnSql("a", "b", "c"); x != info.renameColumnSql {
 		t.Fatal("wrong sql", x)
 	}
@@ -736,6 +735,7 @@ func TestChangeColumnSql(t *testing.T) {
 }
 
 func DoTestChangeColumnSql(t *testing.T, info dialectInfo) {
+	t.Logf("Dialect %T\n", info.dialect)
 	if x := info.dialect.ChangeColumnSql("a", "b", VarChar(""), 100); x != info.changeColumnSql {
 		t.Fatal("wrong sql", x)
 	}
@@ -748,6 +748,7 @@ func TestRemoveColumnSql(t *testing.T) {
 }
 
 func DoTestRemoveColumnSql(t *testing.T, info dialectInfo) {
+	t.Logf("Dialect %T\n", info.dialect)
 	if x := info.dialect.DropColumnSql("a", "b"); x != info.dropColumnSql {
 		t.Fatal("wrong sql", x)
 	}
@@ -760,6 +761,7 @@ func TestCreateIndexSql(t *testing.T) {
 }
 
 func DoTestCreateIndexSql(t *testing.T, info dialectInfo) {
+	t.Logf("Dialect %T\n", info.dialect)
 	if x := info.dialect.CreateIndexSql("iname", "itable", true, "a", "b", "c"); x != info.createUniqueIndexSql {
 		t.Fatal("wrong sql", x)
 	}
@@ -775,6 +777,7 @@ func TestDropIndexSql(t *testing.T) {
 }
 
 func DoTestDropIndexSql(t *testing.T, info dialectInfo) {
+	t.Logf("Dialect %T\n", info.dialect)
 	if x := info.dialect.DropIndexSql("iname"); x != info.dropIndexSql {
 		t.Fatal("wrong sql", x)
 	}
@@ -814,44 +817,6 @@ func TestSqlTypeForPgDialect(t *testing.T) {
 		t.Fatal("wrong type", x)
 	}
 	if x := d.SqlType(time.Now(), 0); x != "timestamp" {
-		t.Fatal("wrong type", x)
-	}
-}
-
-func TestSqlTypeForSqlite3Dialect(t *testing.T) {
-	d := NewSqlite3()
-	if x := d.SqlType(true, 0); x != "integer" {
-		t.Fatal("wrong type", x)
-	}
-	var indirect interface{} = true
-	if x := d.SqlType(indirect, 0); x != "integer" {
-		t.Fatal("wrong type", x)
-	}
-	if x := d.SqlType(uint32(2), 0); x != "integer" {
-		t.Fatal("wrong type", x)
-	}
-	if x := d.SqlType(Id(1), 0); x != "integer" {
-		t.Fatal("wrong type", x)
-	}
-	if x := d.SqlType(int64(1), 0); x != "integer" {
-		t.Fatal("wrong type", x)
-	}
-	if x := d.SqlType(1.8, 0); x != "real" {
-		t.Fatal("wrong type", x)
-	}
-	if x := d.SqlType([]byte("asdf"), 0); x != "text" {
-		t.Fatal("wrong type", x)
-	}
-	if x := d.SqlType("astring", 0); x != "text" {
-		t.Fatal("wrong type", x)
-	}
-	if x := d.SqlType(VarChar("a"), 0); x != "text" {
-		t.Fatal("wrong type", x)
-	}
-	if x := d.SqlType(VarChar("b"), 128); x != "text" {
-		t.Fatal("wrong type", x)
-	}
-	if x := d.SqlType(time.Now(), 0); x != "text" {
 		t.Fatal("wrong type", x)
 	}
 }
