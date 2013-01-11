@@ -49,33 +49,37 @@ Schemas can be declared using the following syntax (only for demonstration purpo
 
 ```go
 type Person struct {
-	// Auto-incrementing int field 'id'
-	Id hood.Id
+  // Auto-incrementing int field 'id'
+  Id hood.Id
 
-	// Custom primary key field 'first_name', with presence validation
-	FirstName string `sql:"pk" validate:"presence"`
+  // Custom primary key field 'first_name', with presence validation
+  FirstName string `sql:"pk" validate:"presence"`
 
-	// Varchar field 'last_name' with size 128, NOT NULL
-	LastName hood.VarChar `sql:"size(128),notnull"`
+  // Varchar field 'last_name' with size 128, NOT NULL
+  LastName hood.VarChar `sql:"size(128),notnull"`
 
-	// Varchar field 'tag' with size 255, default value 'customer'
-	Tag hood.VarChar `sql:"default('customer')"`
+  // Varchar field 'tag' with size 255, default value 'customer'
+  Tag hood.VarChar `sql:"default('customer')"`
 
-	// You can also combine tags, default value 'orange'
-	CombinedTags hood.VarChar `sql:"size(128),default('orange')"`
-	Updated      time.Time    // timestamp field 'updated'
-	Data         []byte       // data field 'data'
-	IsAdmin      bool         // boolean field 'is_admin'
-	Notes        string       // text field 'notes'
+  // You can also combine tags, default value 'orange'
+  CombinedTags hood.VarChar `sql:"size(128),default('orange')"`
+  Birthday     time.Time    // timestamp field 'updated'
+  Data         []byte       // data field 'data'
+  IsAdmin      bool         // boolean field 'is_admin'
+  Notes        string       // text field 'notes'
 
-	// Validates number range
-	Balance int `validate:"range(10:20)"`
+  // Validates number range
+  Balance int `validate:"range(10:20)"`
 
-	// Create named multi column indexes
-	TagIndex  hood.Index       `sql:"columns(tag)"`
-	NameIndex hood.UniqueIndex `sql:"columns(first_name:last_name)"`
+  // These fields are auto updated on save
+  Created hood.Created
+  Updated hood.Updated
 
-	// ... and other built in types (int, uint, float...)
+  // Create named multi column indexes
+  TagIndex  hood.Index       `sql:"columns(tag)"`
+  NameIndex hood.UniqueIndex `sql:"columns(first_name:last_name)"`
+
+  // ... and other built in types (int, uint, float...)
 }
 ```
 
@@ -178,9 +182,9 @@ import (
 )
 
 type Users struct {
-  Id		hood.Id
-  First	string
-  Last	string
+  Id    hood.Id
+  First string
+  Last  string
   
   // Indexes
   NameIndex	hood.UniqueIndex	`sql:"columns(first:last)"`
