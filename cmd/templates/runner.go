@@ -22,8 +22,6 @@ type (
 		Id      hood.Id
 		Current int
 	}
-	environments map[string]config
-	config       map[string]string
 )
 
 func main() {
