@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"github.com/eaigner/hood"
 	"io/ioutil"
 	"os"
@@ -28,6 +27,10 @@ type (
 )
 
 func main() {
+	wd, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
 	// Determine direction
 	up := false
 	verbose := false
@@ -67,14 +70,11 @@ func main() {
 		}
 	}
 	sort.Ints(stamps)
-	// Get config for set environment
-	env := "development"
-	if x := os.Getenv("HOOD_ENV"); x != "" {
-		env = x
-	}
-	cfg := readConfig()[env]
 	// Open hood
-	hd, err := hood.Open(cfg["driver"], cfg["source"])
+	hd, err := hood.Load(
+		path.Join(wd, "db", "config.json"),
+		os.Getenv("HOOD_ENV"),
+	)
 	if err != nil {
 		panic(err)
 	}
@@ -146,10 +146,6 @@ func main() {
 			method.Func.Call([]reflect.Value{v, reflect.ValueOf(dry)})
 		}
 	}
-	wd, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
 	schema := fmt.Sprintf(
 		"package db\n\nimport (\n\t\"github.com/eaigner/hood\"\n)\n\n%s",
 		dry.SchemaDefinition(),
@@ -165,23 +161,4 @@ func main() {
 	}
 	fmt.Printf("wrote schema %s\n", schemaPath)
 	fmt.Println("done.")
-}
-
-func readConfig() environments {
-	wd, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
-	sf, err := os.Open(path.Join(wd, "db", "config.json"))
-	if err != nil {
-		panic(err)
-	}
-	defer sf.Close()
-	dec := json.NewDecoder(sf)
-	var env environments
-	err = dec.Decode(&env)
-	if err != nil {
-		panic(err)
-	}
-	return env
 }

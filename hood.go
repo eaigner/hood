@@ -4,8 +4,10 @@ package hood
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -86,6 +88,13 @@ type (
 
 	// Schema is a collection of models
 	Schema []*Model
+
+	// Config represents an environment entry in the config.json file
+	Config map[string]string
+
+	// Environment represents a configuration map for each environment specified
+	// in the config.json file
+	Environment map[string]Config
 
 	qo interface {
 		Prepare(query string) (*sql.Stmt, error)
@@ -333,6 +342,30 @@ func Open(driverName, dataSourceName string) (*Hood, error) {
 		return nil, errors.New("no dialect registered for driver name")
 	}
 	return New(database, dialect), nil
+}
+
+// Load opens a new database from a config.json file with the specified
+// environment, or development if none is specified.
+func Load(path, env string) (*Hood, error) {
+	if env == "" {
+		env = "development"
+	}
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	dec := json.NewDecoder(f)
+	var envs Environment
+	err = dec.Decode(&envs)
+	if err != nil {
+		return nil, err
+	}
+	conf, ok := envs[env]
+	if !ok {
+		return nil, fmt.Errorf("config entry for specified environment '%s' not found", env)
+	}
+	return Open(conf["driver"], conf["source"])
 }
 
 // RegisterDialect registers a new dialect using the specified name and dialect.
