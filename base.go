@@ -249,7 +249,7 @@ func (d *Base) RenameTable(hood *Hood, from, to string) error {
 }
 
 func (d *Base) RenameTableSql(from, to string) string {
-	return fmt.Sprintf("ALTER TABLE %v RENAME TO %v", from, to)
+	return fmt.Sprintf("ALTER TABLE %v RENAME TO %v", d.Dialect.Quote(from), d.Dialect.Quote(to))
 }
 
 func (d *Base) AddColumn(hood *Hood, table, column string, typ interface{}, size int) error {
@@ -260,8 +260,8 @@ func (d *Base) AddColumn(hood *Hood, table, column string, typ interface{}, size
 func (d *Base) AddColumnSql(table, column string, typ interface{}, size int) string {
 	return fmt.Sprintf(
 		"ALTER TABLE %v ADD COLUMN %v %v",
-		table,
-		column,
+		d.Dialect.Quote(table),
+		d.Dialect.Quote(column),
 		d.Dialect.SqlType(typ, size),
 	)
 }
@@ -272,7 +272,12 @@ func (d *Base) RenameColumn(hood *Hood, table, from, to string) error {
 }
 
 func (d *Base) RenameColumnSql(table, from, to string) string {
-	return fmt.Sprintf("ALTER TABLE %v RENAME COLUMN %v TO %v", table, from, to)
+	return fmt.Sprintf(
+		"ALTER TABLE %v RENAME COLUMN %v TO %v",
+		d.Dialect.Quote(table),
+		d.Dialect.Quote(from),
+		d.Dialect.Quote(to),
+	)
 }
 
 func (d *Base) ChangeColumn(hood *Hood, table, column string, typ interface{}, size int) error {
@@ -281,7 +286,12 @@ func (d *Base) ChangeColumn(hood *Hood, table, column string, typ interface{}, s
 }
 
 func (d *Base) ChangeColumnSql(table, column string, typ interface{}, size int) string {
-	return fmt.Sprintf("ALTER TABLE %v ALTER COLUMN %v TYPE %v", table, column, d.Dialect.SqlType(typ, size))
+	return fmt.Sprintf(
+		"ALTER TABLE %v ALTER COLUMN %v TYPE %v",
+		d.Dialect.Quote(table),
+		d.Dialect.Quote(column),
+		d.Dialect.SqlType(typ, size),
+	)
 }
 
 func (d *Base) DropColumn(hood *Hood, table, column string) error {
@@ -290,7 +300,11 @@ func (d *Base) DropColumn(hood *Hood, table, column string) error {
 }
 
 func (d *Base) DropColumnSql(table, column string) string {
-	return fmt.Sprintf("ALTER TABLE %v DROP COLUMN %v", table, column)
+	return fmt.Sprintf(
+		"ALTER TABLE %v DROP COLUMN %v",
+		d.Dialect.Quote(table),
+		d.Dialect.Quote(column),
+	)
 }
 
 func (d *Base) CreateIndex(hood *Hood, name, table string, unique bool, columns ...string) error {
