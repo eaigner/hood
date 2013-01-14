@@ -317,8 +317,16 @@ func (d *Base) CreateIndexSql(name, table string, unique bool, columns ...string
 	if unique {
 		a = append(a, "UNIQUE")
 	}
-	c := strings.Join(columns, ", ")
-	a = append(a, fmt.Sprintf("INDEX %v ON %v (%v)", name, table, c))
+	quotedColumns := make([]string, 0, len(columns))
+	for _, c := range columns {
+		quotedColumns = append(quotedColumns, d.Dialect.Quote(c))
+	}
+	a = append(a, fmt.Sprintf(
+		"INDEX %v ON %v (%v)",
+		d.Dialect.Quote(name),
+		d.Dialect.Quote(table),
+		strings.Join(quotedColumns, ", "),
+	))
 	return strings.Join(a, " ")
 }
 

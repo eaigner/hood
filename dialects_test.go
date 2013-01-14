@@ -37,8 +37,8 @@ var toRun = []dialectInfo{
 		`ALTER TABLE "a" RENAME COLUMN "b" TO "c"`,
 		`ALTER TABLE "a" ALTER COLUMN "b" TYPE varchar(100)`,
 		`ALTER TABLE "a" DROP COLUMN "b"`,
-		`CREATE UNIQUE INDEX iname ON itable (a, b, c)`,
-		`CREATE INDEX iname2 ON itable2 (d, e)`,
+		`CREATE UNIQUE INDEX "iname" ON "itable" ("a", "b", "c")`,
+		`CREATE INDEX "iname2" ON "itable2" ("d", "e")`,
 		`DROP INDEX iname`,
 	},
 }
