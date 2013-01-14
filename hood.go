@@ -508,6 +508,17 @@ func (hood *Hood) Having(condition string, args ...interface{}) *Hood {
 // SELECT clause was specified earlier, the select is inferred from the passed
 // interface type.
 func (hood *Hood) Find(out interface{}) error {
+	// infer the select statement from the type if not set
+	if hood.selectTable == "" {
+		hood.Select(out)
+	}
+	query, args := hood.Dialect.QuerySql(hood)
+	return hood.FindSql(out, query, args...)
+}
+
+// FindSql performs a find using the specified custom sql query and arguments and
+// writes the results to the specified out interface{}.
+func (hood *Hood) FindSql(out interface{}, query string, args ...interface{}) error {
 	defer hood.Reset()
 	panicMsg := errors.New("expected pointer to struct slice *[]struct")
 	if x := reflect.TypeOf(out).Kind(); x != reflect.Ptr {
@@ -521,11 +532,6 @@ func (hood *Hood) Find(out interface{}) error {
 	if x := sliceType.Kind(); x != reflect.Struct {
 		panic(panicMsg)
 	}
-	// infer the select statement from the type if not set
-	if hood.selectTable == "" {
-		hood.Select(out)
-	}
-	query, args := hood.Dialect.QuerySql(hood)
 	if hood.Log {
 		fmt.Println(query)
 		fmt.Println(args)
