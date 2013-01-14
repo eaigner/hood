@@ -336,7 +336,7 @@ func (d *Base) DropIndex(hood *Hood, name string) error {
 }
 
 func (d *Base) DropIndexSql(name string) string {
-	return fmt.Sprintf("DROP INDEX %v", name)
+	return fmt.Sprintf("DROP INDEX %v", d.Dialect.Quote(name))
 }
 
 func (d *Base) KeywordNotNull() string {

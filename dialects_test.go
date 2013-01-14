@@ -39,7 +39,7 @@ var toRun = []dialectInfo{
 		`ALTER TABLE "a" DROP COLUMN "b"`,
 		`CREATE UNIQUE INDEX "iname" ON "itable" ("a", "b", "c")`,
 		`CREATE INDEX "iname2" ON "itable2" ("d", "e")`,
-		`DROP INDEX iname`,
+		`DROP INDEX "iname"`,
 	},
 }
 
