@@ -1,3 +1,5 @@
+**Note: the API is still unstable, so please fork the project if you want to use it**
+
 ## Index
 
 - [Overview](#overview)
