@@ -25,7 +25,7 @@ var toRun = []dialectInfo{
 		`CREATE TABLE "without_pk" ( "first" text, "last" text, "amount" integer )`,
 		`CREATE TABLE IF NOT EXISTS "without_pk" ( "first" text, "last" text, "amount" integer )`,
 		`CREATE TABLE "with_pk" ( "primary" bigserial PRIMARY KEY, "first" text, "last" text, "amount" integer )`,
-		`INSERT INTO sql_gen_model (first, last, amount) VALUES ($1, $2, $3) RETURNING prim`,
+		`INSERT INTO "sql_gen_model" ("first", "last", "amount") VALUES ($1, $2, $3) RETURNING "prim"`,
 		`UPDATE sql_gen_model SET first = $1, last = $2, amount = $3 WHERE prim = $4`,
 		`DELETE FROM sql_gen_model WHERE prim = $1`,
 		`SELECT * FROM sql_gen_model`,
@@ -616,7 +616,9 @@ func DoTestInsertSQL(t *testing.T, info dialectInfo) {
 	model, _ := interfaceToModel(sqlGenSampleData)
 	sql, _ := info.dialect.InsertSql(model)
 	if x := info.insertSql; x != sql {
-		t.Fatalf("invalid sql: '%v'", sql, x)
+		t.Log(sql)
+		t.Log(x)
+		t.Fatal("invalid sql")
 	}
 }
 
@@ -631,7 +633,9 @@ func DoTestUpdateSQL(t *testing.T, info dialectInfo) {
 	model, _ := interfaceToModel(sqlGenSampleData)
 	sql, _ := info.dialect.UpdateSql(model)
 	if x := info.updateSql; x != sql {
-		t.Fatalf("invalid sql: '%v'", sql, x)
+		t.Log(sql)
+		t.Log(x)
+		t.Fatal("invalid sql")
 	}
 }
 
@@ -646,7 +650,9 @@ func DoTestDeleteSQL(t *testing.T, info dialectInfo) {
 	model, _ := interfaceToModel(sqlGenSampleData)
 	sql, _ := info.dialect.DeleteSql(model)
 	if x := info.deleteSql; x != sql {
-		t.Fatalf("invalid sql: '%v'", sql, x)
+		t.Log(sql)
+		t.Log(x)
+		t.Fatal("invalid sql")
 	}
 }
 

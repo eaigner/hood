@@ -58,12 +58,16 @@ func (d *Postgres) Insert(hood *Hood, model *Model) (Id, error) {
 func (d *Postgres) InsertSql(model *Model) (string, []interface{}) {
 	m := 0
 	columns, markers, values := columnsMarkersAndValuesForModel(d.Dialect, model, &m)
+	quotedColumns := make([]string, 0, len(columns))
+	for _, c := range columns {
+		quotedColumns = append(quotedColumns, d.Dialect.Quote(c))
+	}
 	sql := fmt.Sprintf(
 		"INSERT INTO %v (%v) VALUES (%v) RETURNING %v",
-		model.Table,
-		strings.Join(columns, ", "),
+		d.Dialect.Quote(model.Table),
+		strings.Join(quotedColumns, ", "),
 		strings.Join(markers, ", "),
-		model.Pk.Name,
+		d.Dialect.Quote(model.Pk.Name),
 	)
 	return sql, values
 }

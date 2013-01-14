@@ -117,10 +117,14 @@ func (d *Base) Insert(hood *Hood, model *Model) (Id, error) {
 func (d *Base) InsertSql(model *Model) (string, []interface{}) {
 	m := 0
 	columns, markers, values := columnsMarkersAndValuesForModel(d.Dialect, model, &m)
+	quotedColumns := make([]string, 0, len(columns))
+	for _, c := range columns {
+		quotedColumns = append(quotedColumns, d.Dialect.Quote(c))
+	}
 	sql := fmt.Sprintf(
 		"INSERT INTO %v (%v) VALUES (%v)",
-		model.Table,
-		strings.Join(columns, ", "),
+		d.Dialect.Quote(model.Table),
+		strings.Join(quotedColumns, ", "),
 		strings.Join(markers, ", "),
 	)
 	return sql, values
