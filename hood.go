@@ -426,7 +426,7 @@ func (hood *Hood) SchemaDefinition() string {
 	return hood.schema.GoDeclaration()
 }
 
-// Select adds a SELECT clause to the query with the specified columsn and table.
+// Select adds a SELECT clause to the query with the specified table and columns.
 // The table can either be a string or it's name can be inferred from the passed
 // interface{} type.
 func (hood *Hood) Select(table interface{}, columns ...string) *Hood {
