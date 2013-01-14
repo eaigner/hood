@@ -17,6 +17,10 @@ func (d *Base) NextMarker(pos *int) string {
 	return m
 }
 
+func (d *Base) Quote(s string) string {
+	return fmt.Sprintf(`"%s"`, s)
+}
+
 func (d *Base) SetModelValue(driverValue, fieldValue reflect.Value) error {
 	switch fieldValue.Type().Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -180,10 +184,10 @@ func (d *Base) CreateTableSql(model *Model, ifNotExists bool) string {
 	if ifNotExists {
 		a = append(a, "IF NOT EXISTS ")
 	}
-	a = append(a, model.Table, " ( ")
+	a = append(a, d.Dialect.Quote(model.Table), " ( ")
 	for i, field := range model.Fields {
 		b := []string{
-			field.Name,
+			d.Dialect.Quote(field.Name),
 			d.Dialect.SqlType(field.Value, field.Size()),
 		}
 		if field.NotNull() {

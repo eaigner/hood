@@ -8,6 +8,9 @@ type Dialect interface {
 	// The position starts at 0.
 	NextMarker(pos *int) string
 
+	// Quote will quote identifiers in a SQL statement.
+	Quote(s string) string
+
 	// SqlType returns the SQL type for the provided interface type. The size
 	// parameter delcares the data size for the column (e.g. for VARCHARs).
 	SqlType(f interface{}, size int) string
