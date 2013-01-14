@@ -69,26 +69,35 @@ func (d *Base) QuerySql(hood *Hood) (string, []interface{}) {
 	if hood.selectTable != "" {
 		selector := "*"
 		if c := hood.selectCols; len(c) > 0 {
-			selector = strings.Join(hood.selectCols, ", ")
+			quotedCols := make([]string, 0, len(hood.selectCols))
+			for _, c := range hood.selectCols {
+				quotedCols = append(quotedCols, d.Dialect.Quote(c))
+			}
+			selector = strings.Join(quotedCols, ", ")
 		}
-		query = append(query, fmt.Sprintf("SELECT %v FROM %v", selector, hood.selectTable))
+		query = append(query, fmt.Sprintf("SELECT %v FROM %v", selector, d.Dialect.Quote(hood.selectTable)))
 	}
 	for i, op := range hood.joinOps {
-		query = append(query, fmt.Sprintf("%v JOIN %v ON %v", op, hood.joinTables[i], hood.joinCond[i]))
+		query = append(query, fmt.Sprintf(
+			"%v JOIN %v ON %v",
+			op,
+			d.Dialect.Quote(hood.joinTables[i]),
+			hood.joinCond[i]),
+		)
 	}
 	if x := hood.whereClauses; len(x) > 0 {
 		query = append(query, fmt.Sprintf("WHERE %v", strings.Join(x, " AND ")))
 		args = append(args, hood.whereArgs...)
 	}
 	if x := hood.groupBy; x != "" {
-		query = append(query, fmt.Sprintf("GROUP BY %v", x))
+		query = append(query, fmt.Sprintf("GROUP BY %v", d.Dialect.Quote(x)))
 	}
 	if x := hood.havingCond; x != "" {
 		query = append(query, fmt.Sprintf("HAVING %v", x))
 		args = append(args, hood.havingArgs...)
 	}
 	if x := hood.orderBy; x != "" {
-		query = append(query, fmt.Sprintf("ORDER BY %v", x))
+		query = append(query, fmt.Sprintf("ORDER BY %v", d.Dialect.Quote(x)))
 	}
 	if x := hood.limit; x > 0 {
 		query = append(query, "LIMIT ?")
