@@ -167,8 +167,8 @@ func (d *Base) DeleteSql(model *Model) (string, []interface{}) {
 	n := 0
 	return fmt.Sprintf(
 		"DELETE FROM %v WHERE %v = %v",
-		model.Table,
-		model.Pk.Name,
+		d.Dialect.Quote(model.Table),
+		d.Dialect.Quote(model.Pk.Name),
 		d.Dialect.NextMarker(&n),
 	), []interface{}{model.Pk.Value}
 }

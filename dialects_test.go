@@ -27,7 +27,7 @@ var toRun = []dialectInfo{
 		`CREATE TABLE "with_pk" ( "primary" bigserial PRIMARY KEY, "first" text, "last" text, "amount" integer )`,
 		`INSERT INTO "sql_gen_model" ("first", "last", "amount") VALUES ($1, $2, $3) RETURNING "prim"`,
 		`UPDATE "sql_gen_model" SET "first" = $1, "last" = $2, "amount" = $3 WHERE "prim" = $4`,
-		`DELETE FROM sql_gen_model WHERE prim = $1`,
+		`DELETE FROM "sql_gen_model" WHERE "prim" = $1`,
 		`SELECT * FROM sql_gen_model`,
 		`SELECT col1, col2 FROM sql_gen_model INNER JOIN orders ON users.id == orders.id WHERE id = $1 AND category_id = $2 GROUP BY name HAVING SUM(price) < $3 ORDER BY first_name LIMIT $4 OFFSET $5`,
 		`DROP TABLE drop_table`,
