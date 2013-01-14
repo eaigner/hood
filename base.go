@@ -144,13 +144,13 @@ func (d *Base) UpdateSql(model *Model) (string, []interface{}) {
 	columns, markers, values := columnsMarkersAndValuesForModel(d.Dialect, model, &m)
 	pairs := make([]string, 0, len(columns))
 	for i, column := range columns {
-		pairs = append(pairs, fmt.Sprintf("%v = %v", column, markers[i]))
+		pairs = append(pairs, fmt.Sprintf("%v = %v", d.Dialect.Quote(column), markers[i]))
 	}
 	sql := fmt.Sprintf(
 		"UPDATE %v SET %v WHERE %v = %v",
-		model.Table,
+		d.Dialect.Quote(model.Table),
 		strings.Join(pairs, ", "),
-		model.Pk.Name,
+		d.Dialect.Quote(model.Pk.Name),
 		d.Dialect.NextMarker(&m),
 	)
 	values = append(values, model.Pk.Value)
