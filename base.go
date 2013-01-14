@@ -78,11 +78,24 @@ func (d *Base) QuerySql(hood *Hood) (string, []interface{}) {
 		query = append(query, fmt.Sprintf("SELECT %v FROM %v", selector, d.Dialect.Quote(hood.selectTable)))
 	}
 	for i, op := range hood.joinOps {
+		joinType := "INNER"
+		switch op {
+		case LeftJoin:
+			joinType = "LEFT"
+		case RightJoin:
+			joinType = "RIGHT"
+		case FullJoin:
+			joinType = "FULL"
+		}
 		query = append(query, fmt.Sprintf(
-			"%v JOIN %v ON %v",
-			op,
-			d.Dialect.Quote(hood.joinTables[i]),
-			hood.joinCond[i]),
+			"%s JOIN %v ON %s.%s = %s.%s",
+			joinType,
+			d.Dialect.Quote(tableName(hood.joinTables[i])),
+			d.Dialect.Quote(tableName(hood.selectTable)),
+			d.Dialect.Quote(hood.joinCol1[i]),
+			d.Dialect.Quote(tableName(hood.joinTables[i])),
+			d.Dialect.Quote(hood.joinCol2[i]),
+		),
 		)
 	}
 	if x := hood.whereClauses; len(x) > 0 {

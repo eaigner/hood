@@ -31,9 +31,10 @@ type (
 		limit        int
 		offset       int
 		orderBy      string
-		joinOps      []string
-		joinTables   []string
-		joinCond     []string
+		joinOps      []Join
+		joinTables   []interface{}
+		joinCol1     []string
+		joinCol2     []string
 		groupBy      string
 		havingCond   string
 		havingArgs   []interface{}
@@ -101,6 +102,15 @@ type (
 		QueryRow(query string, args ...interface{}) *sql.Row
 	}
 )
+
+const (
+	InnerJoin = Join(iota)
+	LeftJoin
+	RightJoin
+	FullJoin
+)
+
+type Join int
 
 // PrimaryKey tests if the field is declared using the sql tag "pk" or is of type Id
 func (field *ModelField) PrimaryKey() bool {
@@ -383,9 +393,10 @@ func (hood *Hood) Reset() {
 	hood.limit = 0
 	hood.offset = 0
 	hood.orderBy = ""
-	hood.joinOps = []string{}
-	hood.joinTables = []string{}
-	hood.joinCond = []string{}
+	hood.joinOps = []Join{}
+	hood.joinTables = []interface{}{}
+	hood.joinCol1 = []string{}
+	hood.joinCol2 = []string{}
 	hood.groupBy = ""
 	hood.havingCond = ""
 	hood.havingArgs = make([]interface{}, 0, 20)
@@ -472,10 +483,11 @@ func (hood *Hood) OrderBy(key string) *Hood {
 
 // Join performs a JOIN on tables, for example
 //   Join("INNER JOIN", "users", "orders.user_id == users.id")
-func (hood *Hood) Join(op, table, condition string) *Hood {
+func (hood *Hood) Join(op Join, table2 interface{}, columnt1, columnt2 string) *Hood {
 	hood.joinOps = append(hood.joinOps, op)
-	hood.joinTables = append(hood.joinTables, table)
-	hood.joinCond = append(hood.joinCond, condition)
+	hood.joinTables = append(hood.joinTables, table2)
+	hood.joinCol1 = append(hood.joinCol1, columnt1)
+	hood.joinCol2 = append(hood.joinCol2, columnt2)
 	return hood
 }
 

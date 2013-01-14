@@ -29,7 +29,7 @@ var toRun = []dialectInfo{
 		`UPDATE "sql_gen_model" SET "first" = $1, "last" = $2, "amount" = $3 WHERE "prim" = $4`,
 		`DELETE FROM "sql_gen_model" WHERE "prim" = $1`,
 		`SELECT * FROM "sql_gen_model"`,
-		`SELECT "col1", "col2" FROM "sql_gen_model" INNER JOIN "orders" ON users.id == orders.id WHERE id = $1 AND category_id = $2 GROUP BY "name" HAVING SUM(price) < $3 ORDER BY "first_name" LIMIT $4 OFFSET $5`,
+		`SELECT "col1", "col2" FROM "sql_gen_model" INNER JOIN "orders" ON "sql_gen_model"."id1" = "orders"."id2" WHERE id = $1 AND category_id = $2 GROUP BY "name" HAVING SUM(price) < $3 ORDER BY "first_name" LIMIT $4 OFFSET $5`,
 		`DROP TABLE "drop_table"`,
 		`DROP TABLE IF EXISTS "drop_table"`,
 		`ALTER TABLE "table_a" RENAME TO "table_b"`,
@@ -677,7 +677,7 @@ func DoTestQuerySQL(t *testing.T, info dialectInfo) {
 	hood.Select(&sqlGenModel{}, "col1", "col2")
 	hood.Where("id = ?", 2)
 	hood.Where("category_id = ?", 5)
-	hood.Join("INNER", "orders", "users.id == orders.id")
+	hood.Join(InnerJoin, "orders", "id1", "id2")
 	hood.GroupBy("name")
 	hood.Having("SUM(price) < ?", 2000)
 	hood.OrderBy("first_name")
