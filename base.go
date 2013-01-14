@@ -239,7 +239,7 @@ func (d *Base) DropTableSql(table string, ifExists bool) string {
 	if ifExists {
 		a = append(a, "IF EXISTS")
 	}
-	a = append(a, table)
+	a = append(a, d.Dialect.Quote(table))
 	return strings.Join(a, " ")
 }
 
