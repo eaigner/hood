@@ -482,7 +482,7 @@ func (hood *Hood) OrderBy(key string) *Hood {
 }
 
 // Join performs a JOIN on tables, for example
-//   Join("INNER JOIN", "users", "orders.user_id == users.id")
+//   Join(hood.InnerJoin, "table2", "table1id", "table2id")
 func (hood *Hood) Join(op Join, table2 interface{}, columnt1, columnt2 string) *Hood {
 	hood.joinOps = append(hood.joinOps, op)
 	hood.joinTables = append(hood.joinTables, table2)
