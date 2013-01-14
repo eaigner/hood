@@ -28,7 +28,8 @@ var toRun = []dialectInfo{
 // 	`INSERT INTO sql_gen_model (first, last, amount) VALUES ($1, $2, $3) RETURNING prim`,
 // 	`UPDATE sql_gen_model SET first = $1, last = $2, amount = $3 WHERE prim = $4`,
 // 	`DELETE FROM sql_gen_model WHERE prim = $1`,
-// 	`SELECT * FROM sql_gen_model INNER JOIN orders ON users.id == orders.id WHERE id = $1 AND category_id = $2 GROUP BY name HAVING SUM(price) < $3 ORDER BY first_name LIMIT $4 OFFSET $5`,
+// 	`SELECT * FROM sql_gen_model`,
+// 	`SELECT col1, col2 FROM sql_gen_model INNER JOIN orders ON users.id == orders.id WHERE id = $1 AND category_id = $2 GROUP BY name HAVING SUM(price) < $3 ORDER BY first_name LIMIT $4 OFFSET $5`,
 // 	`DROP TABLE drop_table`,
 // 	`DROP TABLE IF EXISTS drop_table`,
 // 	`ALTER TABLE table_a RENAME TO table_b`,
@@ -51,6 +52,7 @@ type dialectInfo struct {
 	insertSql                       string
 	updateSql                       string
 	deleteSql                       string
+	wcQuerySql                      string
 	querySql                        string
 	dropTableSql                    string
 	dropTableIfExistsSql            string
@@ -657,7 +659,16 @@ func TestQuerySQL(t *testing.T) {
 func DoTestQuerySQL(t *testing.T, info dialectInfo) {
 	t.Logf("Dialect %T\n", info.dialect)
 	hood := New(nil, info.dialect)
-	hood.Select("*", &sqlGenModel{})
+	hood.Select(&sqlGenModel{})
+	query, _ := hood.Dialect.QuerySql(hood)
+	if x := info.wcQuerySql; x != query {
+		t.Log(query)
+		t.Log(x)
+		t.Fatal("invalid query", query, x)
+	}
+
+	hood = New(nil, info.dialect)
+	hood.Select(&sqlGenModel{}, "col1", "col2")
 	hood.Where("id = ?", 2)
 	hood.Where("category_id = ?", 5)
 	hood.Join("INNER", "orders", "users.id == orders.id")
@@ -666,10 +677,12 @@ func DoTestQuerySQL(t *testing.T, info dialectInfo) {
 	hood.OrderBy("first_name")
 	hood.Offset(3)
 	hood.Limit(10)
-	query, _ := hood.Dialect.QuerySql(hood)
+	query, _ = hood.Dialect.QuerySql(hood)
 	// TODO: verify 2nd argument ARGS
 	if x := info.querySql; x != query {
-		t.Fatalf("invalid query: '%v'", query, x)
+		t.Log(query)
+		t.Log(x)
+		t.Fatal("invalid query")
 	}
 }
 

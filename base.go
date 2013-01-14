@@ -62,8 +62,12 @@ func (d *Base) ConvertHoodType(f interface{}) interface{} {
 func (d *Base) QuerySql(hood *Hood) (string, []interface{}) {
 	query := make([]string, 0, 20)
 	args := make([]interface{}, 0, 20)
-	if hood.selectCols != "" && hood.selectTable != "" {
-		query = append(query, fmt.Sprintf("SELECT %v FROM %v", hood.selectCols, hood.selectTable))
+	if hood.selectTable != "" {
+		selector := "*"
+		if c := hood.selectCols; len(c) > 0 {
+			selector = strings.Join(hood.selectCols, ", ")
+		}
+		query = append(query, fmt.Sprintf("SELECT %v FROM %v", selector, hood.selectTable))
 	}
 	for i, op := range hood.joinOps {
 		query = append(query, fmt.Sprintf("%v JOIN %v ON %v", op, hood.joinTables[i], hood.joinCond[i]))

@@ -23,7 +23,7 @@ type (
 		qo           qo     // the query object
 		schema       Schema // keeping track of the schema
 		dryRun       bool   // if actual sql is executed or not
-		selectCols   string
+		selectCols   []string
 		selectTable  string
 		whereClauses []string
 		whereArgs    []interface{}
@@ -375,7 +375,7 @@ func RegisterDialect(name string, dialect Dialect) {
 
 // Reset resets the internal state.
 func (hood *Hood) Reset() {
-	hood.selectCols = ""
+	hood.selectCols = nil
 	hood.selectTable = ""
 	hood.whereClauses = make([]string, 0, 10)
 	hood.whereArgs = make([]interface{}, 0, 10)
@@ -429,11 +429,8 @@ func (hood *Hood) SchemaDefinition() string {
 // Select adds a SELECT clause to the query with the specified columsn and table.
 // The table can either be a string or it's name can be inferred from the passed
 // interface{} type.
-func (hood *Hood) Select(selector string, table interface{}) *Hood {
-	if selector == "" {
-		selector = "*"
-	}
-	hood.selectCols = selector
+func (hood *Hood) Select(table interface{}, columns ...string) *Hood {
+	hood.selectCols = columns
 	switch f := table.(type) {
 	case string:
 		hood.selectTable = f
@@ -513,8 +510,8 @@ func (hood *Hood) Find(out interface{}) error {
 		panic(panicMsg)
 	}
 	// infer the select statement from the type if not set
-	if hood.selectCols == "" {
-		hood.Select("*", out)
+	if hood.selectTable == "" {
+		hood.Select(out)
 	}
 	query, args := hood.Dialect.QuerySql(hood)
 	if hood.Log {
