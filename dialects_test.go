@@ -15,7 +15,8 @@ import (
 // CORRESPONDING DIALECT INFO IN THE TO_RUN ARRAY!
 
 import (
-	_ "github.com/bmizerany/pq"
+//	_ "github.com/bmizerany/pq"
+//	_ "github.com/ziutek/mymysql/godrv"
 )
 
 var toRun = []dialectInfo{
@@ -41,6 +42,28 @@ var toRun = []dialectInfo{
 // 	`CREATE INDEX "iname2" ON "itable2" ("d", "e")`,
 // 	`DROP INDEX "iname"`,
 // },
+//	dialectInfo{
+//		NewMysql(),
+//		setupMysql,
+//		"CREATE TABLE `without_pk` ( `first` longtext, `last` longtext, `amount` int )",
+//		"CREATE TABLE IF NOT EXISTS `without_pk` ( `first` longtext, `last` longtext, `amount` int )",
+//		"CREATE TABLE `with_pk` ( `primary` bigint PRIMARY KEY AUTO_INCREMENT, `first` longtext, `last` longtext, `amount` int )",
+//		"INSERT INTO `sql_gen_model` (`first`, `last`, `amount`) VALUES (?, ?, ?)",
+//		"UPDATE `sql_gen_model` SET `first` = ?, `last` = ?, `amount` = ? WHERE `prim` = ?",
+//		"DELETE FROM `sql_gen_model` WHERE `prim` = ?",
+//		"SELECT * FROM `sql_gen_model`",
+//		"SELECT `col1`, `col2` FROM `sql_gen_model` INNER JOIN `orders` ON `sql_gen_model`.`id1` = `orders`.`id2` WHERE id = ? AND category_id = ? GROUP BY `name` HAVING SUM(price) < ? ORDER BY `first_name` LIMIT ? OFFSET ?",
+//		"DROP TABLE `drop_table`",
+//		"DROP TABLE IF EXISTS `drop_table`",
+//		"ALTER TABLE `table_a` RENAME TO `table_b`",
+//		"ALTER TABLE `a` ADD COLUMN `c` varchar(100)",
+//		"ALTER TABLE `a` RENAME COLUMN `b` TO `c`",
+//		"ALTER TABLE `a` ALTER COLUMN `b` TYPE varchar(100)",
+//		"ALTER TABLE `a` DROP COLUMN `b`",
+//		"CREATE UNIQUE INDEX `iname` ON `itable` (`a`, `b`, `c`)",
+//		"CREATE INDEX `iname2` ON `itable2` (`d`, `e`)",
+//		"DROP INDEX `iname`",
+//	},
 }
 
 type dialectInfo struct {
@@ -72,6 +95,16 @@ func setupPgDb(t *testing.T) *Hood {
 		t.Fatal("could not open db", err)
 	}
 	hd := New(db, NewPostgres())
+	hd.Log = true
+	return hd
+}
+
+func setupMysql(t *testing.T) *Hood{
+	db, err := sql.Open("mymysql", "hood_test/hood/")
+	if err != nil {
+		t.Fatal("could not open db", err)
+	}
+	hd := New(db, NewMysql())
 	hd.Log = true
 	return hd
 }
@@ -539,7 +572,7 @@ func DoTestCreateTable(t *testing.T, info dialectInfo) {
 	type model struct {
 		Prim      Id
 		First     string `sql:"notnull"`
-		Last      string `sql:"default('defaultValue')"`
+		Last      VarChar `sql:"default('defaultValue')"`
 		Amount    int
 		NameIndex UniqueIndex `sql:"columns(first:last)"`
 	}
@@ -827,6 +860,44 @@ func TestSqlTypeForPgDialect(t *testing.T) {
 		t.Fatal("wrong type", x)
 	}
 	if x := d.SqlType("astring", 0); x != "text" {
+		t.Fatal("wrong type", x)
+	}
+	if x := d.SqlType(VarChar("a"), 0); x != "varchar(255)" {
+		t.Fatal("wrong type", x)
+	}
+	if x := d.SqlType(VarChar("b"), 128); x != "varchar(128)" {
+		t.Fatal("wrong type", x)
+	}
+	if x := d.SqlType(time.Now(), 0); x != "timestamp" {
+		t.Fatal("wrong type", x)
+	}
+}
+
+func TestSqlTypeForMysqlDialect(t *testing.T) {
+	d := NewMysql()
+	if x := d.SqlType(true, 0); x != "boolean" {
+		t.Fatal("wrong type", x)
+	}
+	var indirect interface{} = true
+	if x := d.SqlType(indirect, 0); x != "boolean" {
+		t.Fatal("wrong type", x)
+	}
+	if x := d.SqlType(uint32(2), 0); x != "int" {
+		t.Fatal("wrong type", x)
+	}
+	if x := d.SqlType(Id(1), 0); x != "bigint" {
+		t.Fatal("wrong type", x)
+	}
+	if x := d.SqlType(int64(1), 0); x != "bigint" {
+		t.Fatal("wrong type", x)
+	}
+	if x := d.SqlType(1.8, 0); x != "double" {
+		t.Fatal("wrong type", x)
+	}
+	if x := d.SqlType([]byte("asdf"), 0); x != "longblob" {
+		t.Fatal("wrong type", x)
+	}
+	if x := d.SqlType("astring", 0); x != "longtext" {
 		t.Fatal("wrong type", x)
 	}
 	if x := d.SqlType(VarChar("a"), 0); x != "varchar(255)" {
