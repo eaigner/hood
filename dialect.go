@@ -15,6 +15,10 @@ type Dialect interface {
 	// parameter delcares the data size for the column (e.g. for VARCHARs).
 	SqlType(f interface{}, size int) string
 
+	// If database do not support boolean type this can be used to parse int
+	// value to boolean value.
+	ParseBool(value reflect.Value) bool
+
 	// SetModelValue sets a model field from a db value.
 	//
 	// For example: time.Time objects needs to be marshalled back and forth

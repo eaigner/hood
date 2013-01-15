@@ -3,6 +3,7 @@ package hood
 import (
 	"fmt"
 	"time"
+	"reflect"
 )
 
 type Mysql struct {
@@ -22,6 +23,10 @@ func (d *Mysql) NextMarker(pos *int) string {
 
 func (d *Mysql) Quote(s string) string {
 	return fmt.Sprintf("`%s`", s)
+}
+
+func (d *Mysql) ParseBool(value reflect.Value) bool{
+	return value.Int() !=0
 }
 
 func (d *Mysql) SqlType(f interface{}, size int) string {

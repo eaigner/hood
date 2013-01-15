@@ -21,8 +21,14 @@ func (d *Base) Quote(s string) string {
 	return fmt.Sprintf(`"%s"`, s)
 }
 
+func (d *Base) ParseBool(value reflect.Value) bool{
+	return value.Bool()
+}
+
 func (d *Base) SetModelValue(driverValue, fieldValue reflect.Value) error {
 	switch fieldValue.Type().Kind() {
+	case reflect.Bool:
+		fieldValue.SetBool(d.Dialect.ParseBool(driverValue.Elem()))
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		fieldValue.SetInt(driverValue.Elem().Int())
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
