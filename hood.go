@@ -606,12 +606,31 @@ func (hood *Hood) Exec(query string, args ...interface{}) (sql.Result, error) {
 // QueryRow always return a non-nil value. Errors are deferred until Row's Scan
 // method is called.
 func (hood *Hood) QueryRow(query string, args ...interface{}) *sql.Row {
-	// TODO(erik): model after .Exec(...)
 	if hood.Log {
 		fmt.Println(query)
 		fmt.Println(args...)
 	}
 	return hood.qo.QueryRow(query, hood.convertSpecialTypes(args)...)
+	// TODO: switch to this implementation, as soon as
+	//
+	//   https://github.com/bmizerany/pq/issues/68
+	//
+	// is resolved!
+	//
+	//
+	// query = hood.substituteMarkers(query)
+	// if hood.Log {
+	// 	fmt.Println(query)
+	// }
+	// stmt, err := hood.qo.Prepare(query)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// defer stmt.Close()
+	// if hood.Log {
+	// 	fmt.Println(args...)
+	// }
+	// return stmt.QueryRow(hood.convertSpecialTypes(args)...)
 }
 
 func (hood *Hood) convertSpecialTypes(a []interface{}) []interface{} {
