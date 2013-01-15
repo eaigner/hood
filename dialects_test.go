@@ -15,8 +15,8 @@ import (
 // CORRESPONDING DIALECT INFO IN THE TO_RUN ARRAY!
 
 import (
-//	_ "github.com/bmizerany/pq"
-//	_ "github.com/ziutek/mymysql/godrv"
+// _ "github.com/bmizerany/pq"
+// _ "github.com/ziutek/mymysql/godrv"
 )
 
 var toRun = []dialectInfo{
@@ -42,28 +42,28 @@ var toRun = []dialectInfo{
 // 	`CREATE INDEX "iname2" ON "itable2" ("d", "e")`,
 // 	`DROP INDEX "iname"`,
 // },
-//	dialectInfo{
-//		NewMysql(),
-//		setupMysql,
-//		"CREATE TABLE `without_pk` ( `first` longtext, `last` longtext, `amount` int )",
-//		"CREATE TABLE IF NOT EXISTS `without_pk` ( `first` longtext, `last` longtext, `amount` int )",
-//		"CREATE TABLE `with_pk` ( `primary` bigint PRIMARY KEY AUTO_INCREMENT, `first` longtext, `last` longtext, `amount` int )",
-//		"INSERT INTO `sql_gen_model` (`first`, `last`, `amount`) VALUES (?, ?, ?)",
-//		"UPDATE `sql_gen_model` SET `first` = ?, `last` = ?, `amount` = ? WHERE `prim` = ?",
-//		"DELETE FROM `sql_gen_model` WHERE `prim` = ?",
-//		"SELECT * FROM `sql_gen_model`",
-//		"SELECT `col1`, `col2` FROM `sql_gen_model` INNER JOIN `orders` ON `sql_gen_model`.`id1` = `orders`.`id2` WHERE id = ? AND category_id = ? GROUP BY `name` HAVING SUM(price) < ? ORDER BY `first_name` LIMIT ? OFFSET ?",
-//		"DROP TABLE `drop_table`",
-//		"DROP TABLE IF EXISTS `drop_table`",
-//		"ALTER TABLE `table_a` RENAME TO `table_b`",
-//		"ALTER TABLE `a` ADD COLUMN `c` varchar(100)",
-//		"ALTER TABLE `a` RENAME COLUMN `b` TO `c`",
-//		"ALTER TABLE `a` ALTER COLUMN `b` TYPE varchar(100)",
-//		"ALTER TABLE `a` DROP COLUMN `b`",
-//		"CREATE UNIQUE INDEX `iname` ON `itable` (`a`, `b`, `c`)",
-//		"CREATE INDEX `iname2` ON `itable2` (`d`, `e`)",
-//		"DROP INDEX `iname`",
-//	},
+// dialectInfo{
+// 	NewMysql(),
+// 	setupMysql,
+// 	"CREATE TABLE `without_pk` ( `first` longtext, `last` longtext, `amount` int )",
+// 	"CREATE TABLE IF NOT EXISTS `without_pk` ( `first` longtext, `last` longtext, `amount` int )",
+// 	"CREATE TABLE `with_pk` ( `primary` bigint PRIMARY KEY AUTO_INCREMENT, `first` longtext, `last` longtext, `amount` int )",
+// 	"INSERT INTO `sql_gen_model` (`first`, `last`, `amount`) VALUES (?, ?, ?)",
+// 	"UPDATE `sql_gen_model` SET `first` = ?, `last` = ?, `amount` = ? WHERE `prim` = ?",
+// 	"DELETE FROM `sql_gen_model` WHERE `prim` = ?",
+// 	"SELECT * FROM `sql_gen_model`",
+// 	"SELECT `col1`, `col2` FROM `sql_gen_model` INNER JOIN `orders` ON `sql_gen_model`.`id1` = `orders`.`id2` WHERE id = ? AND category_id = ? GROUP BY `name` HAVING SUM(price) < ? ORDER BY `first_name` LIMIT ? OFFSET ?",
+// 	"DROP TABLE `drop_table`",
+// 	"DROP TABLE IF EXISTS `drop_table`",
+// 	"ALTER TABLE `table_a` RENAME TO `table_b`",
+// 	"ALTER TABLE `a` ADD COLUMN `c` varchar(100)",
+// 	"ALTER TABLE `a` RENAME COLUMN `b` TO `c`",
+// 	"ALTER TABLE `a` ALTER COLUMN `b` TYPE varchar(100)",
+// 	"ALTER TABLE `a` DROP COLUMN `b`",
+// 	"CREATE UNIQUE INDEX `iname` ON `itable` (`a`, `b`, `c`)",
+// 	"CREATE INDEX `iname2` ON `itable2` (`d`, `e`)",
+// 	"DROP INDEX `iname`",
+// },
 }
 
 type dialectInfo struct {
@@ -99,7 +99,7 @@ func setupPgDb(t *testing.T) *Hood {
 	return hd
 }
 
-func setupMysql(t *testing.T) *Hood{
+func setupMysql(t *testing.T) *Hood {
 	db, err := sql.Open("mymysql", "hood_test/hood/")
 	if err != nil {
 		t.Fatal("could not open db", err)
@@ -571,7 +571,7 @@ func DoTestCreateTable(t *testing.T, info dialectInfo) {
 	hd := info.setupDbFunc(t)
 	type model struct {
 		Prim      Id
-		First     string `sql:"notnull"`
+		First     string  `sql:"notnull"`
 		Last      VarChar `sql:"default('defaultValue')"`
 		Amount    int
 		NameIndex UniqueIndex `sql:"columns(first:last)"`
