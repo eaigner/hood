@@ -1,4 +1,4 @@
-**Note: the API is still unstable, so please fork the project if you want to use it**
+**Note: the API might still be subject to change, so please fork the project if you want to use it**
 
 ## Index
 
