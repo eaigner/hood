@@ -43,6 +43,9 @@ func (d *Base) SqlType(f interface{}, size int) string {
 	case []byte:
 		return "bytea"
 	case string:
+		if size > 0 && size < 65532 {
+			return fmt.Sprintf("varchar(%d)", size)
+		}
 		return "text"
 	}
 	panic("invalid sql type")

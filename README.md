@@ -71,6 +71,9 @@ type Person struct {
   IsAdmin      bool         // boolean field 'is_admin'
   Notes        string       // text field 'notes'
 
+  // You can alternatively define a var char as a string field by setting a size
+  Nick  string  `sql:"size(128)"`
+
   // Validates number range
   Balance int `validate:"range(10:20)"`
 
