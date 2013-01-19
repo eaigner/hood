@@ -50,6 +50,9 @@ func (d *Mysql) SqlType(f interface{}, size int) string {
 	case []byte:
 		return "longblob"
 	case string:
+		if size > 0 && size < 65532 {
+			return fmt.Sprintf("varchar(%d)", size)
+		}
 		return "longtext"
 	}
 	panic("invalid sql type")
