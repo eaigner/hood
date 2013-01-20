@@ -49,9 +49,6 @@ type (
 	// UniqueIndex represents an schema field type for unique indexes.
 	UniqueIndex int
 
-	// Varchar represents a VARCHAR type.
-	VarChar string
-
 	// Created denotes a timestamp field that is automatically set on insert.
 	Created struct {
 		time.Time
@@ -149,13 +146,8 @@ func (field *ModelField) Zero() bool {
 // String returns the field string value and a bool flag indicating if the
 // conversion was successful
 func (field *ModelField) String() (string, bool) {
-	switch t := field.Value.(type) {
-	case string:
-		return t, true
-	case VarChar:
-		return string(t), true
-	}
-	return "", false
+	t, ok := field.Value.(string)
+	return t, ok
 }
 
 // Int returns the field int value and a bool flag indication if the conversion

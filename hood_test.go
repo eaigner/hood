@@ -60,7 +60,7 @@ func TestFieldValidate(t *testing.T) {
 	type Schema struct {
 		A string  `validate:"len(3:6)"`
 		B int     `validate:"range(10:20)"`
-		C VarChar `validate:"len(:4),presence"`
+		C string `validate:"len(:4),presence"`
 	}
 	m, _ := interfaceToModel(&Schema{})
 	a := m.Fields[0]
@@ -196,7 +196,7 @@ func TestInterfaceToModel(t *testing.T) {
 		ColPrimary    Id
 		ColAltPrimary string  `sql:"pk"`
 		ColNotNull    string  `sql:"notnull,default('banana')"`
-		ColVarChar    VarChar `sql:"size(64)"`
+		ColVarChar    string `sql:"size(64)"`
 		ColTime       time.Time
 		MyIndex       Index       `sql:"columns(col_primary:col_time)"`
 		MyUniqueIndex UniqueIndex `sql:"columns(col_var_char:col_time)"`
@@ -267,7 +267,7 @@ func TestInterfaceToModel(t *testing.T) {
 		t.Fatal("wrong value")
 	}
 	f = m.Fields[3]
-	if x, ok := f.Value.(VarChar); !ok || x != "orange" {
+	if x, ok := f.Value.(string); !ok || x != "orange" {
 		t.Fatal("wrong value", x)
 	}
 	if x := f.Size(); x != 64 {
@@ -294,14 +294,14 @@ func TestSchemaGeneration(t *testing.T) {
 	}
 	type Users struct {
 		Id        Id
-		First     VarChar `sql:"size(30)"`
+		First     string `sql:"size(30)"`
 		Last      string
 		NameIndex UniqueIndex `sql:"columns(first:last)"`
 	}
 	hd.CreateTable(&Users{})
 	decl1 := "type Users struct {\n" +
 		"\tId\thood.Id\n" +
-		"\tFirst\thood.VarChar\t`sql:\"size(30)\"`\n" +
+		"\tFirst\tstring\t`sql:\"size(30)\"`\n" +
 		"\tLast\tstring\n" +
 		"\n" +
 		"\t// Indexes\n" +
@@ -316,7 +316,7 @@ func TestSchemaGeneration(t *testing.T) {
 	hd.CreateTable(&DropMe{})
 	decl2 := "type Users struct {\n" +
 		"\tId\thood.Id\n" +
-		"\tFirst\thood.VarChar\t`sql:\"size(30)\"`\n" +
+		"\tFirst\tstring\t`sql:\"size(30)\"`\n" +
 		"\tLast\tstring\n" +
 		"\n" +
 		"\t// Indexes\n" +
@@ -336,7 +336,7 @@ func TestSchemaGeneration(t *testing.T) {
 	hd.RenameTable(&Users{}, "customers")
 	decl3 := "type Customers struct {\n" +
 		"\tId\thood.Id\n" +
-		"\tFirst\thood.VarChar\t`sql:\"size(30)\"`\n" +
+		"\tFirst\tstring\t`sql:\"size(30)\"`\n" +
 		"\tLast\tstring\n" +
 		"\n" +
 		"\t// Indexes\n" +
@@ -350,7 +350,7 @@ func TestSchemaGeneration(t *testing.T) {
 	}{})
 	decl4 := "type Customers struct {\n" +
 		"\tId\thood.Id\n" +
-		"\tFirst\thood.VarChar\t`sql:\"size(30)\"`\n" +
+		"\tFirst\tstring\t`sql:\"size(30)\"`\n" +
 		"\tLast\tstring\n" +
 		"\tBalance\tint\n" +
 		"\n" +
@@ -363,7 +363,7 @@ func TestSchemaGeneration(t *testing.T) {
 	hd.RenameColumn("customers", "balance", "amount")
 	decl5 := "type Customers struct {\n" +
 		"\tId\thood.Id\n" +
-		"\tFirst\thood.VarChar\t`sql:\"size(30)\"`\n" +
+		"\tFirst\tstring\t`sql:\"size(30)\"`\n" +
 		"\tLast\tstring\n" +
 		"\tAmount\tint\n" +
 		"\n" +
@@ -378,7 +378,7 @@ func TestSchemaGeneration(t *testing.T) {
 	}{})
 	decl6 := "type Customers struct {\n" +
 		"\tId\thood.Id\n" +
-		"\tFirst\thood.VarChar\t`sql:\"size(30)\"`\n" +
+		"\tFirst\tstring\t`sql:\"size(30)\"`\n" +
 		"\tLast\tstring\n" +
 		"\tAmount\tstring\n" +
 		"\n" +

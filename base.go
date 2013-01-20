@@ -21,7 +21,7 @@ func (d *Base) Quote(s string) string {
 	return fmt.Sprintf(`"%s"`, s)
 }
 
-func (d *Base) ParseBool(value reflect.Value) bool{
+func (d *Base) ParseBool(value reflect.Value) bool {
 	return value.Bool()
 }
 
@@ -56,10 +56,6 @@ func (d *Base) SetModelValue(driverValue, fieldValue reflect.Value) error {
 }
 
 func (d *Base) ConvertHoodType(f interface{}) interface{} {
-	switch t := f.(type) {
-	case VarChar:
-		return string(t)
-	}
 	if t, ok := f.(Created); ok {
 		return t.Time
 	}

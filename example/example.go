@@ -13,18 +13,18 @@ type Person struct {
 	// Custom primary key field 'first_name', with presence validation
 	FirstName string `sql:"pk" validate:"presence"`
 
-	// Varchar field 'last_name' with size 128, NOT NULL
-	LastName hood.VarChar `sql:"size(128),notnull"`
+	// string field 'last_name' with size 128, NOT NULL
+	LastName string `sql:"size(128),notnull"`
 
-	// Varchar field 'tag' with size 255, default value 'customer'
-	Tag hood.VarChar `sql:"default('customer')"`
+	// string field 'tag' with size 255, default value 'customer'
+	Tag string `sql:"size(255),default('customer')"`
 
 	// You can also combine tags, default value 'orange'
-	CombinedTags hood.VarChar `sql:"size(128),default('orange')"`
-	Updated      time.Time    // timestamp field 'updated'
-	Data         []byte       // data field 'data'
-	IsAdmin      bool         // boolean field 'is_admin'
-	Notes        string       // text field 'notes'
+	CombinedTags string    `sql:"size(128),default('orange')"`
+	Updated      time.Time // timestamp field 'updated'
+	Data         []byte    // data field 'data'
+	IsAdmin      bool      // boolean field 'is_admin'
+	Notes        string    // text field 'notes'
 
 	// Validates number range
 	Balance int `validate:"range(10:20)"`

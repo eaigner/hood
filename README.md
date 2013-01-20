@@ -58,14 +58,14 @@ type Person struct {
   // Custom primary key field 'first_name', with presence validation
   FirstName string `sql:"pk" validate:"presence"`
 
-  // Varchar field 'last_name' with size 128, NOT NULL
-  LastName hood.VarChar `sql:"size(128),notnull"`
+  // string field 'last_name' with size 128, NOT NULL
+  LastName string `sql:"size(128),notnull"`
 
-  // Varchar field 'tag' with size 255, default value 'customer'
-  Tag hood.VarChar `sql:"default('customer')"`
+  // string field 'tag' with size 255, default value 'customer'
+  Tag string `sql:"size(255),default('customer')"`
 
   // You can also combine tags, default value 'orange'
-  CombinedTags hood.VarChar `sql:"size(128),default('orange')"`
+  CombinedTags string `sql:"size(128),default('orange')"`
   Birthday     time.Time    // timestamp field 'updated'
   Data         []byte       // data field 'data'
   IsAdmin      bool         // boolean field 'is_admin'
@@ -202,7 +202,7 @@ type Users struct {
 Besides the `sql:` struct tag, you can specify a `validate:` tag for model validation:
 
 - `presence` validates that a field is set
-- `len(min:max)` validates that a `string` or `VarChar` field’s length lies within the specified range
+- `len(min:max)` validates that a `string` field’s length lies within the specified range
 	- `len(min:)` validates that it has the specified min length, 
 	- `len(:max)` or max length
 - `range(min:max)` validates that an `int` value lies in the specific range
