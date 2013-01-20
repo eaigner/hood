@@ -208,6 +208,10 @@ Besides the `sql:` struct tag, you can specify a `validate:` tag for model valid
 - `range(min:max)` validates that an `int` value lies in the specific range
 	- `range(min:)` validates that it has the specified min value,
 	- `range(:max)` or max value
+- regular expression, e.g `^[a-z]+$`, validates that a `string` value match the regular expression
+    - the expression must start with "^"
+    - backslash should be escaped
+    - can not work with other validation method
 
 You can also define multiple validations on one field, e.g. `validate:"len(:12),presence"`
 
