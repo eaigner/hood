@@ -1,5 +1,7 @@
 **Note: the API might still be subject to change, so please fork the project if you want to use it**
 
+For questions, suggestions and general topics visit the [group](https://groups.google.com/forum/#!forum/golang-hood).
+
 ## Index
 
 - [Overview](#overview)
