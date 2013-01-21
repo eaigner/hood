@@ -1,6 +1,9 @@
 package hood
 
-import "reflect"
+import (
+	"reflect"
+	"time"
+)
 
 type Dialect interface {
 	// Marker returns the dialect specific markers for prepared statements,
@@ -10,6 +13,10 @@ type Dialect interface {
 
 	// Quote will quote identifiers in a SQL statement.
 	Quote(s string) string
+
+	// Now returns the current time. Some drivers have problems with time zones,
+	// so this method can be used to prepare the time (e.g. convert to UTC).
+	Now() time.Time
 
 	// SqlType returns the SQL type for the provided interface type. The size
 	// parameter delcares the data size for the column (e.g. for VARCHARs).

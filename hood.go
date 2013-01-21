@@ -714,7 +714,7 @@ func (hood *Hood) Save(f interface{}) (Id, error) {
 	if model.Pk == nil {
 		panic("no primary key field")
 	}
-	now := time.Now()
+	now := hood.Dialect.Now()
 	isUpdate := model.Pk != nil && !model.Pk.Zero()
 	if isUpdate {
 		err = callModelMethod(f, "BeforeUpdate", false)

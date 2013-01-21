@@ -186,6 +186,10 @@ func TestSaveAndDelete(t *testing.T) {
 
 func DoTestSaveAndDelete(t *testing.T, info dialectInfo) {
 	t.Logf("Dialect %T\n", info.dialect)
+	// time identity test
+	if x := time.Now(); x.Sub(x.UTC()) != 0 {
+		t.Fatal("not equal")
+	}
 	now := time.Now()
 	hd := info.setupDbFunc(t)
 	type saveModel struct {
@@ -223,11 +227,29 @@ func DoTestSaveAndDelete(t *testing.T, info dialectInfo) {
 	if x := model1.Updated; x.Sub(now) <= 0 {
 		t.Fatal("wrong timestamp", x, now)
 	}
+
+	// make sure created/updated values match the db
+	var model1r []saveModel
+	err = hd.Where("id = ?", model1.Id).Find(&model1r)
+	if err != nil {
+		t.Fatal("error not nil", err)
+	}
+	if x := len(model1r); x != 1 {
+		t.Fatal("wrong result count", x)
+	}
+	if model1r[0].Created.Unix() != model1.Created.Unix() {
+		t.Fatal("created fields do not match", model1r[0].Created, model1.Created)
+	}
+	if model1r[0].Updated.Unix() != model1.Updated.Unix() {
+		t.Fatal("updated fields do not match", model1r[0].Updated, model1.Updated)
+	}
+
 	oldCreate := model1.Created
 	oldUpdate := model1.Updated
-
 	model1.A = "grape"
 	model1.B = 9
+
+	time.Sleep(time.Second * 1) // sleep for 1 sec
 
 	id, err = hd.Save(&model1)
 	if err != nil {
@@ -241,6 +263,25 @@ func DoTestSaveAndDelete(t *testing.T, info dialectInfo) {
 	}
 	if x := model1.Updated; x.Sub(oldUpdate.Time) <= 0 {
 		t.Fatal("wrong timestamp", x, oldUpdate)
+	}
+
+	// make sure created/updated values match the db
+	var model1r2 []saveModel
+	err = hd.Where("id = ?", model1.Id).Find(&model1r2)
+	if err != nil {
+		t.Fatal("error not nil", err)
+	}
+	if x := len(model1r2); x != 1 {
+		t.Fatal("wrong result count", x)
+	}
+	if x := model1r2[0].Updated; x.Sub(model1r2[0].Created.Time) < 1 {
+		t.Fatal("diff mismatch", x, model1r2[0].Created.Time)
+	}
+	if model1r2[0].Created.Unix() != model1.Created.Unix() {
+		t.Fatal("created fields do not match", model1r2[0].Created, oldCreate)
+	}
+	if model1r2[0].Updated.Unix() != model1.Updated.Unix() {
+		t.Fatal("updated fields do not match", model1r2[0].Updated, model1.Updated)
 	}
 
 	id, err = hd.Save(&model2)
