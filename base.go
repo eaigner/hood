@@ -26,6 +26,7 @@ func (d *Base) ParseBool(value reflect.Value) bool {
 }
 
 func (d *Base) SetModelValue(driverValue, fieldValue reflect.Value) error {
+	fieldType := fieldValue.Type()
 	switch fieldValue.Type().Kind() {
 	case reflect.Bool:
 		fieldValue.SetBool(d.Dialect.ParseBool(driverValue.Elem()))
@@ -48,8 +49,20 @@ func (d *Base) SetModelValue(driverValue, fieldValue reflect.Value) error {
 			fieldValue.SetBytes(driverValue.Elem().Bytes())
 		}
 	case reflect.Struct:
-		if fieldValue.Type() == reflect.TypeOf(time.Time{}) {
+		if fieldType == reflect.TypeOf(time.Time{}) {
 			fieldValue.Set(driverValue.Elem())
+		} else if fieldType == reflect.TypeOf(Updated{}) {
+			if time, ok := driverValue.Elem().Interface().(time.Time); ok {
+				fieldValue.Set(reflect.ValueOf(Updated{time}))
+			} else {
+				panic(fmt.Sprintf("cannot set updated value %T", driverValue.Elem().Interface()))
+			}
+		} else if fieldType == reflect.TypeOf(Created{}) {
+			if time, ok := driverValue.Elem().Interface().(time.Time); ok {
+				fieldValue.Set(reflect.ValueOf(Created{time}))
+			} else {
+				panic(fmt.Sprintf("cannot set created value %T", driverValue.Elem().Interface()))
+			}
 		}
 	}
 	return nil
