@@ -58,9 +58,10 @@ func TestFieldZero(t *testing.T) {
 
 func TestFieldValidate(t *testing.T) {
 	type Schema struct {
-		A string  `validate:"len(3:6)"`
-		B int     `validate:"range(10:20)"`
-		C VarChar `validate:"len(:4),presence"`
+		A string `validate:"len(3:6)"`
+		B int    `validate:"range(10:20)"`
+		C string `validate:"len(:4),presence"`
+		D string `validate:"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+$"`
 	}
 	m, _ := interfaceToModel(&Schema{})
 	a := m.Fields[0]
@@ -70,7 +71,7 @@ func TestFieldValidate(t *testing.T) {
 	if x, ok := a.ValidateTags["len"]; !ok || x != "3:6" {
 		t.Fatal("wrong value", x, ok)
 	}
-	if err := a.Validate(); err == nil || err.Error() != "value too short" {
+	if err := a.Validate(); err == nil || err.Error() != "a too short" {
 		t.Fatal("should not validate")
 	}
 	a.Value = "abc"
@@ -78,7 +79,7 @@ func TestFieldValidate(t *testing.T) {
 		t.Fatal("should validate", err)
 	}
 	a.Value = "abcdefg"
-	if err := a.Validate(); err == nil || err.Error() != "value too long" {
+	if err := a.Validate(); err == nil || err.Error() != "a too long" {
 		t.Fatal("should not validate")
 	}
 
@@ -86,7 +87,7 @@ func TestFieldValidate(t *testing.T) {
 	if x := len(b.ValidateTags); x != 1 {
 		t.Fatal("wrong len", x)
 	}
-	if err := b.Validate(); err == nil || err.Error() != "value too small" {
+	if err := b.Validate(); err == nil || err.Error() != "b too small" {
 		t.Fatal("should not validate")
 	}
 	b.Value = 10
@@ -94,7 +95,7 @@ func TestFieldValidate(t *testing.T) {
 		t.Fatal("should validate", err)
 	}
 	b.Value = 21
-	if err := b.Validate(); err == nil || err.Error() != "value too big" {
+	if err := b.Validate(); err == nil || err.Error() != "b too big" {
 		t.Fatal("should not validate")
 	}
 
@@ -102,7 +103,7 @@ func TestFieldValidate(t *testing.T) {
 	if x := len(c.ValidateTags); x != 2 {
 		t.Fatal("wrong len", x)
 	}
-	if err := c.Validate(); err == nil || err.Error() != "value not set" {
+	if err := c.Validate(); err == nil || err.Error() != "c not set" {
 		t.Fatal("should not validate")
 	}
 	c.Value = "a"
@@ -110,8 +111,21 @@ func TestFieldValidate(t *testing.T) {
 		t.Fatal("should validate", err)
 	}
 	c.Value = "abcde"
-	if err := c.Validate(); err == nil || err.Error() != "value too long" {
+	if err := c.Validate(); err == nil || err.Error() != "c too long" {
 		t.Fatal("should not validate")
+	}
+
+	d := m.Fields[3]
+	if x := len(d.ValidateTags); x != 1 {
+		t.Fatal("wrong len", x)
+	}
+	d.Value = "gggg@gmail.com"
+	if err := d.Validate(); err != nil {
+		t.Fatal("should validate", err)
+	}
+	d.Value = "www.google.com"
+	if err := d.Validate(); err == nil || err.Error() != "d not match" {
+		t.Fatal("should not validate", err)
 	}
 }
 
@@ -194,9 +208,9 @@ func TestInterfaceToModelWithEmbedded(t *testing.T) {
 func TestInterfaceToModel(t *testing.T) {
 	type table struct {
 		ColPrimary    Id
-		ColAltPrimary string  `sql:"pk"`
-		ColNotNull    string  `sql:"notnull,default('banana')"`
-		ColVarChar    VarChar `sql:"size(64)"`
+		ColAltPrimary string `sql:"pk"`
+		ColNotNull    string `sql:"notnull,default('banana')"`
+		ColVarChar    string `sql:"size(64)"`
 		ColTime       time.Time
 		MyIndex       Index       `sql:"columns(col_primary:col_time)"`
 		MyUniqueIndex UniqueIndex `sql:"columns(col_var_char:col_time)"`
@@ -267,7 +281,7 @@ func TestInterfaceToModel(t *testing.T) {
 		t.Fatal("wrong value")
 	}
 	f = m.Fields[3]
-	if x, ok := f.Value.(VarChar); !ok || x != "orange" {
+	if x, ok := f.Value.(string); !ok || x != "orange" {
 		t.Fatal("wrong value", x)
 	}
 	if x := f.Size(); x != 64 {
@@ -294,14 +308,14 @@ func TestSchemaGeneration(t *testing.T) {
 	}
 	type Users struct {
 		Id        Id
-		First     VarChar `sql:"size(30)"`
+		First     string `sql:"size(30)"`
 		Last      string
 		NameIndex UniqueIndex `sql:"columns(first:last)"`
 	}
 	hd.CreateTable(&Users{})
 	decl1 := "type Users struct {\n" +
 		"\tId\thood.Id\n" +
-		"\tFirst\thood.VarChar\t`sql:\"size(30)\"`\n" +
+		"\tFirst\tstring\t`sql:\"size(30)\"`\n" +
 		"\tLast\tstring\n" +
 		"\n" +
 		"\t// Indexes\n" +
@@ -316,7 +330,7 @@ func TestSchemaGeneration(t *testing.T) {
 	hd.CreateTable(&DropMe{})
 	decl2 := "type Users struct {\n" +
 		"\tId\thood.Id\n" +
-		"\tFirst\thood.VarChar\t`sql:\"size(30)\"`\n" +
+		"\tFirst\tstring\t`sql:\"size(30)\"`\n" +
 		"\tLast\tstring\n" +
 		"\n" +
 		"\t// Indexes\n" +
@@ -336,7 +350,7 @@ func TestSchemaGeneration(t *testing.T) {
 	hd.RenameTable(&Users{}, "customers")
 	decl3 := "type Customers struct {\n" +
 		"\tId\thood.Id\n" +
-		"\tFirst\thood.VarChar\t`sql:\"size(30)\"`\n" +
+		"\tFirst\tstring\t`sql:\"size(30)\"`\n" +
 		"\tLast\tstring\n" +
 		"\n" +
 		"\t// Indexes\n" +
@@ -350,7 +364,7 @@ func TestSchemaGeneration(t *testing.T) {
 	}{})
 	decl4 := "type Customers struct {\n" +
 		"\tId\thood.Id\n" +
-		"\tFirst\thood.VarChar\t`sql:\"size(30)\"`\n" +
+		"\tFirst\tstring\t`sql:\"size(30)\"`\n" +
 		"\tLast\tstring\n" +
 		"\tBalance\tint\n" +
 		"\n" +
@@ -363,7 +377,7 @@ func TestSchemaGeneration(t *testing.T) {
 	hd.RenameColumn("customers", "balance", "amount")
 	decl5 := "type Customers struct {\n" +
 		"\tId\thood.Id\n" +
-		"\tFirst\thood.VarChar\t`sql:\"size(30)\"`\n" +
+		"\tFirst\tstring\t`sql:\"size(30)\"`\n" +
 		"\tLast\tstring\n" +
 		"\tAmount\tint\n" +
 		"\n" +
@@ -378,7 +392,7 @@ func TestSchemaGeneration(t *testing.T) {
 	}{})
 	decl6 := "type Customers struct {\n" +
 		"\tId\thood.Id\n" +
-		"\tFirst\thood.VarChar\t`sql:\"size(30)\"`\n" +
+		"\tFirst\tstring\t`sql:\"size(30)\"`\n" +
 		"\tLast\tstring\n" +
 		"\tAmount\tstring\n" +
 		"\n" +

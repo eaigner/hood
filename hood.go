@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -48,9 +49,6 @@ type (
 
 	// UniqueIndex represents an schema field type for unique indexes.
 	UniqueIndex int
-
-	// Varchar represents a VARCHAR type.
-	VarChar string
 
 	// Created denotes a timestamp field that is automatically set on insert.
 	Created struct {
@@ -149,13 +147,8 @@ func (field *ModelField) Zero() bool {
 // String returns the field string value and a bool flag indicating if the
 // conversion was successful
 func (field *ModelField) String() (string, bool) {
-	switch t := field.Value.(type) {
-	case string:
-		return t, true
-	case VarChar:
-		return string(t), true
-	}
-	return "", false
+	t, ok := field.Value.(string)
+	return t, ok
 }
 
 // Int returns the field int value and a bool flag indication if the conversion
@@ -190,7 +183,7 @@ func (field *ModelField) Validate() error {
 	if tuple, ok := field.ValidateTags["len"]; ok {
 		s, ok := field.String()
 		if ok {
-			if err := validateLen(s, tuple); err != nil {
+			if err := validateLen(s, tuple, field.Name); err != nil {
 				return err
 			}
 		}
@@ -199,7 +192,7 @@ func (field *ModelField) Validate() error {
 	if tuple, ok := field.ValidateTags["range"]; ok {
 		i, ok := field.Int()
 		if ok {
-			if err := validateRange(i, tuple); err != nil {
+			if err := validateRange(i, tuple, field.Name); err != nil {
 				return err
 			}
 		}
@@ -207,9 +200,20 @@ func (field *ModelField) Validate() error {
 	// presence
 	if _, ok := field.ValidateTags["presence"]; ok {
 		if field.Zero() {
-			return NewValidationError(ValidationErrorValueNotSet, "value not set")
+			return NewValidationError(ValidationErrorValueNotSet, field.Name)
 		}
 	}
+
+	// regexp
+	if reg, ok := field.ValidateTags["regexp"]; ok {
+		s, ok := field.String()
+		if ok {
+			if err := validateRegexp(s, reg, field.Name); err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -223,7 +227,7 @@ func parseTuple(tuple string) (string, string) {
 	return a, b
 }
 
-func validateLen(s, tuple string) error {
+func validateLen(s, tuple, field string) error {
 	a, b := parseTuple(tuple)
 	if len(a) > 0 {
 		min, err := strconv.Atoi(a)
@@ -231,7 +235,7 @@ func validateLen(s, tuple string) error {
 			panic(err)
 		}
 		if len(s) < min {
-			return NewValidationError(ValidationErrorValueTooShort, "value too short")
+			return NewValidationError(ValidationErrorValueTooShort, field)
 		}
 	}
 	if len(b) > 0 {
@@ -240,13 +244,13 @@ func validateLen(s, tuple string) error {
 			panic(err)
 		}
 		if len(s) > max {
-			return NewValidationError(ValidationErrorValueTooLong, "value too long")
+			return NewValidationError(ValidationErrorValueTooLong, field)
 		}
 	}
 	return nil
 }
 
-func validateRange(i int64, tuple string) error {
+func validateRange(i int64, tuple, field string) error {
 	a, b := parseTuple(tuple)
 	if len(a) > 0 {
 		min, err := strconv.ParseInt(a, 10, 64)
@@ -254,7 +258,7 @@ func validateRange(i int64, tuple string) error {
 			return err
 		}
 		if i < min {
-			return NewValidationError(ValidationErrorValueTooSmall, "value too small")
+			return NewValidationError(ValidationErrorValueTooSmall, field)
 		}
 	}
 	if len(b) > 0 {
@@ -263,8 +267,19 @@ func validateRange(i int64, tuple string) error {
 			return err
 		}
 		if i > max {
-			return NewValidationError(ValidationErrorValueTooBig, "value too big")
+			return NewValidationError(ValidationErrorValueTooBig, field)
 		}
+	}
+	return nil
+}
+
+func validateRegexp(s, reg, field string) error {
+	matched, err := regexp.MatchString(reg, s)
+	if err != nil {
+		return err
+	}
+	if !matched {
+		return NewValidationError(ValidationErrorValueNotMatch, field)
 	}
 	return nil
 }
@@ -1086,6 +1101,15 @@ func addFields(m *Model, t reflect.Type, v reflect.Value) {
 			continue
 		}
 		parsedSqlTags := parseTags(sqlTag)
+		rawValidateTag := field.Tag.Get("validate")
+		parsedValidateTags := make(map[string]string)
+		if len(rawValidateTag) > 0 {
+			if rawValidateTag[:1] == "^" {
+				parsedValidateTags["regexp"] = rawValidateTag
+			} else {
+				parsedValidateTags = parseTags(rawValidateTag)
+			}
+		}
 		if field.Type == reflect.TypeOf(Index(0)) {
 			addIndex(m, field, false, parsedSqlTags, field.Tag)
 		} else if field.Type == reflect.TypeOf(UniqueIndex(0)) {
@@ -1095,7 +1119,7 @@ func addFields(m *Model, t reflect.Type, v reflect.Value) {
 				Name:         toSnake(field.Name),
 				Value:        v.FieldByName(field.Name).Interface(),
 				SqlTags:      parsedSqlTags,
-				ValidateTags: parseTags(field.Tag.Get("validate")),
+				ValidateTags: parsedValidateTags,
 				RawTag:       field.Tag,
 			}
 			if fd.PrimaryKey() {

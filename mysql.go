@@ -32,11 +32,6 @@ func (d *Mysql) SqlType(f interface{}, size int) string {
 	switch f.(type) {
 	case Id:
 		return "bigint"
-	case VarChar:
-		if size < 1 {
-			size = 255
-		}
-		return fmt.Sprintf("varchar(%d)", size)
 	case time.Time, Created, Updated:
 		return "timestamp"
 	case bool:

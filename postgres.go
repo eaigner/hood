@@ -25,11 +25,6 @@ func (d *Base) SqlType(f interface{}, size int) string {
 	switch f.(type) {
 	case Id:
 		return "bigserial"
-	case VarChar:
-		if size < 1 {
-			size = 255
-		}
-		return fmt.Sprintf("varchar(%d)", size)
 	case time.Time, Created, Updated:
 		return "timestamp"
 	case bool:

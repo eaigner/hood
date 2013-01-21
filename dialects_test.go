@@ -418,7 +418,6 @@ func DoTestFind(t *testing.T, info dialectInfo) {
 		L  float32
 		M  float64
 		N  []byte
-		O  VarChar
 		P  time.Time
 		Q  Created
 		R  Updated
@@ -438,7 +437,6 @@ func DoTestFind(t *testing.T, info dialectInfo) {
 		L: 11.5,
 		M: 12.6,
 		N: []byte("bytes!"),
-		O: "varchar!",
 		P: now,
 	}
 
@@ -522,9 +520,6 @@ func DoTestFind(t *testing.T, info dialectInfo) {
 		if x := v.N; string(x) != "bytes!" {
 			t.Fatal("invalid value", x)
 		}
-		if x := v.O; string(x) != "varchar!" {
-			t.Fatal("invalid value", x)
-		}
 		if x := v.P; now.Equal(x) {
 			t.Fatal("invalid value", x, now)
 		}
@@ -571,8 +566,8 @@ func DoTestCreateTable(t *testing.T, info dialectInfo) {
 	hd := info.setupDbFunc(t)
 	type model struct {
 		Prim      Id
-		First     string  `sql:"notnull"`
-		Last      VarChar `sql:"default('defaultValue')"`
+		First     string `sql:"notnull"`
+		Last      string `sql:"size(128),default('defaultValue')"`
 		Amount    int
 		NameIndex UniqueIndex `sql:"columns(first:last)"`
 	}
@@ -762,7 +757,7 @@ func TestAddColumSQL(t *testing.T) {
 
 func DoTestAddColumSQL(t *testing.T, info dialectInfo) {
 	t.Logf("Dialect %T\n", info.dialect)
-	if x := info.dialect.AddColumnSql("a", "c", VarChar(""), 100); x != info.addColumnSql {
+	if x := info.dialect.AddColumnSql("a", "c", "", 100); x != info.addColumnSql {
 		t.Fatal("wrong sql", x)
 	}
 }
@@ -788,7 +783,7 @@ func TestChangeColumnSql(t *testing.T) {
 
 func DoTestChangeColumnSql(t *testing.T, info dialectInfo) {
 	t.Logf("Dialect %T\n", info.dialect)
-	if x := info.dialect.ChangeColumnSql("a", "b", VarChar(""), 100); x != info.changeColumnSql {
+	if x := info.dialect.ChangeColumnSql("a", "b", "", 100); x != info.changeColumnSql {
 		t.Fatal("wrong sql", x)
 	}
 }
@@ -862,10 +857,10 @@ func TestSqlTypeForPgDialect(t *testing.T) {
 	if x := d.SqlType("astring", 0); x != "text" {
 		t.Fatal("wrong type", x)
 	}
-	if x := d.SqlType(VarChar("a"), 0); x != "varchar(255)" {
+	if x := d.SqlType("a", 255); x != "varchar(255)" {
 		t.Fatal("wrong type", x)
 	}
-	if x := d.SqlType(VarChar("b"), 128); x != "varchar(128)" {
+	if x := d.SqlType("b", 128); x != "varchar(128)" {
 		t.Fatal("wrong type", x)
 	}
 	if x := d.SqlType(time.Now(), 0); x != "timestamp" {
@@ -900,10 +895,10 @@ func TestSqlTypeForMysqlDialect(t *testing.T) {
 	if x := d.SqlType("astring", 0); x != "longtext" {
 		t.Fatal("wrong type", x)
 	}
-	if x := d.SqlType(VarChar("a"), 0); x != "varchar(255)" {
+	if x := d.SqlType("a", 65536); x != "longtext" {
 		t.Fatal("wrong type", x)
 	}
-	if x := d.SqlType(VarChar("b"), 128); x != "varchar(128)" {
+	if x := d.SqlType("b", 128); x != "varchar(128)" {
 		t.Fatal("wrong type", x)
 	}
 	if x := d.SqlType(time.Now(), 0); x != "timestamp" {
