@@ -6,64 +6,69 @@ import (
 	"time"
 )
 
-// THE IMPORTS AND LIVE TESTS ARE DISABLED BY DEFAULT, NOT TO INTERFERE WITH
+// THE LIVE TESTS ARE DISABLED BY DEFAULT, NOT TO INTERFERE WITH
 // REAL UNIT TESTS, SINCE THEY DO REQUIRE A CERTAIN SYSTEM CONFIGURATION!
 //
 // ONLY ENABLE THE LIVE TESTS IF NECESSARY
 //
-// TO ENABLE/DISABLE LIVE TESTS UNCOMMENT/COMMENT THE DRIVER IMPORT AND THE
-// CORRESPONDING DIALECT INFO IN THE TO_RUN ARRAY!
+// TO ENABLE/DISABLE LIVE TESTS UNCOMMENT/COMMENT THE CORRESPONDING DIALECT
+// INFO IN THE TO_RUN ARRAY!
 
 import (
-// _ "github.com/bmizerany/pq"
-// _ "github.com/ziutek/mymysql/godrv"
+	_ "github.com/bmizerany/pq"
+	_ "github.com/ziutek/mymysql/godrv"
 )
 
 var toRun = []dialectInfo{
-// dialectInfo{
-// 	NewPostgres(),
-// 	setupPgDb,
-// 	`CREATE TABLE "without_pk" ( "first" text, "last" text, "amount" integer )`,
-// 	`CREATE TABLE IF NOT EXISTS "without_pk" ( "first" text, "last" text, "amount" integer )`,
-// 	`CREATE TABLE "with_pk" ( "primary" bigserial PRIMARY KEY, "first" text, "last" text, "amount" integer )`,
-// 	`INSERT INTO "sql_gen_model" ("first", "last", "amount") VALUES ($1, $2, $3) RETURNING "prim"`,
-// 	`UPDATE "sql_gen_model" SET "first" = $1, "last" = $2, "amount" = $3 WHERE "prim" = $4`,
-// 	`DELETE FROM "sql_gen_model" WHERE "prim" = $1`,
-// 	`SELECT * FROM "sql_gen_model"`,
-// 	`SELECT "col1", "col2" FROM "sql_gen_model" INNER JOIN "orders" ON "sql_gen_model"."id1" = "orders"."id2" WHERE "user"."id" = "order"."id" AND "a" > $1 OR "b" < $2 AND "c" = $3 OR "d" = $4 GROUP BY "user"."name" HAVING SUM(price) < $5 ORDER BY "user"."first_name" LIMIT $6 OFFSET $7`,
-// 	`DROP TABLE "drop_table"`,
-// 	`DROP TABLE IF EXISTS "drop_table"`,
-// 	`ALTER TABLE "table_a" RENAME TO "table_b"`,
-// 	`ALTER TABLE "a" ADD COLUMN "c" varchar(100)`,
-// 	`ALTER TABLE "a" RENAME COLUMN "b" TO "c"`,
-// 	`ALTER TABLE "a" ALTER COLUMN "b" TYPE varchar(100)`,
-// 	`ALTER TABLE "a" DROP COLUMN "b"`,
-// 	`CREATE UNIQUE INDEX "iname" ON "itable" ("a", "b", "c")`,
-// 	`CREATE INDEX "iname2" ON "itable2" ("d", "e")`,
-// 	`DROP INDEX "iname"`,
-// },
-// dialectInfo{
-// 	NewMysql(),
-// 	setupMysql,
-// 	"CREATE TABLE `without_pk` ( `first` longtext, `last` longtext, `amount` int )",
-// 	"CREATE TABLE IF NOT EXISTS `without_pk` ( `first` longtext, `last` longtext, `amount` int )",
-// 	"CREATE TABLE `with_pk` ( `primary` bigint PRIMARY KEY AUTO_INCREMENT, `first` longtext, `last` longtext, `amount` int )",
-// 	"INSERT INTO `sql_gen_model` (`first`, `last`, `amount`) VALUES (?, ?, ?)",
-// 	"UPDATE `sql_gen_model` SET `first` = ?, `last` = ?, `amount` = ? WHERE `prim` = ?",
-// 	"DELETE FROM `sql_gen_model` WHERE `prim` = ?",
-// 	"SELECT * FROM `sql_gen_model`",
-// 	"SELECT `col1`, `col2` FROM `sql_gen_model` INNER JOIN `orders` ON `sql_gen_model`.`id1` = `orders`.`id2` WHERE `user`.`id` = `order`.`id` AND `a` > ? OR `b` < ? AND `c` = ? OR `d` = ? GROUP BY `user`.`name` HAVING SUM(price) < ? ORDER BY `user`.`first_name` LIMIT ? OFFSET ?",
-// 	"DROP TABLE `drop_table`",
-// 	"DROP TABLE IF EXISTS `drop_table`",
-// 	"ALTER TABLE `table_a` RENAME TO `table_b`",
-// 	"ALTER TABLE `a` ADD COLUMN `c` varchar(100)",
-// 	"ALTER TABLE `a` RENAME COLUMN `b` TO `c`",
-// 	"ALTER TABLE `a` ALTER COLUMN `b` TYPE varchar(100)",
-// 	"ALTER TABLE `a` DROP COLUMN `b`",
-// 	"CREATE UNIQUE INDEX `iname` ON `itable` (`a`, `b`, `c`)",
-// 	"CREATE INDEX `iname2` ON `itable2` (`d`, `e`)",
-// 	"DROP INDEX `iname`",
-// },
+// allDialectInfos[0],
+// allDialectInfos[1],
+}
+
+var allDialectInfos = []dialectInfo{
+	dialectInfo{
+		NewPostgres(),
+		setupPgDb,
+		`CREATE TABLE "without_pk" ( "first" text, "last" text, "amount" integer )`,
+		`CREATE TABLE IF NOT EXISTS "without_pk" ( "first" text, "last" text, "amount" integer )`,
+		`CREATE TABLE "with_pk" ( "primary" bigserial PRIMARY KEY, "first" text, "last" text, "amount" integer )`,
+		`INSERT INTO "sql_gen_model" ("first", "last", "amount") VALUES ($1, $2, $3) RETURNING "prim"`,
+		`UPDATE "sql_gen_model" SET "first" = $1, "last" = $2, "amount" = $3 WHERE "prim" = $4`,
+		`DELETE FROM "sql_gen_model" WHERE "prim" = $1`,
+		`SELECT * FROM "sql_gen_model"`,
+		`SELECT "col1", "col2" FROM "sql_gen_model" INNER JOIN "orders" ON "sql_gen_model"."id1" = "orders"."id2" WHERE "user"."id" = "order"."id" AND "a" > $1 OR "b" < $2 AND "c" = $3 OR "d" = $4 GROUP BY "user"."name" HAVING SUM(price) < $5 ORDER BY "user"."first_name" LIMIT $6 OFFSET $7`,
+		`DROP TABLE "drop_table"`,
+		`DROP TABLE IF EXISTS "drop_table"`,
+		`ALTER TABLE "table_a" RENAME TO "table_b"`,
+		`ALTER TABLE "a" ADD COLUMN "c" varchar(100)`,
+		`ALTER TABLE "a" RENAME COLUMN "b" TO "c"`,
+		`ALTER TABLE "a" ALTER COLUMN "b" TYPE varchar(100)`,
+		`ALTER TABLE "a" DROP COLUMN "b"`,
+		`CREATE UNIQUE INDEX "iname" ON "itable" ("a", "b", "c")`,
+		`CREATE INDEX "iname2" ON "itable2" ("d", "e")`,
+		`DROP INDEX "iname"`,
+	},
+	dialectInfo{
+		NewMysql(),
+		setupMysql,
+		"CREATE TABLE `without_pk` ( `first` longtext, `last` longtext, `amount` int )",
+		"CREATE TABLE IF NOT EXISTS `without_pk` ( `first` longtext, `last` longtext, `amount` int )",
+		"CREATE TABLE `with_pk` ( `primary` bigint PRIMARY KEY AUTO_INCREMENT, `first` longtext, `last` longtext, `amount` int )",
+		"INSERT INTO `sql_gen_model` (`first`, `last`, `amount`) VALUES (?, ?, ?)",
+		"UPDATE `sql_gen_model` SET `first` = ?, `last` = ?, `amount` = ? WHERE `prim` = ?",
+		"DELETE FROM `sql_gen_model` WHERE `prim` = ?",
+		"SELECT * FROM `sql_gen_model`",
+		"SELECT `col1`, `col2` FROM `sql_gen_model` INNER JOIN `orders` ON `sql_gen_model`.`id1` = `orders`.`id2` WHERE `user`.`id` = `order`.`id` AND `a` > ? OR `b` < ? AND `c` = ? OR `d` = ? GROUP BY `user`.`name` HAVING SUM(price) < ? ORDER BY `user`.`first_name` LIMIT ? OFFSET ?",
+		"DROP TABLE `drop_table`",
+		"DROP TABLE IF EXISTS `drop_table`",
+		"ALTER TABLE `table_a` RENAME TO `table_b`",
+		"ALTER TABLE `a` ADD COLUMN `c` varchar(100)",
+		"ALTER TABLE `a` RENAME COLUMN `b` TO `c`",
+		"ALTER TABLE `a` ALTER COLUMN `b` TYPE varchar(100)",
+		"ALTER TABLE `a` DROP COLUMN `b`",
+		"CREATE UNIQUE INDEX `iname` ON `itable` (`a`, `b`, `c`)",
+		"CREATE INDEX `iname2` ON `itable2` (`d`, `e`)",
+		"DROP INDEX `iname`",
+	},
 }
 
 type dialectInfo struct {
@@ -100,8 +105,8 @@ func setupPgDb(t *testing.T) *Hood {
 }
 
 func setupMysql(t *testing.T) *Hood {
-	db, err := sql.Open("mymysql", "hood_test/hood/")
-	// db, err := sql.Open("mymysql", "unix:/Applications/MAMP/tmp/mysql/mysql.sock*hood_test/hood/")
+	// db, err := sql.Open("mymysql", "hood_test/hood/")
+	db, err := sql.Open("mymysql", "unix:/Applications/MAMP/tmp/mysql/mysql.sock*hood_test/hood/")
 	if err != nil {
 		t.Fatal("could not open db", err)
 	}

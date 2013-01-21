@@ -11,21 +11,21 @@ func init() {
 	RegisterDialect("postgres", NewPostgres())
 }
 
-type Postgres struct {
-	Base
+type postgres struct {
+	base
 }
 
 func NewPostgres() Dialect {
-	d := &Postgres{}
-	d.Base.Dialect = d
+	d := &postgres{}
+	d.base.Dialect = d
 	return d
 }
 
-func (d *Postgres) Now() time.Time {
+func (d *postgres) Now() time.Time {
 	return time.Now().UTC()
 }
 
-func (d *Postgres) SqlType(f interface{}, size int) string {
+func (d *postgres) SqlType(f interface{}, size int) string {
 	switch f.(type) {
 	case Id:
 		return "bigserial"
@@ -50,14 +50,14 @@ func (d *Postgres) SqlType(f interface{}, size int) string {
 	panic("invalid sql type")
 }
 
-func (d *Postgres) Insert(hood *Hood, model *Model) (Id, error) {
+func (d *postgres) Insert(hood *Hood, model *Model) (Id, error) {
 	sql, args := d.Dialect.InsertSql(model)
 	var id int64
 	err := hood.QueryRow(sql, args...).Scan(&id)
 	return Id(id), err
 }
 
-func (d *Postgres) InsertSql(model *Model) (string, []interface{}) {
+func (d *postgres) InsertSql(model *Model) (string, []interface{}) {
 	m := 0
 	columns, markers, values := columnsMarkersAndValuesForModel(d.Dialect, model, &m)
 	quotedColumns := make([]string, 0, len(columns))
@@ -74,7 +74,7 @@ func (d *Postgres) InsertSql(model *Model) (string, []interface{}) {
 	return sql, values
 }
 
-func (d *Postgres) KeywordAutoIncrement() string {
+func (d *postgres) KeywordAutoIncrement() string {
 	// postgres has not auto increment keyword, uses SERIAL type
 	return ""
 }

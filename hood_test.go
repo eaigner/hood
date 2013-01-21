@@ -160,7 +160,7 @@ func (v *validateSchema) ValidateY() error {
 }
 
 func TestValidationMethods(t *testing.T) {
-	hd := New(nil, &Postgres{})
+	hd := New(nil, &postgres{})
 	m := &validateSchema{}
 	err := hd.Validate(m)
 	if err == nil || err.Error() != "ValidateY failed" {

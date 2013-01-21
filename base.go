@@ -7,29 +7,29 @@ import (
 	"time"
 )
 
-type Base struct {
+type base struct {
 	Dialect Dialect
 }
 
-func (d *Base) NextMarker(pos *int) string {
+func (d *base) NextMarker(pos *int) string {
 	m := fmt.Sprintf("$%d", *pos+1)
 	*pos++
 	return m
 }
 
-func (d *Base) Quote(s string) string {
+func (d *base) Quote(s string) string {
 	return fmt.Sprintf(`"%s"`, s)
 }
 
-func (d *Base) Now() time.Time {
+func (d *base) Now() time.Time {
 	return time.Now()
 }
 
-func (d *Base) ParseBool(value reflect.Value) bool {
+func (d *base) ParseBool(value reflect.Value) bool {
 	return value.Bool()
 }
 
-func (d *Base) SetModelValue(driverValue, fieldValue reflect.Value) error {
+func (d *base) SetModelValue(driverValue, fieldValue reflect.Value) error {
 	fieldType := fieldValue.Type()
 	switch fieldValue.Type().Kind() {
 	case reflect.Bool:
@@ -72,7 +72,7 @@ func (d *Base) SetModelValue(driverValue, fieldValue reflect.Value) error {
 	return nil
 }
 
-func (d *Base) ConvertHoodType(f interface{}) interface{} {
+func (d *base) ConvertHoodType(f interface{}) interface{} {
 	if t, ok := f.(Created); ok {
 		return t.Time
 	}
@@ -82,7 +82,7 @@ func (d *Base) ConvertHoodType(f interface{}) interface{} {
 	return f
 }
 
-func (d *Base) QuerySql(hood *Hood) (string, []interface{}) {
+func (d *base) QuerySql(hood *Hood) (string, []interface{}) {
 	query := make([]string, 0, 20)
 	args := make([]interface{}, 0, 20)
 	if hood.selectTable != "" {
@@ -163,7 +163,7 @@ func (d *Base) QuerySql(hood *Hood) (string, []interface{}) {
 	return hood.substituteMarkers(strings.Join(query, " ")), args
 }
 
-func (d *Base) Insert(hood *Hood, model *Model) (Id, error) {
+func (d *base) Insert(hood *Hood, model *Model) (Id, error) {
 	sql, args := d.Dialect.InsertSql(model)
 	result, err := hood.Exec(sql, args...)
 	if err != nil {
@@ -176,7 +176,7 @@ func (d *Base) Insert(hood *Hood, model *Model) (Id, error) {
 	return Id(id), nil
 }
 
-func (d *Base) InsertSql(model *Model) (string, []interface{}) {
+func (d *base) InsertSql(model *Model) (string, []interface{}) {
 	m := 0
 	columns, markers, values := columnsMarkersAndValuesForModel(d.Dialect, model, &m)
 	quotedColumns := make([]string, 0, len(columns))
@@ -192,7 +192,7 @@ func (d *Base) InsertSql(model *Model) (string, []interface{}) {
 	return sql, values
 }
 
-func (d *Base) Update(hood *Hood, model *Model) (Id, error) {
+func (d *base) Update(hood *Hood, model *Model) (Id, error) {
 	sql, args := d.Dialect.UpdateSql(model)
 	_, err := hood.Exec(sql, args...)
 	if err != nil {
@@ -201,7 +201,7 @@ func (d *Base) Update(hood *Hood, model *Model) (Id, error) {
 	return model.Pk.Value.(Id), nil
 }
 
-func (d *Base) UpdateSql(model *Model) (string, []interface{}) {
+func (d *base) UpdateSql(model *Model) (string, []interface{}) {
 	m := 0
 	columns, markers, values := columnsMarkersAndValuesForModel(d.Dialect, model, &m)
 	pairs := make([]string, 0, len(columns))
@@ -219,13 +219,13 @@ func (d *Base) UpdateSql(model *Model) (string, []interface{}) {
 	return sql, values
 }
 
-func (d *Base) Delete(hood *Hood, model *Model) (Id, error) {
+func (d *base) Delete(hood *Hood, model *Model) (Id, error) {
 	sql, args := d.Dialect.DeleteSql(model)
 	_, err := hood.Exec(sql, args...)
 	return args[0].(Id), err
 }
 
-func (d *Base) DeleteSql(model *Model) (string, []interface{}) {
+func (d *base) DeleteSql(model *Model) (string, []interface{}) {
 	n := 0
 	return fmt.Sprintf(
 		"DELETE FROM %v WHERE %v = %v",
@@ -235,17 +235,17 @@ func (d *Base) DeleteSql(model *Model) (string, []interface{}) {
 	), []interface{}{model.Pk.Value}
 }
 
-func (d *Base) CreateTable(hood *Hood, model *Model) error {
+func (d *base) CreateTable(hood *Hood, model *Model) error {
 	_, err := hood.Exec(d.Dialect.CreateTableSql(model, false))
 	return err
 }
 
-func (d *Base) CreateTableIfNotExists(hood *Hood, model *Model) error {
+func (d *base) CreateTableIfNotExists(hood *Hood, model *Model) error {
 	_, err := hood.Exec(d.Dialect.CreateTableSql(model, true))
 	return err
 }
 
-func (d *Base) CreateTableSql(model *Model, ifNotExists bool) string {
+func (d *base) CreateTableSql(model *Model, ifNotExists bool) string {
 	a := []string{"CREATE TABLE "}
 	if ifNotExists {
 		a = append(a, "IF NOT EXISTS ")
@@ -277,17 +277,17 @@ func (d *Base) CreateTableSql(model *Model, ifNotExists bool) string {
 	return strings.Join(a, "")
 }
 
-func (d *Base) DropTable(hood *Hood, table string) error {
+func (d *base) DropTable(hood *Hood, table string) error {
 	_, err := hood.Exec(d.Dialect.DropTableSql(table, false))
 	return err
 }
 
-func (d *Base) DropTableIfExists(hood *Hood, table string) error {
+func (d *base) DropTableIfExists(hood *Hood, table string) error {
 	_, err := hood.Exec(d.Dialect.DropTableSql(table, true))
 	return err
 }
 
-func (d *Base) DropTableSql(table string, ifExists bool) string {
+func (d *base) DropTableSql(table string, ifExists bool) string {
 	a := []string{"DROP TABLE"}
 	if ifExists {
 		a = append(a, "IF EXISTS")
@@ -296,21 +296,21 @@ func (d *Base) DropTableSql(table string, ifExists bool) string {
 	return strings.Join(a, " ")
 }
 
-func (d *Base) RenameTable(hood *Hood, from, to string) error {
+func (d *base) RenameTable(hood *Hood, from, to string) error {
 	_, err := hood.Exec(d.Dialect.RenameTableSql(from, to))
 	return err
 }
 
-func (d *Base) RenameTableSql(from, to string) string {
+func (d *base) RenameTableSql(from, to string) string {
 	return fmt.Sprintf("ALTER TABLE %v RENAME TO %v", d.Dialect.Quote(from), d.Dialect.Quote(to))
 }
 
-func (d *Base) AddColumn(hood *Hood, table, column string, typ interface{}, size int) error {
+func (d *base) AddColumn(hood *Hood, table, column string, typ interface{}, size int) error {
 	_, err := hood.Exec(d.Dialect.AddColumnSql(table, column, typ, size))
 	return err
 }
 
-func (d *Base) AddColumnSql(table, column string, typ interface{}, size int) string {
+func (d *base) AddColumnSql(table, column string, typ interface{}, size int) string {
 	return fmt.Sprintf(
 		"ALTER TABLE %v ADD COLUMN %v %v",
 		d.Dialect.Quote(table),
@@ -319,12 +319,12 @@ func (d *Base) AddColumnSql(table, column string, typ interface{}, size int) str
 	)
 }
 
-func (d *Base) RenameColumn(hood *Hood, table, from, to string) error {
+func (d *base) RenameColumn(hood *Hood, table, from, to string) error {
 	_, err := hood.Exec(d.Dialect.RenameColumnSql(table, from, to))
 	return err
 }
 
-func (d *Base) RenameColumnSql(table, from, to string) string {
+func (d *base) RenameColumnSql(table, from, to string) string {
 	return fmt.Sprintf(
 		"ALTER TABLE %v RENAME COLUMN %v TO %v",
 		d.Dialect.Quote(table),
@@ -333,12 +333,12 @@ func (d *Base) RenameColumnSql(table, from, to string) string {
 	)
 }
 
-func (d *Base) ChangeColumn(hood *Hood, table, column string, typ interface{}, size int) error {
+func (d *base) ChangeColumn(hood *Hood, table, column string, typ interface{}, size int) error {
 	_, err := hood.Exec(d.Dialect.ChangeColumnSql(table, column, typ, size))
 	return err
 }
 
-func (d *Base) ChangeColumnSql(table, column string, typ interface{}, size int) string {
+func (d *base) ChangeColumnSql(table, column string, typ interface{}, size int) string {
 	return fmt.Sprintf(
 		"ALTER TABLE %v ALTER COLUMN %v TYPE %v",
 		d.Dialect.Quote(table),
@@ -347,12 +347,12 @@ func (d *Base) ChangeColumnSql(table, column string, typ interface{}, size int) 
 	)
 }
 
-func (d *Base) DropColumn(hood *Hood, table, column string) error {
+func (d *base) DropColumn(hood *Hood, table, column string) error {
 	_, err := hood.Exec(d.Dialect.DropColumnSql(table, column))
 	return err
 }
 
-func (d *Base) DropColumnSql(table, column string) string {
+func (d *base) DropColumnSql(table, column string) string {
 	return fmt.Sprintf(
 		"ALTER TABLE %v DROP COLUMN %v",
 		d.Dialect.Quote(table),
@@ -360,12 +360,12 @@ func (d *Base) DropColumnSql(table, column string) string {
 	)
 }
 
-func (d *Base) CreateIndex(hood *Hood, name, table string, unique bool, columns ...string) error {
+func (d *base) CreateIndex(hood *Hood, name, table string, unique bool, columns ...string) error {
 	_, err := hood.Exec(d.Dialect.CreateIndexSql(name, table, unique, columns...))
 	return err
 }
 
-func (d *Base) CreateIndexSql(name, table string, unique bool, columns ...string) string {
+func (d *base) CreateIndexSql(name, table string, unique bool, columns ...string) string {
 	a := []string{"CREATE"}
 	if unique {
 		a = append(a, "UNIQUE")
@@ -383,27 +383,27 @@ func (d *Base) CreateIndexSql(name, table string, unique bool, columns ...string
 	return strings.Join(a, " ")
 }
 
-func (d *Base) DropIndex(hood *Hood, name string) error {
+func (d *base) DropIndex(hood *Hood, name string) error {
 	_, err := hood.Exec(d.Dialect.DropIndexSql(name))
 	return err
 }
 
-func (d *Base) DropIndexSql(name string) string {
+func (d *base) DropIndexSql(name string) string {
 	return fmt.Sprintf("DROP INDEX %v", d.Dialect.Quote(name))
 }
 
-func (d *Base) KeywordNotNull() string {
+func (d *base) KeywordNotNull() string {
 	return "NOT NULL"
 }
 
-func (d *Base) KeywordDefault(s string) string {
+func (d *base) KeywordDefault(s string) string {
 	return fmt.Sprintf("DEFAULT %v", s)
 }
 
-func (d *Base) KeywordPrimaryKey() string {
+func (d *base) KeywordPrimaryKey() string {
 	return "PRIMARY KEY"
 }
 
-func (d *Base) KeywordAutoIncrement() string {
+func (d *base) KeywordAutoIncrement() string {
 	return "AUTOINCREMENT"
 }
