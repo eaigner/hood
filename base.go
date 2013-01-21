@@ -117,9 +117,41 @@ func (d *Base) QuerySql(hood *Hood) (string, []interface{}) {
 		),
 		)
 	}
-	if x := hood.whereClauses; len(x) > 0 {
-		query = append(query, fmt.Sprintf("WHERE %v", strings.Join(x, " AND ")))
-		args = append(args, hood.whereArgs...)
+	if x := hood.where; len(x) > 0 {
+		for _, v := range x {
+			// TODO: could be prettier!
+			var c *clause
+			switch p := v.(type) {
+			case *whereClause:
+				query = append(query, "WHERE")
+				c = (*clause)(p)
+			case *andClause:
+				query = append(query, "AND")
+				c = (*clause)(p)
+			case *orClause:
+				query = append(query, "OR")
+				c = (*clause)(p)
+			}
+			if c != nil {
+				switch t := c.a.(type) {
+				case string:
+					query = append(query, d.Dialect.Quote(t))
+				case Path:
+					query = append(query, t.Quote(d.Dialect))
+				default:
+					panic("invalid clause argument a")
+				}
+				query = append(query, c.op)
+				if path, ok := c.b.(Path); ok {
+					query = append(query, path.Quote(d.Dialect))
+				} else {
+					query = append(query, "?")
+					args = append(args, c.b)
+				}
+			} else {
+				panic(fmt.Sprintf("invalid where clause %T", v))
+			}
+		}
 	}
 	if x := hood.groupBy; x != "" {
 		query = append(query, fmt.Sprintf("GROUP BY %v", d.Dialect.Quote(x)))

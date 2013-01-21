@@ -18,27 +18,26 @@ import (
 type (
 	// Hood is an ORM handle.
 	Hood struct {
-		Db           *sql.DB
-		Dialect      Dialect
-		Log          bool
-		qo           qo     // the query object
-		schema       Schema // keeping track of the schema
-		dryRun       bool   // if actual sql is executed or not
-		selectCols   []string
-		selectTable  string
-		whereClauses []string
-		whereArgs    []interface{}
-		markerPos    int
-		limit        int
-		offset       int
-		orderBy      string
-		joinOps      []Join
-		joinTables   []interface{}
-		joinCol1     []string
-		joinCol2     []string
-		groupBy      string
-		havingCond   string
-		havingArgs   []interface{}
+		Db          *sql.DB
+		Dialect     Dialect
+		Log         bool
+		qo          qo     // the query object
+		schema      Schema // keeping track of the schema
+		dryRun      bool   // if actual sql is executed or not
+		selectCols  []string
+		selectTable string
+		where       []interface{}
+		markerPos   int
+		limit       int
+		offset      int
+		orderBy     string
+		joinOps     []Join
+		joinTables  []interface{}
+		joinCol1    []string
+		joinCol2    []string
+		groupBy     string
+		havingCond  string
+		havingArgs  []interface{}
 	}
 
 	// Id represents a auto-incrementing integer primary key type.
@@ -95,10 +94,40 @@ type (
 	// in the config.json file
 	Environment map[string]Config
 
+	// Path denotes a combined sql identifier such as 'table.column'
+	Path string
+
+	// TODO: implement aggregate function types
+	//
+	// // Avg denotes an average aggregate function argument
+	// Avg interface{}
+
+	// // Min denotes an minimum aggregate function argument
+	// Min interface{}
+
+	// // Max denotes an maximum aggregate function argument
+	// Max interface{}
+
+	// // Std denotes an standard derivation aggregate function argument
+	// Std interface{}
+
+	// // Sum denotes an sum aggregate function argument
+	// Sum interface{}
+
 	qo interface {
 		Prepare(query string) (*sql.Stmt, error)
 		QueryRow(query string, args ...interface{}) *sql.Row
 	}
+
+	clause struct {
+		a  interface{}
+		op string
+		b  interface{}
+	}
+
+	whereClause clause
+	andClause   clause
+	orClause    clause
 )
 
 const (
@@ -109,6 +138,17 @@ const (
 )
 
 type Join int
+
+// Quote quotes the path using the given dialects Quote method
+func (p Path) Quote(d Dialect) string {
+	sep := "."
+	a := []string{}
+	c := strings.Split(string(p), sep)
+	for _, v := range c {
+		a = append(a, d.Quote(v))
+	}
+	return strings.Join(a, sep)
+}
 
 // PrimaryKey tests if the field is declared using the sql tag "pk" or is of type Id
 func (field *ModelField) PrimaryKey() bool {
@@ -402,8 +442,7 @@ func RegisterDialect(name string, dialect Dialect) {
 func (hood *Hood) Reset() {
 	hood.selectCols = nil
 	hood.selectTable = ""
-	hood.whereClauses = make([]string, 0, 10)
-	hood.whereArgs = make([]interface{}, 0, 10)
+	hood.where = []interface{}{}
 	hood.markerPos = 0
 	hood.limit = 0
 	hood.offset = 0
@@ -468,13 +507,39 @@ func (hood *Hood) Select(table interface{}, columns ...string) *Hood {
 	return hood
 }
 
-// Where adds a WHERE clause to the query. The markers are database agnostic, so
-// you can always use ? and it will get replaced with the dialect specific
-// version, for example
-//   Where("id = ?", 3)
-func (hood *Hood) Where(query string, args ...interface{}) *Hood {
-	hood.whereClauses = append(hood.whereClauses, query)
-	hood.whereArgs = append(hood.whereArgs, args...)
+// Where adds a WHERE clause to the query. You can concatenate using the
+// And and Or methods. You can either pass a column name as string or a path
+// like 'table.column' using the Path type as arguments.
+func (hood *Hood) Where(a interface{}, op string, b interface{}) *Hood {
+	hood.where = append(hood.where, &whereClause{
+		a:  a,
+		op: op,
+		b:  b,
+	})
+	return hood
+}
+
+// Where adds a AND clause to the WHERE query. You can concatenate using the
+// And and Or methods. You can either pass a column name as string or a path
+// like 'table.column' using the Path type as arguments.
+func (hood *Hood) And(a interface{}, op string, b interface{}) *Hood {
+	hood.where = append(hood.where, &andClause{
+		a:  a,
+		op: op,
+		b:  b,
+	})
+	return hood
+}
+
+// Where adds a OR clause to the WHERE query. You can concatenate using the
+// And and Or methods. You can either pass a column name as string or a path
+// like 'table.column' using the Path type as arguments.
+func (hood *Hood) Or(a interface{}, op string, b interface{}) *Hood {
+	hood.where = append(hood.where, &orClause{
+		a:  a,
+		op: op,
+		b:  b,
+	})
 	return hood
 }
 

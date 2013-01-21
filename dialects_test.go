@@ -30,7 +30,7 @@ var toRun = []dialectInfo{
 // 	`UPDATE "sql_gen_model" SET "first" = $1, "last" = $2, "amount" = $3 WHERE "prim" = $4`,
 // 	`DELETE FROM "sql_gen_model" WHERE "prim" = $1`,
 // 	`SELECT * FROM "sql_gen_model"`,
-// 	`SELECT "col1", "col2" FROM "sql_gen_model" INNER JOIN "orders" ON "sql_gen_model"."id1" = "orders"."id2" WHERE id = $1 AND category_id = $2 GROUP BY "name" HAVING SUM(price) < $3 ORDER BY "first_name" LIMIT $4 OFFSET $5`,
+// 	`SELECT "col1", "col2" FROM "sql_gen_model" INNER JOIN "orders" ON "sql_gen_model"."id1" = "orders"."id2" WHERE "user"."id" = "order"."id" AND "a" > $1 OR "b" < $2 AND "c" = $3 OR "d" = $4 GROUP BY "name" HAVING SUM(price) < $5 ORDER BY "first_name" LIMIT $6 OFFSET $7`,
 // 	`DROP TABLE "drop_table"`,
 // 	`DROP TABLE IF EXISTS "drop_table"`,
 // 	`ALTER TABLE "table_a" RENAME TO "table_b"`,
@@ -52,7 +52,7 @@ var toRun = []dialectInfo{
 // 	"UPDATE `sql_gen_model` SET `first` = ?, `last` = ?, `amount` = ? WHERE `prim` = ?",
 // 	"DELETE FROM `sql_gen_model` WHERE `prim` = ?",
 // 	"SELECT * FROM `sql_gen_model`",
-// 	"SELECT `col1`, `col2` FROM `sql_gen_model` INNER JOIN `orders` ON `sql_gen_model`.`id1` = `orders`.`id2` WHERE id = ? AND category_id = ? GROUP BY `name` HAVING SUM(price) < ? ORDER BY `first_name` LIMIT ? OFFSET ?",
+// 	"SELECT `col1`, `col2` FROM `sql_gen_model` INNER JOIN `orders` ON `sql_gen_model`.`id1` = `orders`.`id2` WHERE `user`.`id` = `order`.`id` AND `a` > ? OR `b` < ? AND `c` = ? OR `d` = ? GROUP BY `name` HAVING SUM(price) < ? ORDER BY `first_name` LIMIT ? OFFSET ?",
 // 	"DROP TABLE `drop_table`",
 // 	"DROP TABLE IF EXISTS `drop_table`",
 // 	"ALTER TABLE `table_a` RENAME TO `table_b`",
@@ -101,6 +101,7 @@ func setupPgDb(t *testing.T) *Hood {
 
 func setupMysql(t *testing.T) *Hood {
 	db, err := sql.Open("mymysql", "hood_test/hood/")
+	// db, err := sql.Open("mymysql", "unix:/Applications/MAMP/tmp/mysql/mysql.sock*hood_test/hood/")
 	if err != nil {
 		t.Fatal("could not open db", err)
 	}
@@ -230,7 +231,7 @@ func DoTestSaveAndDelete(t *testing.T, info dialectInfo) {
 
 	// make sure created/updated values match the db
 	var model1r []saveModel
-	err = hd.Where("id = ?", model1.Id).Find(&model1r)
+	err = hd.Where("id", "=", model1.Id).Find(&model1r)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -267,7 +268,7 @@ func DoTestSaveAndDelete(t *testing.T, info dialectInfo) {
 
 	// make sure created/updated values match the db
 	var model1r2 []saveModel
-	err = hd.Where("id = ?", model1.Id).Find(&model1r2)
+	err = hd.Where("id", "=", model1.Id).Find(&model1r2)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -489,7 +490,7 @@ func DoTestFind(t *testing.T, info dialectInfo) {
 	}
 
 	var out []findModel
-	err = hd.Where("a = ? AND j = ?", "string!", 9).Find(&out)
+	err = hd.Where("a", "=", "string!").And("j", "=", 9).Find(&out)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -505,7 +506,7 @@ func DoTestFind(t *testing.T, info dialectInfo) {
 		t.Fatal("wrong id", id)
 	}
 
-	err = hd.Where("a = ? AND j = ?", "string!", 9).Find(&out)
+	err = hd.Where("a", "=", "string!").And("j", "=", 9).Find(&out)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -578,7 +579,7 @@ func DoTestFind(t *testing.T, info dialectInfo) {
 	}
 
 	out = nil
-	err = hd.Where("a = ? AND j = ?", "row2", 9).Find(&out)
+	err = hd.Where("a", "=", "row2").And("j", "=", 9).Find(&out)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -587,7 +588,7 @@ func DoTestFind(t *testing.T, info dialectInfo) {
 	}
 
 	out = nil
-	err = hd.Where("j = ?", 9).Find(&out)
+	err = hd.Where("j", "=", 9).Find(&out)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -744,8 +745,11 @@ func DoTestQuerySQL(t *testing.T, info dialectInfo) {
 
 	hood = New(nil, info.dialect)
 	hood.Select(&sqlGenModel{}, "col1", "col2")
-	hood.Where("id = ?", 2)
-	hood.Where("category_id = ?", 5)
+	hood.Where(Path("user.id"), "=", Path("order.id"))
+	hood.And("a", ">", 4)
+	hood.Or("b", "<", 5)
+	hood.And("c", "=", 6)
+	hood.Or("d", "=", 7)
 	hood.Join(InnerJoin, "orders", "id1", "id2")
 	hood.GroupBy("name")
 	hood.Having("SUM(price) < ?", 2000)

@@ -333,7 +333,7 @@ func main() {
 	// The markers are db agnostic, so you can always use '?'
 	// e.g. in Postgres they are replaced with $1, $2, ...
 	var results []Fruit
-	err = hd.Where("color = ?", "green").OrderBy("name").Limit(1).Find(&results)
+	err = hd.Where("color", "=", "green").OrderBy("name").Limit(1).Find(&results)
 	if err != nil {
 		panic(err)
 	}
