@@ -24,18 +24,15 @@ type (
 		qo          qo     // the query object
 		schema      Schema // keeping track of the schema
 		dryRun      bool   // if actual sql is executed or not
-		selectCols  []string
+		selectPaths []Path
 		selectTable string
 		where       []interface{}
 		markerPos   int
 		limit       int
 		offset      int
-		orderBy     string
-		joinOps     []Join
-		joinTables  []interface{}
-		joinCol1    []string
-		joinCol2    []string
-		groupBy     string
+		orderBy     Path
+		joins       []*join
+		groupBy     Path
 		havingCond  string
 		havingArgs  []interface{}
 	}
@@ -120,7 +117,7 @@ type (
 	}
 
 	clause struct {
-		a  interface{}
+		a  Path
 		op string
 		b  interface{}
 	}
@@ -128,6 +125,13 @@ type (
 	whereClause clause
 	andClause   clause
 	orClause    clause
+
+	join struct {
+		join  Join
+		table string
+		a     Path
+		b     Path
+	}
 )
 
 const (
@@ -440,17 +444,14 @@ func RegisterDialect(name string, dialect Dialect) {
 
 // Reset resets the internal state.
 func (hood *Hood) Reset() {
-	hood.selectCols = nil
+	hood.selectPaths = nil
 	hood.selectTable = ""
 	hood.where = []interface{}{}
 	hood.markerPos = 0
 	hood.limit = 0
 	hood.offset = 0
 	hood.orderBy = ""
-	hood.joinOps = []Join{}
-	hood.joinTables = []interface{}{}
-	hood.joinCol1 = []string{}
-	hood.joinCol2 = []string{}
+	hood.joins = []*join{}
 	hood.groupBy = ""
 	hood.havingCond = ""
 	hood.havingArgs = make([]interface{}, 0, 20)
@@ -494,8 +495,8 @@ func (hood *Hood) SchemaDefinition() string {
 // Select adds a SELECT clause to the query with the specified table and columns.
 // The table can either be a string or it's name can be inferred from the passed
 // interface{} type.
-func (hood *Hood) Select(table interface{}, columns ...string) *Hood {
-	hood.selectCols = columns
+func (hood *Hood) Select(table interface{}, paths ...Path) *Hood {
+	hood.selectPaths = paths
 	switch f := table.(type) {
 	case string:
 		hood.selectTable = f
@@ -508,9 +509,8 @@ func (hood *Hood) Select(table interface{}, columns ...string) *Hood {
 }
 
 // Where adds a WHERE clause to the query. You can concatenate using the
-// And and Or methods. You can either pass a column name as string or a path
-// like 'table.column' using the Path type as arguments.
-func (hood *Hood) Where(a interface{}, op string, b interface{}) *Hood {
+// And and Or methods.
+func (hood *Hood) Where(a Path, op string, b interface{}) *Hood {
 	hood.where = append(hood.where, &whereClause{
 		a:  a,
 		op: op,
@@ -520,9 +520,8 @@ func (hood *Hood) Where(a interface{}, op string, b interface{}) *Hood {
 }
 
 // Where adds a AND clause to the WHERE query. You can concatenate using the
-// And and Or methods. You can either pass a column name as string or a path
-// like 'table.column' using the Path type as arguments.
-func (hood *Hood) And(a interface{}, op string, b interface{}) *Hood {
+// And and Or methods.
+func (hood *Hood) And(a Path, op string, b interface{}) *Hood {
 	hood.where = append(hood.where, &andClause{
 		a:  a,
 		op: op,
@@ -532,9 +531,8 @@ func (hood *Hood) And(a interface{}, op string, b interface{}) *Hood {
 }
 
 // Where adds a OR clause to the WHERE query. You can concatenate using the
-// And and Or methods. You can either pass a column name as string or a path
-// like 'table.column' using the Path type as arguments.
-func (hood *Hood) Or(a interface{}, op string, b interface{}) *Hood {
+// And and Or methods.
+func (hood *Hood) Or(a Path, op string, b interface{}) *Hood {
 	hood.where = append(hood.where, &orClause{
 		a:  a,
 		op: op,
@@ -556,24 +554,26 @@ func (hood *Hood) Offset(offset int) *Hood {
 }
 
 // OrderBy adds an ORDER BY clause to the query.
-func (hood *Hood) OrderBy(key string) *Hood {
-	hood.orderBy = key
+func (hood *Hood) OrderBy(path Path) *Hood {
+	hood.orderBy = path
 	return hood
 }
 
 // Join performs a JOIN on tables, for example
-//   Join(hood.InnerJoin, "table2", "table1id", "table2id")
-func (hood *Hood) Join(op Join, table2 interface{}, columnt1, columnt2 string) *Hood {
-	hood.joinOps = append(hood.joinOps, op)
-	hood.joinTables = append(hood.joinTables, table2)
-	hood.joinCol1 = append(hood.joinCol1, columnt1)
-	hood.joinCol2 = append(hood.joinCol2, columnt2)
+//   Join(hood.InnerJoin, &User{}, "user.id", "order.id")
+func (hood *Hood) Join(op Join, table interface{}, a Path, b Path) *Hood {
+	hood.joins = append(hood.joins, &join{
+		join:  op,
+		table: tableName(table),
+		a:     a,
+		b:     b,
+	})
 	return hood
 }
 
 // GroupBy adds a GROUP BY clause to the query.
-func (hood *Hood) GroupBy(key string) *Hood {
-	hood.groupBy = key
+func (hood *Hood) GroupBy(path Path) *Hood {
+	hood.groupBy = path
 	return hood
 }
 

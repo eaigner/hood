@@ -30,7 +30,7 @@ var toRun = []dialectInfo{
 // 	`UPDATE "sql_gen_model" SET "first" = $1, "last" = $2, "amount" = $3 WHERE "prim" = $4`,
 // 	`DELETE FROM "sql_gen_model" WHERE "prim" = $1`,
 // 	`SELECT * FROM "sql_gen_model"`,
-// 	`SELECT "col1", "col2" FROM "sql_gen_model" INNER JOIN "orders" ON "sql_gen_model"."id1" = "orders"."id2" WHERE "user"."id" = "order"."id" AND "a" > $1 OR "b" < $2 AND "c" = $3 OR "d" = $4 GROUP BY "name" HAVING SUM(price) < $5 ORDER BY "first_name" LIMIT $6 OFFSET $7`,
+// 	`SELECT "col1", "col2" FROM "sql_gen_model" INNER JOIN "orders" ON "sql_gen_model"."id1" = "orders"."id2" WHERE "user"."id" = "order"."id" AND "a" > $1 OR "b" < $2 AND "c" = $3 OR "d" = $4 GROUP BY "user"."name" HAVING SUM(price) < $5 ORDER BY "user"."first_name" LIMIT $6 OFFSET $7`,
 // 	`DROP TABLE "drop_table"`,
 // 	`DROP TABLE IF EXISTS "drop_table"`,
 // 	`ALTER TABLE "table_a" RENAME TO "table_b"`,
@@ -52,7 +52,7 @@ var toRun = []dialectInfo{
 // 	"UPDATE `sql_gen_model` SET `first` = ?, `last` = ?, `amount` = ? WHERE `prim` = ?",
 // 	"DELETE FROM `sql_gen_model` WHERE `prim` = ?",
 // 	"SELECT * FROM `sql_gen_model`",
-// 	"SELECT `col1`, `col2` FROM `sql_gen_model` INNER JOIN `orders` ON `sql_gen_model`.`id1` = `orders`.`id2` WHERE `user`.`id` = `order`.`id` AND `a` > ? OR `b` < ? AND `c` = ? OR `d` = ? GROUP BY `name` HAVING SUM(price) < ? ORDER BY `first_name` LIMIT ? OFFSET ?",
+// 	"SELECT `col1`, `col2` FROM `sql_gen_model` INNER JOIN `orders` ON `sql_gen_model`.`id1` = `orders`.`id2` WHERE `user`.`id` = `order`.`id` AND `a` > ? OR `b` < ? AND `c` = ? OR `d` = ? GROUP BY `user`.`name` HAVING SUM(price) < ? ORDER BY `user`.`first_name` LIMIT ? OFFSET ?",
 // 	"DROP TABLE `drop_table`",
 // 	"DROP TABLE IF EXISTS `drop_table`",
 // 	"ALTER TABLE `table_a` RENAME TO `table_b`",
@@ -745,15 +745,15 @@ func DoTestQuerySQL(t *testing.T, info dialectInfo) {
 
 	hood = New(nil, info.dialect)
 	hood.Select(&sqlGenModel{}, "col1", "col2")
-	hood.Where(Path("user.id"), "=", Path("order.id"))
+	hood.Where("user.id", "=", Path("order.id"))
 	hood.And("a", ">", 4)
 	hood.Or("b", "<", 5)
 	hood.And("c", "=", 6)
 	hood.Or("d", "=", 7)
-	hood.Join(InnerJoin, "orders", "id1", "id2")
-	hood.GroupBy("name")
+	hood.Join(InnerJoin, "orders", "sql_gen_model.id1", "orders.id2")
+	hood.GroupBy("user.name")
 	hood.Having("SUM(price) < ?", 2000)
-	hood.OrderBy("first_name")
+	hood.OrderBy("user.first_name")
 	hood.Offset(3)
 	hood.Limit(10)
 	query, _ = hood.Dialect.QuerySql(hood)

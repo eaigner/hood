@@ -87,18 +87,18 @@ func (d *Base) QuerySql(hood *Hood) (string, []interface{}) {
 	args := make([]interface{}, 0, 20)
 	if hood.selectTable != "" {
 		selector := "*"
-		if c := hood.selectCols; len(c) > 0 {
-			quotedCols := make([]string, 0, len(hood.selectCols))
-			for _, c := range hood.selectCols {
-				quotedCols = append(quotedCols, d.Dialect.Quote(c))
+		if paths := hood.selectPaths; len(paths) > 0 {
+			quoted := []string{}
+			for _, p := range paths {
+				quoted = append(quoted, p.Quote(d.Dialect))
 			}
-			selector = strings.Join(quotedCols, ", ")
+			selector = strings.Join(quoted, ", ")
 		}
 		query = append(query, fmt.Sprintf("SELECT %v FROM %v", selector, d.Dialect.Quote(hood.selectTable)))
 	}
-	for i, op := range hood.joinOps {
+	for _, j := range hood.joins {
 		joinType := "INNER"
-		switch op {
+		switch j.join {
 		case LeftJoin:
 			joinType = "LEFT"
 		case RightJoin:
@@ -107,15 +107,12 @@ func (d *Base) QuerySql(hood *Hood) (string, []interface{}) {
 			joinType = "FULL"
 		}
 		query = append(query, fmt.Sprintf(
-			"%s JOIN %v ON %s.%s = %s.%s",
+			"%s JOIN %s ON %s = %s",
 			joinType,
-			d.Dialect.Quote(tableName(hood.joinTables[i])),
-			d.Dialect.Quote(tableName(hood.selectTable)),
-			d.Dialect.Quote(hood.joinCol1[i]),
-			d.Dialect.Quote(tableName(hood.joinTables[i])),
-			d.Dialect.Quote(hood.joinCol2[i]),
-		),
-		)
+			d.Dialect.Quote(j.table),
+			j.a.Quote(d.Dialect),
+			j.b.Quote(d.Dialect),
+		))
 	}
 	if x := hood.where; len(x) > 0 {
 		for _, v := range x {
@@ -133,15 +130,7 @@ func (d *Base) QuerySql(hood *Hood) (string, []interface{}) {
 				c = (*clause)(p)
 			}
 			if c != nil {
-				switch t := c.a.(type) {
-				case string:
-					query = append(query, d.Dialect.Quote(t))
-				case Path:
-					query = append(query, t.Quote(d.Dialect))
-				default:
-					panic("invalid clause argument a")
-				}
-				query = append(query, c.op)
+				query = append(query, c.a.Quote(d.Dialect), c.op)
 				if path, ok := c.b.(Path); ok {
 					query = append(query, path.Quote(d.Dialect))
 				} else {
@@ -154,14 +143,14 @@ func (d *Base) QuerySql(hood *Hood) (string, []interface{}) {
 		}
 	}
 	if x := hood.groupBy; x != "" {
-		query = append(query, fmt.Sprintf("GROUP BY %v", d.Dialect.Quote(x)))
+		query = append(query, fmt.Sprintf("GROUP BY %v", x.Quote(d.Dialect)))
 	}
 	if x := hood.havingCond; x != "" {
 		query = append(query, fmt.Sprintf("HAVING %v", x))
 		args = append(args, hood.havingArgs...)
 	}
 	if x := hood.orderBy; x != "" {
-		query = append(query, fmt.Sprintf("ORDER BY %v", d.Dialect.Quote(x)))
+		query = append(query, fmt.Sprintf("ORDER BY %v", x.Quote(d.Dialect)))
 	}
 	if x := hood.limit; x > 0 {
 		query = append(query, "LIMIT ?")
