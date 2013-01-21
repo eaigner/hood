@@ -34,7 +34,8 @@ Adding a dialect is simple. Just create a new file named `<dialect_name>.go` and
 
 ## Documentation
 
-You can find the documentation over at [GoDoc](http://godoc.org/github.com/eaigner/hood)
+You can find the documentation over at [GoDoc](http://godoc.org/github.com/eaigner/hood).
+**To get a sense of the API, it's best to take a quick look at the [unit tests](https://github.com/eaigner/hood/blob/master/dialects_test.go), as they are always up to date!**
 
 ## Opening a Database
 
