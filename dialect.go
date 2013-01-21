@@ -6,7 +6,7 @@ import (
 )
 
 type Dialect interface {
-	// Marker returns the dialect specific markers for prepared statements,
+	// NextMarker returns the dialect specific marker for a prepared statement,
 	// for instance $1, $2, ... and increments the position by one.
 	// The position starts at 0.
 	NextMarker(pos *int) string
