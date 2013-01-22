@@ -30,6 +30,10 @@ func (d *base) ParseBool(value reflect.Value) bool {
 }
 
 func (d *base) SetModelValue(driverValue, fieldValue reflect.Value) error {
+	// ignore zero types
+	if !driverValue.Elem().IsValid() {
+		return nil
+	}
 	fieldType := fieldValue.Type()
 	switch fieldValue.Type().Kind() {
 	case reflect.Bool:
