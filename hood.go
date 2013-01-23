@@ -40,11 +40,12 @@ type (
 	// Id represents a auto-incrementing integer primary key type.
 	Id int64
 
-	// Index represents an schema field type for indexes.
-	Index int
-
-	// UniqueIndex represents an schema field type for unique indexes.
-	UniqueIndex int
+	// Index represents a table index and is returned via the Indexed interface.
+	Index struct {
+		Name    string
+		Columns []string
+		Unique  bool
+	}
 
 	// Created denotes a timestamp field that is automatically set on insert.
 	Created struct {
@@ -61,7 +62,7 @@ type (
 		Pk      *ModelField
 		Table   string
 		Fields  []*ModelField
-		Indexes []*ModelIndex
+		Indexes []*Index
 	}
 
 	// ModelField represents a schema field of a parsed model.
@@ -71,14 +72,6 @@ type (
 		SqlTags      map[string]string // The sql struct tags for this field
 		ValidateTags map[string]string // The validate struct tags for this field
 		RawTag       reflect.StructTag // The raw tag
-	}
-
-	// ModelIndex represents a schema index of a parsed model.
-	ModelIndex struct {
-		Name    string
-		Columns []string
-		Unique  bool
-		RawTag  reflect.StructTag // The raw tag
 	}
 
 	// Schema is a collection of models
@@ -93,6 +86,11 @@ type (
 
 	// Path denotes a combined sql identifier such as 'table.column'
 	Path string
+
+	// Indexed returns the indexes for a table.
+	Indexed interface {
+		Indexes() []*Index
+	}
 
 	// TODO: implement aggregate function types
 	//
@@ -142,6 +140,11 @@ const (
 )
 
 type Join int
+
+// NewIndex creates a new index instance.
+func NewIndex(name string, unique bool, columns ...string) *Index {
+	return &Index{Name: name, Columns: columns, Unique: unique}
+}
 
 // Quote quotes the path using the given dialects Quote method
 func (p Path) Quote(d Dialect) string {
@@ -328,20 +331,12 @@ func validateRegexp(s, reg, field string) error {
 	return nil
 }
 
-func (index *ModelIndex) GoDeclaration() string {
-	typ := reflect.TypeOf(Index(0)).String()
-	if index.Unique {
-		typ = reflect.TypeOf(UniqueIndex(0)).String()
-	}
-	t := ""
-	if x := index.RawTag; len(x) > 0 {
-		t = fmt.Sprintf("\t`%s`", index.RawTag)
-	}
+func (index *Index) GoDeclaration() string {
 	return fmt.Sprintf(
-		"%s\t%s%s",
-		snakeToUpperCamel(index.Name),
-		typ,
-		t,
+		"\tNewIndex(\"%s\", %t, \"%s\"),",
+		index.Name,
+		index.Unique,
+		strings.Join(index.Columns, "\", \""),
 	)
 }
 
@@ -356,17 +351,22 @@ func (model *Model) Validate() error {
 }
 
 func (model *Model) GoDeclaration() string {
-	a := []string{fmt.Sprintf("type %s struct {", snakeToUpperCamel(model.Table))}
+	tableName := snakeToUpperCamel(model.Table)
+	a := []string{fmt.Sprintf("type %s struct {", tableName)}
 	for _, f := range model.Fields {
 		a = append(a, "\t"+f.GoDeclaration())
 	}
-	if len(model.Indexes) > 0 {
-		a = append(a, "", "\t// Indexes")
-	}
-	for _, i := range model.Indexes {
-		a = append(a, "\t"+i.GoDeclaration())
-	}
 	a = append(a, "}")
+	if len(model.Indexes) > 0 {
+		a = append(a,
+			fmt.Sprintf("\nfunc (table *%s) Indexes() []*Index {", tableName),
+			"\treturn []*Index{",
+		)
+		for _, i := range model.Indexes {
+			a = append(a, "\t"+i.GoDeclaration())
+		}
+		a = append(a, "\t}", "}")
+	}
 	return strings.Join(a, "\n")
 }
 
@@ -1038,6 +1038,7 @@ func (hood *Hood) ChangeColumns(table, column interface{}) error {
 	return tx.Commit()
 }
 
+// RemoveColumns removes the specified columns from the table.
 func (hood *Hood) RemoveColumns(table, columns interface{}) error {
 	m, err := interfaceToModel(columns)
 	if err != nil {
@@ -1074,33 +1075,31 @@ func (hood *Hood) RemoveColumns(table, columns interface{}) error {
 	return tx.Commit()
 }
 
-func (hood *Hood) CreateIndex(table, index interface{}) error {
-	m, err := interfaceToModel(index)
-	if err != nil {
-		return err
-	}
+// CreateIndex creates the specified index on table.
+func (hood *Hood) CreateIndex(table interface{}, index *Index) error {
+	tn := tableName(table)
 	for _, s := range hood.schema {
-		if s.Table == tableName(table) {
-			s.Indexes = append(s.Indexes, m.Indexes...)
+		if s.Table == tn {
+			s.Indexes = append(s.Indexes, index)
 		}
 	}
 	if hood.dryRun {
 		return nil
 	}
 	tx := hood.Begin()
-	for _, index := range m.Indexes {
-		err = hood.Dialect.CreateIndex(tx, index.Name, tableName(table), index.Unique, index.Columns...)
-		if err != nil {
-			return err
-		}
+	err := hood.Dialect.CreateIndex(tx, index.Name, tn, index.Unique, index.Columns...)
+	if err != nil {
+		return err
 	}
 	return tx.Commit()
 }
 
-func (hood *Hood) DropIndex(name string, table interface{}) error {
+// DropIndex drops the specified index from table.
+func (hood *Hood) DropIndex(table interface{}, name string) error {
+	tn := tableName(table)
 	for _, s := range hood.schema {
-		if s.Table == tableName(table) {
-			indexes := []*ModelIndex{}
+		if s.Table == tn {
+			indexes := []*Index{}
 			for _, i := range s.Indexes {
 				if i.Name != name {
 					indexes = append(indexes, i)
@@ -1143,17 +1142,6 @@ func parseTags(s string) map[string]string {
 	return m
 }
 
-func addIndex(m *Model, field reflect.StructField, unique bool, sqlTags map[string]string, tag reflect.StructTag) {
-	if t, ok := sqlTags["columns"]; ok {
-		m.Indexes = append(m.Indexes, &ModelIndex{
-			Name:    toSnake(field.Name),
-			Columns: strings.Split(t, ":"),
-			Unique:  unique,
-			RawTag:  tag,
-		})
-	}
-}
-
 func addFields(m *Model, t reflect.Type, v reflect.Value) {
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
@@ -1175,22 +1163,24 @@ func addFields(m *Model, t reflect.Type, v reflect.Value) {
 				parsedValidateTags = parseTags(rawValidateTag)
 			}
 		}
-		if field.Type == reflect.TypeOf(Index(0)) {
-			addIndex(m, field, false, parsedSqlTags, field.Tag)
-		} else if field.Type == reflect.TypeOf(UniqueIndex(0)) {
-			addIndex(m, field, true, parsedSqlTags, field.Tag)
-		} else {
-			fd := &ModelField{
-				Name:         toSnake(field.Name),
-				Value:        v.FieldByName(field.Name).Interface(),
-				SqlTags:      parsedSqlTags,
-				ValidateTags: parsedValidateTags,
-				RawTag:       field.Tag,
-			}
-			if fd.PrimaryKey() {
-				m.Pk = fd
-			}
-			m.Fields = append(m.Fields, fd)
+		fd := &ModelField{
+			Name:         toSnake(field.Name),
+			Value:        v.FieldByName(field.Name).Interface(),
+			SqlTags:      parsedSqlTags,
+			ValidateTags: parsedValidateTags,
+			RawTag:       field.Tag,
+		}
+		if fd.PrimaryKey() {
+			m.Pk = fd
+		}
+		m.Fields = append(m.Fields, fd)
+	}
+}
+
+func addIndexes(m *Model, f interface{}) {
+	if t, ok := f.(Indexed); ok {
+		for _, idx := range t.Indexes() {
+			m.Indexes = append(m.Indexes, idx)
 		}
 	}
 }
@@ -1205,9 +1195,10 @@ func interfaceToModel(f interface{}) (*Model, error) {
 		Pk:      nil,
 		Table:   interfaceToSnake(f),
 		Fields:  []*ModelField{},
-		Indexes: []*ModelIndex{},
+		Indexes: []*Index{},
 	}
 	addFields(m, t, v)
+	addIndexes(m, f)
 	return m, nil
 }
 

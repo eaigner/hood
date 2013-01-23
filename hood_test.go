@@ -205,6 +205,21 @@ func TestInterfaceToModelWithEmbedded(t *testing.T) {
 	}
 }
 
+type indexedTable struct {
+	ColPrimary    Id
+	ColAltPrimary string `sql:"pk"`
+	ColNotNull    string `sql:"notnull,default('banana')"`
+	ColVarChar    string `sql:"size(64)"`
+	ColTime       time.Time
+}
+
+func (table *indexedTable) Indexes() []*Index {
+	return []*Index{
+		NewIndex("my_index", false, "col_primary", "col_time"),
+		NewIndex("my_unique_index", true, "col_var_char", "col_time"),
+	}
+}
+
 func TestInterfaceToModel(t *testing.T) {
 	type table struct {
 		ColPrimary    Id
@@ -212,11 +227,9 @@ func TestInterfaceToModel(t *testing.T) {
 		ColNotNull    string `sql:"notnull,default('banana')"`
 		ColVarChar    string `sql:"size(64)"`
 		ColTime       time.Time
-		MyIndex       Index       `sql:"columns(col_primary:col_time)"`
-		MyUniqueIndex UniqueIndex `sql:"columns(col_var_char:col_time)"`
 	}
 	now := time.Now()
-	table1 := &table{
+	table1 := &indexedTable{
 		ColPrimary:    6,
 		ColAltPrimary: "banana",
 		ColVarChar:    "orange",
@@ -301,60 +314,76 @@ func makeWhitespaceVisible(s string) string {
 	return s
 }
 
+type TestSchemaGenerationUserTable struct {
+	Id    Id
+	First string `sql:"size(30)"`
+	Last  string
+}
+
+func (table *TestSchemaGenerationUserTable) Indexes() []*Index {
+	return []*Index{
+		NewIndex("name_index", true, "first", "last"),
+	}
+}
+
 func TestSchemaGeneration(t *testing.T) {
 	hd := Dry()
 	if x := len(hd.schema); x != 0 {
 		t.Fatal("invalid schema state", x)
 	}
-	type Users struct {
-		Id        Id
-		First     string `sql:"size(30)"`
-		Last      string
-		NameIndex UniqueIndex `sql:"columns(first:last)"`
-	}
-	hd.CreateTable(&Users{})
-	decl1 := "type Users struct {\n" +
+
+	hd.CreateTable(&TestSchemaGenerationUserTable{})
+	decl1 := "type TestSchemaGenerationUserTable struct {\n" +
 		"\tId\thood.Id\n" +
 		"\tFirst\tstring\t`sql:\"size(30)\"`\n" +
 		"\tLast\tstring\n" +
+		"}\n" +
 		"\n" +
-		"\t// Indexes\n" +
-		"\tNameIndex\thood.UniqueIndex\t`sql:\"columns(first:last)\"`\n" +
+		"func (table *TestSchemaGenerationUserTable) Indexes() []*Index {\n" +
+		"\treturn []*Index{\n" +
+		"\t\tNewIndex(\"name_index\", true, \"first\", \"last\"),\n" +
+		"\t}\n" +
 		"}"
 	if x := hd.schema.GoDeclaration(); x != decl1 {
-		t.Fatalf("invalid schema\n%s\n\n%s", makeWhitespaceVisible(x), makeWhitespaceVisible(decl1))
+		t.Fatalf("invalid schema\n%s\n---\n%s", x, decl1)
 	}
 	type DropMe struct {
 		Id Id
 	}
 	hd.CreateTable(&DropMe{})
-	decl2 := "type Users struct {\n" +
+	decl2 := "type TestSchemaGenerationUserTable struct {\n" +
 		"\tId\thood.Id\n" +
 		"\tFirst\tstring\t`sql:\"size(30)\"`\n" +
 		"\tLast\tstring\n" +
+		"}\n" +
 		"\n" +
-		"\t// Indexes\n" +
-		"\tNameIndex\thood.UniqueIndex\t`sql:\"columns(first:last)\"`\n" +
+		"func (table *TestSchemaGenerationUserTable) Indexes() []*Index {\n" +
+		"\treturn []*Index{\n" +
+		"\t\tNewIndex(\"name_index\", true, \"first\", \"last\"),\n" +
+		"\t}\n" +
 		"}\n" +
 		"\n" +
 		"type DropMe struct {\n" +
 		"\tId\thood.Id\n" +
 		"}"
 	if x := hd.schema.GoDeclaration(); x != decl2 {
-		t.Fatalf("invalid schema\n%s\n\n%s", makeWhitespaceVisible(x), makeWhitespaceVisible(decl2))
+		t.Fatalf("invalid schema\n%s\n---\n%s", makeWhitespaceVisible(x), makeWhitespaceVisible(decl2))
 	}
 	hd.DropTable(&DropMe{})
 	if x := hd.schema.GoDeclaration(); x != decl1 {
 		t.Fatalf("invalid schema\n%s\n\n%s", makeWhitespaceVisible(x), makeWhitespaceVisible(decl1))
 	}
-	hd.RenameTable(&Users{}, "customers")
+	hd.RenameTable(&TestSchemaGenerationUserTable{}, "customers")
 	decl3 := "type Customers struct {\n" +
 		"\tId\thood.Id\n" +
 		"\tFirst\tstring\t`sql:\"size(30)\"`\n" +
 		"\tLast\tstring\n" +
+		"}\n" +
 		"\n" +
-		"\t// Indexes\n" +
-		"\tNameIndex\thood.UniqueIndex\t`sql:\"columns(first:last)\"`\n" +
+		"func (table *Customers) Indexes() []*Index {\n" +
+		"\treturn []*Index{\n" +
+		"\t\tNewIndex(\"name_index\", true, \"first\", \"last\"),\n" +
+		"\t}\n" +
 		"}"
 	if x := hd.schema.GoDeclaration(); x != decl3 {
 		t.Fatalf("invalid schema\n%s\n\n%s", makeWhitespaceVisible(x), makeWhitespaceVisible(decl3))
@@ -367,9 +396,12 @@ func TestSchemaGeneration(t *testing.T) {
 		"\tFirst\tstring\t`sql:\"size(30)\"`\n" +
 		"\tLast\tstring\n" +
 		"\tBalance\tint\n" +
+		"}\n" +
 		"\n" +
-		"\t// Indexes\n" +
-		"\tNameIndex\thood.UniqueIndex\t`sql:\"columns(first:last)\"`\n" +
+		"func (table *Customers) Indexes() []*Index {\n" +
+		"\treturn []*Index{\n" +
+		"\t\tNewIndex(\"name_index\", true, \"first\", \"last\"),\n" +
+		"\t}\n" +
 		"}"
 	if x := hd.schema.GoDeclaration(); x != decl4 {
 		t.Fatalf("invalid schema\n%s\n\n%s", makeWhitespaceVisible(x), makeWhitespaceVisible(decl4))
@@ -380,9 +412,12 @@ func TestSchemaGeneration(t *testing.T) {
 		"\tFirst\tstring\t`sql:\"size(30)\"`\n" +
 		"\tLast\tstring\n" +
 		"\tAmount\tint\n" +
+		"}\n" +
 		"\n" +
-		"\t// Indexes\n" +
-		"\tNameIndex\thood.UniqueIndex\t`sql:\"columns(first:last)\"`\n" +
+		"func (table *Customers) Indexes() []*Index {\n" +
+		"\treturn []*Index{\n" +
+		"\t\tNewIndex(\"name_index\", true, \"first\", \"last\"),\n" +
+		"\t}\n" +
 		"}"
 	if x := hd.schema.GoDeclaration(); x != decl5 {
 		t.Fatalf("invalid schema\n%s\n\n%s", makeWhitespaceVisible(x), makeWhitespaceVisible(decl5))
@@ -395,9 +430,12 @@ func TestSchemaGeneration(t *testing.T) {
 		"\tFirst\tstring\t`sql:\"size(30)\"`\n" +
 		"\tLast\tstring\n" +
 		"\tAmount\tstring\n" +
+		"}\n" +
 		"\n" +
-		"\t// Indexes\n" +
-		"\tNameIndex\thood.UniqueIndex\t`sql:\"columns(first:last)\"`\n" +
+		"func (table *Customers) Indexes() []*Index {\n" +
+		"\treturn []*Index{\n" +
+		"\t\tNewIndex(\"name_index\", true, \"first\", \"last\"),\n" +
+		"\t}\n" +
 		"}"
 	if x := hd.schema.GoDeclaration(); x != decl6 {
 		t.Fatalf("invalid schema\n%s\n\n%s", makeWhitespaceVisible(x), makeWhitespaceVisible(decl6))
@@ -409,34 +447,41 @@ func TestSchemaGeneration(t *testing.T) {
 	decl7 := "type Customers struct {\n" +
 		"\tId\thood.Id\n" +
 		"\tAmount\tstring\n" +
+		"}\n" +
 		"\n" +
-		"\t// Indexes\n" +
-		"\tNameIndex\thood.UniqueIndex\t`sql:\"columns(first:last)\"`\n" +
+		"func (table *Customers) Indexes() []*Index {\n" +
+		"\treturn []*Index{\n" +
+		"\t\tNewIndex(\"name_index\", true, \"first\", \"last\"),\n" +
+		"\t}\n" +
 		"}"
 	if x := hd.schema.GoDeclaration(); x != decl7 {
 		t.Fatalf("invalid schema\n%s\n\n%s", makeWhitespaceVisible(x), makeWhitespaceVisible(decl7))
 	}
-	hd.CreateIndex("customers", struct {
-		AmountIndex Index `sql:"columns(amount)"`
-	}{})
+	hd.CreateIndex("customers", NewIndex("amount_index", false, "amount"))
 	decl8 := "type Customers struct {\n" +
 		"\tId\thood.Id\n" +
 		"\tAmount\tstring\n" +
+		"}\n" +
 		"\n" +
-		"\t// Indexes\n" +
-		"\tNameIndex\thood.UniqueIndex\t`sql:\"columns(first:last)\"`\n" +
-		"\tAmountIndex\thood.Index\t`sql:\"columns(amount)\"`\n" +
+		"func (table *Customers) Indexes() []*Index {\n" +
+		"\treturn []*Index{\n" +
+		"\t\tNewIndex(\"name_index\", true, \"first\", \"last\"),\n" +
+		"\t\tNewIndex(\"amount_index\", false, \"amount\"),\n" +
+		"\t}\n" +
 		"}"
 	if x := hd.schema.GoDeclaration(); x != decl8 {
 		t.Fatalf("invalid schema\n%s\n\n%s", makeWhitespaceVisible(x), makeWhitespaceVisible(decl8))
 	}
-	hd.DropIndex("name_index", "customers")
+	hd.DropIndex("customers", "name_index")
 	decl9 := "type Customers struct {\n" +
 		"\tId\thood.Id\n" +
 		"\tAmount\tstring\n" +
+		"}\n" +
 		"\n" +
-		"\t// Indexes\n" +
-		"\tAmountIndex\thood.Index\t`sql:\"columns(amount)\"`\n" +
+		"func (table *Customers) Indexes() []*Index {\n" +
+		"\treturn []*Index{\n" +
+		"\t\tNewIndex(\"amount_index\", false, \"amount\"),\n" +
+		"\t}\n" +
 		"}"
 	if x := hd.schema.GoDeclaration(); x != decl9 {
 		t.Fatalf("invalid schema\n%s\n\n%s", makeWhitespaceVisible(x), makeWhitespaceVisible(decl9))

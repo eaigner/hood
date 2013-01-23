@@ -608,18 +608,23 @@ func TestCreateTable(t *testing.T) {
 	}
 }
 
+type CreateTableTestModel struct {
+	Prim   Id
+	First  string `sql:"notnull"`
+	Last   string `sql:"size(128),default('defaultValue')"`
+	Amount int
+}
+
+func (table *CreateTableTestModel) Indexes() []*Index {
+	return []*Index{
+		NewIndex("name_index", true, "first", "last"),
+	}
+}
+
 func DoTestCreateTable(t *testing.T, info dialectInfo) {
 	t.Logf("Dialect %T\n", info.dialect)
 	hd := info.setupDbFunc(t)
-	type model struct {
-		Prim      Id
-		First     string `sql:"notnull"`
-		Last      string `sql:"size(128),default('defaultValue')"`
-		Amount    int
-		NameIndex UniqueIndex `sql:"columns(first:last)"`
-	}
-	table := &model{}
-
+	table := &CreateTableTestModel{}
 	hd.DropTable(table)
 	err := hd.CreateTable(table)
 	if err != nil {
