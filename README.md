@@ -90,10 +90,10 @@ type Person struct {
 // Indexes are defined via the Indexed interface to avoid
 // polluting the table fields.
 
-func (table *Person) Indexes() []*Index {
-  return []*Index {
-    NewIndex("tag_index", false, "tag"), // params: indexName, unique, columns...
-    NewIndex("name_index", true, "first_name", "last_name"),
+func (table *Person) Indexes() []*hood.Index {
+  return []*hood.Index {
+    hood.NewIndex("tag_index", false, "tag"), // params: indexName, unique, columns...
+    hood.NewIndex("name_index", true, "first_name", "last_name"),
   }
 }
 ```
