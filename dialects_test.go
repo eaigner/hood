@@ -880,6 +880,44 @@ func DoTestDropIndexSql(t *testing.T, info dialectInfo) {
 	}
 }
 
+func TestNullValues(t *testing.T) {
+	for _, info := range toRun {
+		DoTestNullValues(t, info)
+	}
+}
+
+func DoTestNullValues(t *testing.T, info dialectInfo) {
+	t.Logf("Dialect %T\n", info.dialect)
+	type nullModel struct {
+		Id Id
+		A  string
+	}
+	hd := info.setupDbFunc(t)
+	err := hd.DropTableIfExists(&nullModel{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	err = hd.CreateTable(&nullModel{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	_, err = hd.Exec("INSERT INTO null_model (A) VALUES (NULL)")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	var out []nullModel
+	err = hd.Find(&out)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if x := len(out); x != 1 {
+		t.Fatal("should return 1 entry, has", x)
+	}
+	if x := out[0].A; x != "" {
+		t.Fatal("A should be empty (NULL)", x)
+	}
+}
+
 func TestSqlTypeForPgDialect(t *testing.T) {
 	d := NewPostgres()
 	if x := d.SqlType(true, 0); x != "boolean" {
