@@ -76,6 +76,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	hd.Log = true
 	// Check migration table
 	err = hd.CreateTableIfNotExists(&Migrations{})
 	if err != nil {
