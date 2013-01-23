@@ -487,6 +487,12 @@ func (hood *Hood) Rollback() error {
 	return nil
 }
 
+// IsTransaction returns wether the hood object represents an active transaction or not.
+func (hood *Hood) IsTransaction() bool {
+	_, ok := hood.qo.(*sql.Tx)
+	return ok
+}
+
 // SchemaDefinition returns a string of the schema represented as Go structs.
 func (hood *Hood) SchemaDefinition() string {
 	return hood.schema.GoDeclaration()
