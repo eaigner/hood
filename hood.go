@@ -820,12 +820,15 @@ func (hood *Hood) Save(f interface{}) (Id, error) {
 		structValue := reflect.Indirect(reflect.ValueOf(f))
 		for i := 0; i < structValue.NumField(); i++ {
 			field := structValue.Field(i)
-			if field.Type() == reflect.TypeOf(Id(0)) {
+			switch field.Interface().(type) {
+			case Id:
 				field.SetInt(int64(id))
-			} else if field.Type() == reflect.TypeOf(Updated{}) {
+			case Updated:
 				field.Set(reflect.ValueOf(Updated{now}))
-			} else if !isUpdate && field.Type() == reflect.TypeOf(Created{}) {
-				field.Set(reflect.ValueOf(Created{now}))
+			case Created:
+				if !isUpdate {
+					field.Set(reflect.ValueOf(Created{now}))
+				}
 			}
 		}
 	}
