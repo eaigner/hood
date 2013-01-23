@@ -333,7 +333,7 @@ func validateRegexp(s, reg, field string) error {
 
 func (index *Index) GoDeclaration() string {
 	return fmt.Sprintf(
-		"\tNewIndex(\"%s\", %t, \"%s\"),",
+		"\thood.NewIndex(\"%s\", %t, \"%s\"),",
 		index.Name,
 		index.Unique,
 		strings.Join(index.Columns, "\", \""),
@@ -359,8 +359,8 @@ func (model *Model) GoDeclaration() string {
 	a = append(a, "}")
 	if len(model.Indexes) > 0 {
 		a = append(a,
-			fmt.Sprintf("\nfunc (table *%s) Indexes() []*Index {", tableName),
-			"\treturn []*Index{",
+			fmt.Sprintf("\nfunc (table *%s) Indexes() []*hood.Index {", tableName),
+			"\treturn []*hood.Index{",
 		)
 		for _, i := range model.Indexes {
 			a = append(a, "\t"+i.GoDeclaration())
@@ -667,7 +667,7 @@ func (hood *Hood) Exec(query string, args ...interface{}) (sql.Result, error) {
 	if hood.Log {
 		fmt.Println(query)
 	}
-	stmt, err := hood.qo.Prepare(query)
+	stmt, err := hood.qo.Prepare(query + ";")
 	if err != nil {
 		return nil, err
 	}

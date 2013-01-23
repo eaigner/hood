@@ -339,9 +339,9 @@ func TestSchemaGeneration(t *testing.T) {
 		"\tLast\tstring\n" +
 		"}\n" +
 		"\n" +
-		"func (table *TestSchemaGenerationUserTable) Indexes() []*Index {\n" +
-		"\treturn []*Index{\n" +
-		"\t\tNewIndex(\"name_index\", true, \"first\", \"last\"),\n" +
+		"func (table *TestSchemaGenerationUserTable) Indexes() []*hood.Index {\n" +
+		"\treturn []*hood.Index{\n" +
+		"\t\thood.NewIndex(\"name_index\", true, \"first\", \"last\"),\n" +
 		"\t}\n" +
 		"}"
 	if x := hd.schema.GoDeclaration(); x != decl1 {
@@ -357,9 +357,9 @@ func TestSchemaGeneration(t *testing.T) {
 		"\tLast\tstring\n" +
 		"}\n" +
 		"\n" +
-		"func (table *TestSchemaGenerationUserTable) Indexes() []*Index {\n" +
-		"\treturn []*Index{\n" +
-		"\t\tNewIndex(\"name_index\", true, \"first\", \"last\"),\n" +
+		"func (table *TestSchemaGenerationUserTable) Indexes() []*hood.Index {\n" +
+		"\treturn []*hood.Index{\n" +
+		"\t\thood.NewIndex(\"name_index\", true, \"first\", \"last\"),\n" +
 		"\t}\n" +
 		"}\n" +
 		"\n" +
@@ -380,9 +380,9 @@ func TestSchemaGeneration(t *testing.T) {
 		"\tLast\tstring\n" +
 		"}\n" +
 		"\n" +
-		"func (table *Customers) Indexes() []*Index {\n" +
-		"\treturn []*Index{\n" +
-		"\t\tNewIndex(\"name_index\", true, \"first\", \"last\"),\n" +
+		"func (table *Customers) Indexes() []*hood.Index {\n" +
+		"\treturn []*hood.Index{\n" +
+		"\t\thood.NewIndex(\"name_index\", true, \"first\", \"last\"),\n" +
 		"\t}\n" +
 		"}"
 	if x := hd.schema.GoDeclaration(); x != decl3 {
@@ -398,9 +398,9 @@ func TestSchemaGeneration(t *testing.T) {
 		"\tBalance\tint\n" +
 		"}\n" +
 		"\n" +
-		"func (table *Customers) Indexes() []*Index {\n" +
-		"\treturn []*Index{\n" +
-		"\t\tNewIndex(\"name_index\", true, \"first\", \"last\"),\n" +
+		"func (table *Customers) Indexes() []*hood.Index {\n" +
+		"\treturn []*hood.Index{\n" +
+		"\t\thood.NewIndex(\"name_index\", true, \"first\", \"last\"),\n" +
 		"\t}\n" +
 		"}"
 	if x := hd.schema.GoDeclaration(); x != decl4 {
@@ -414,9 +414,9 @@ func TestSchemaGeneration(t *testing.T) {
 		"\tAmount\tint\n" +
 		"}\n" +
 		"\n" +
-		"func (table *Customers) Indexes() []*Index {\n" +
-		"\treturn []*Index{\n" +
-		"\t\tNewIndex(\"name_index\", true, \"first\", \"last\"),\n" +
+		"func (table *Customers) Indexes() []*hood.Index {\n" +
+		"\treturn []*hood.Index{\n" +
+		"\t\thood.NewIndex(\"name_index\", true, \"first\", \"last\"),\n" +
 		"\t}\n" +
 		"}"
 	if x := hd.schema.GoDeclaration(); x != decl5 {
@@ -432,9 +432,9 @@ func TestSchemaGeneration(t *testing.T) {
 		"\tAmount\tstring\n" +
 		"}\n" +
 		"\n" +
-		"func (table *Customers) Indexes() []*Index {\n" +
-		"\treturn []*Index{\n" +
-		"\t\tNewIndex(\"name_index\", true, \"first\", \"last\"),\n" +
+		"func (table *Customers) Indexes() []*hood.Index {\n" +
+		"\treturn []*hood.Index{\n" +
+		"\t\thood.NewIndex(\"name_index\", true, \"first\", \"last\"),\n" +
 		"\t}\n" +
 		"}"
 	if x := hd.schema.GoDeclaration(); x != decl6 {
@@ -449,9 +449,9 @@ func TestSchemaGeneration(t *testing.T) {
 		"\tAmount\tstring\n" +
 		"}\n" +
 		"\n" +
-		"func (table *Customers) Indexes() []*Index {\n" +
-		"\treturn []*Index{\n" +
-		"\t\tNewIndex(\"name_index\", true, \"first\", \"last\"),\n" +
+		"func (table *Customers) Indexes() []*hood.Index {\n" +
+		"\treturn []*hood.Index{\n" +
+		"\t\thood.NewIndex(\"name_index\", true, \"first\", \"last\"),\n" +
 		"\t}\n" +
 		"}"
 	if x := hd.schema.GoDeclaration(); x != decl7 {
@@ -463,10 +463,10 @@ func TestSchemaGeneration(t *testing.T) {
 		"\tAmount\tstring\n" +
 		"}\n" +
 		"\n" +
-		"func (table *Customers) Indexes() []*Index {\n" +
-		"\treturn []*Index{\n" +
-		"\t\tNewIndex(\"name_index\", true, \"first\", \"last\"),\n" +
-		"\t\tNewIndex(\"amount_index\", false, \"amount\"),\n" +
+		"func (table *Customers) Indexes() []*hood.Index {\n" +
+		"\treturn []*hood.Index{\n" +
+		"\t\thood.NewIndex(\"name_index\", true, \"first\", \"last\"),\n" +
+		"\t\thood.NewIndex(\"amount_index\", false, \"amount\"),\n" +
 		"\t}\n" +
 		"}"
 	if x := hd.schema.GoDeclaration(); x != decl8 {
@@ -478,9 +478,9 @@ func TestSchemaGeneration(t *testing.T) {
 		"\tAmount\tstring\n" +
 		"}\n" +
 		"\n" +
-		"func (table *Customers) Indexes() []*Index {\n" +
-		"\treturn []*Index{\n" +
-		"\t\tNewIndex(\"amount_index\", false, \"amount\"),\n" +
+		"func (table *Customers) Indexes() []*hood.Index {\n" +
+		"\treturn []*hood.Index{\n" +
+		"\t\thood.NewIndex(\"amount_index\", false, \"amount\"),\n" +
 		"\t}\n" +
 		"}"
 	if x := hd.schema.GoDeclaration(); x != decl9 {
