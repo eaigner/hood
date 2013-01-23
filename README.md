@@ -84,11 +84,17 @@ type Person struct {
   Created hood.Created
   Updated hood.Updated
 
-  // Create named multi column indexes
-  TagIndex  hood.Index       `sql:"columns(tag)"`
-  NameIndex hood.UniqueIndex `sql:"columns(first_name:last_name)"`
-
   // ... and other built in types (int, uint, float...)
+}
+
+// Indexes are defined via the Indexed interface to avoid
+// polluting the table fields.
+
+func (table *Person) Indexes() []*Index {
+  return []*Index {
+    NewIndex("tag_index", false, "tag"), // params: indexName, unique, columns...
+    NewIndex("name_index", true, "first_name", "last_name"),
+  }
 }
 ```
 
@@ -100,7 +106,6 @@ The following built in field properties are defined (via `sql:` tag):
 - `notnull` the field must be NOT NULL
 - `size(x)` the field must have the specified size, e.g. for varchar `size(128)`
 - `default(x)` the field has the specified default value, e.g. `default(5)` or `default('orange')`
-- `columns(x:y:...)` the columns for an (unique) index field
 - `-` ignores the field
 
 ## Migrations
@@ -160,9 +165,7 @@ func (m *M) CreateUserTable_1357605106_Up(hd *hood.Hood) {
 
 ```go
 func (m *M) AddUserNameIndex_1357605116_Up(hd *hood.Hood) {
-  hd.CreateIndex("users", struct{
-    NameIndex hood.UniqueIndex `sql:"columns(first:last)"`
-  }{})
+  hd.CreateIndex("users", NewIndex("name_index", true, "first", "last"))
 }
 ```
 
@@ -194,9 +197,12 @@ type Users struct {
   Id    hood.Id
   First string
   Last  string
-  
-  // Indexes
-  NameIndex	hood.UniqueIndex	`sql:"columns(first:last)"`
+}
+
+func (table *Users) Indexes() []*Index {
+  return []*Index{
+    NewIndex("name_index", true, "first", "last"),
+  }
 }
 ```
 
