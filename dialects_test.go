@@ -617,7 +617,7 @@ type CreateTableTestModel struct {
 
 func (table *CreateTableTestModel) Indexes() []*Index {
 	return []*Index{
-		NewIndex("name_index", true, "first", "last"),
+		NewIndex("create_table_test_model_index", true, "first", "last"),
 	}
 }
 
@@ -625,8 +625,11 @@ func DoTestCreateTable(t *testing.T, info dialectInfo) {
 	t.Logf("Dialect %T\n", info.dialect)
 	hd := info.setupDbFunc(t)
 	table := &CreateTableTestModel{}
-	hd.DropTable(table)
-	err := hd.CreateTable(table)
+	err := hd.DropTableIfExists(table)
+	if err != nil {
+		t.Fatal("error not nil", err)
+	}
+	err = hd.CreateTable(table)
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
