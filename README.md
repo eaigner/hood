@@ -69,7 +69,7 @@ type Person struct {
 
   // You can also combine tags, default value 'orange'
   CombinedTags string `sql:"size(128),default('orange')"`
-  Birthday     time.Time    // timestamp field 'updated'
+  Birthday     time.Time    // timestamp field 'birthday'
   Data         []byte       // data field 'data'
   IsAdmin      bool         // boolean field 'is_admin'
   Notes        string       // text field 'notes'
