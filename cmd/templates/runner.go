@@ -145,12 +145,8 @@ func main() {
 			method.Func.Call([]reflect.Value{v, reflect.ValueOf(dry)})
 		}
 	}
-	schema := fmt.Sprintf(
-		"package db\n\nimport (\n\t\"github.com/eaigner/hood\"\n)\n\n%s",
-		dry.SchemaDefinition(),
-	)
 	schemaPath := path.Join(wd, "db", "schema.go")
-	err = ioutil.WriteFile(schemaPath, []byte(schema), 0666)
+	err = ioutil.WriteFile(schemaPath, []byte(dry.GoSchema()), 0666)
 	if err != nil {
 		panic(err)
 	}

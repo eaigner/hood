@@ -513,9 +513,31 @@ func (hood *Hood) IsTransaction() bool {
 	return ok
 }
 
-// SchemaDefinition returns a string of the schema represented as Go structs.
-func (hood *Hood) SchemaDefinition() string {
-	return hood.schema.GoDeclaration()
+// GoSchema returns a string of the schema file in Go syntax.
+func (hood *Hood) GoSchema() string {
+	timeRequired := false
+L:
+	for _, m := range hood.schema {
+		for _, f := range m.Fields {
+			switch f.Value.(type) {
+			case time.Time:
+				timeRequired = true
+				break L
+			}
+		}
+	}
+	head := []string{
+		"package db",
+		"",
+		"import (",
+		"\t\"github.com/eaigner/hood\"",
+	}
+	if timeRequired {
+		head = append(head, "\t\"time\"")
+	}
+	head = append(head, []string{")\n\n", hood.schema.GoDeclaration()}...)
+
+	return strings.Join(head, "\n")
 }
 
 // Select adds a SELECT clause to the query with the specified table and columns.
