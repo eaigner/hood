@@ -91,8 +91,8 @@ type Person struct {
 // polluting the table fields.
 
 func (table *Person) Indexes(indexes *hood.Indexes) {
-  indexes.Add("tag_index", false, "tag") // params: indexName, unique, columns...
-  indexes.Add("name_index", true, "first_name", "last_name")
+  indexes.Add("tag_index", "tag") // params: indexName, unique, columns...
+  indexes.AddUnique("name_index", "first_name", "last_name")
 }
 ```
 
@@ -198,7 +198,7 @@ type Users struct {
 }
 
 func (table *Users) Indexes(indexes *hood.Indexes) {
-  indexes.Add("name_index", true, "first", "last")
+  indexes.AddUnique("name_index", "first", "last")
 }
 ```
 

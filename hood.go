@@ -145,9 +145,14 @@ const (
 
 type Join int
 
-// Add appends an index to the array
-func (ix *Indexes) Add(name string, unique bool, columns ...string) {
-	*ix = append(*ix, &Index{Name: name, Columns: columns, Unique: unique})
+// Add adds an index
+func (ix *Indexes) Add(name string, columns ...string) {
+	*ix = append(*ix, &Index{Name: name, Columns: columns, Unique: false})
+}
+
+// AddUnique adds an unique index
+func (ix *Indexes) AddUnique(name string, columns ...string) {
+	*ix = append(*ix, &Index{Name: name, Columns: columns, Unique: true})
 }
 
 // Quote quotes the path using the given dialects Quote method
@@ -336,10 +341,14 @@ func validateRegexp(s, reg, field string) error {
 }
 
 func (index *Index) GoDeclaration() string {
+	u := ""
+	if index.Unique {
+		u = "Unique"
+	}
 	return fmt.Sprintf(
-		"indexes.Add(\"%s\", %t, \"%s\")",
+		"indexes.Add%s(\"%s\", \"%s\")",
+		u,
 		index.Name,
-		index.Unique,
 		strings.Join(index.Columns, "\", \""),
 	)
 }

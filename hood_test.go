@@ -214,8 +214,8 @@ type indexedTable struct {
 }
 
 func (table *indexedTable) Indexes(indexes *Indexes) {
-	indexes.Add("my_index", false, "col_primary", "col_time")
-	indexes.Add("my_unique_index", true, "col_var_char", "col_time")
+	indexes.Add("my_index", "col_primary", "col_time")
+	indexes.AddUnique("my_unique_index", "col_var_char", "col_time")
 }
 
 func TestInterfaceToModel(t *testing.T) {
@@ -319,7 +319,7 @@ type TestSchemaGenerationUserTable struct {
 }
 
 func (table *TestSchemaGenerationUserTable) Indexes(indexes *Indexes) {
-	indexes.Add("name_index", true, "first", "last")
+	indexes.AddUnique("name_index", "first", "last")
 }
 
 func TestSchemaGeneration(t *testing.T) {
@@ -335,11 +335,11 @@ func TestSchemaGeneration(t *testing.T) {
 		"\tLast\tstring\n" +
 		"}\n" +
 		"\n" +
-		"func (table *TestSchemaGenerationUserTable) Indexes(indexes *Indexes) {\n" +
-		"\tindexes.Add(\"name_index\", true, \"first\", \"last\"),\n" +
+		"func (table *TestSchemaGenerationUserTable) Indexes(indexes *hood.Indexes) {\n" +
+		"\tindexes.AddUnique(\"name_index\", \"first\", \"last\")\n" +
 		"}"
 	if x := hd.schema.GoDeclaration(); x != decl1 {
-		t.Fatalf("invalid schema\n%s\n---\n%s", x, decl1)
+		t.Fatalf("invalid schema\n%s\n---\n%s", makeWhitespaceVisible(x), makeWhitespaceVisible(decl1))
 	}
 	type DropMe struct {
 		Id Id
@@ -351,8 +351,8 @@ func TestSchemaGeneration(t *testing.T) {
 		"\tLast\tstring\n" +
 		"}\n" +
 		"\n" +
-		"func (table *TestSchemaGenerationUserTable) Indexes(indexes *Indexes) {\n" +
-		"\tindexes.Add(\"name_index\", true, \"first\", \"last\"),\n" +
+		"func (table *TestSchemaGenerationUserTable) Indexes(indexes *hood.Indexes) {\n" +
+		"\tindexes.AddUnique(\"name_index\", \"first\", \"last\")\n" +
 		"}\n" +
 		"\n" +
 		"type DropMe struct {\n" +
@@ -372,8 +372,8 @@ func TestSchemaGeneration(t *testing.T) {
 		"\tLast\tstring\n" +
 		"}\n" +
 		"\n" +
-		"func (table *Customers) Indexes(indexes *Indexes) {\n" +
-		"\tindexes.Add(\"name_index\", true, \"first\", \"last\"),\n" +
+		"func (table *Customers) Indexes(indexes *hood.Indexes) {\n" +
+		"\tindexes.AddUnique(\"name_index\", \"first\", \"last\")\n" +
 		"}"
 	if x := hd.schema.GoDeclaration(); x != decl3 {
 		t.Fatalf("invalid schema\n%s\n\n%s", makeWhitespaceVisible(x), makeWhitespaceVisible(decl3))
@@ -388,8 +388,8 @@ func TestSchemaGeneration(t *testing.T) {
 		"\tBalance\tint\n" +
 		"}\n" +
 		"\n" +
-		"func (table *Customers) Indexes(indexes *Indexes) {\n" +
-		"\tindexes.Add(\"name_index\", true, \"first\", \"last\"),\n" +
+		"func (table *Customers) Indexes(indexes *hood.Indexes) {\n" +
+		"\tindexes.AddUnique(\"name_index\", \"first\", \"last\")\n" +
 		"}"
 	if x := hd.schema.GoDeclaration(); x != decl4 {
 		t.Fatalf("invalid schema\n%s\n\n%s", makeWhitespaceVisible(x), makeWhitespaceVisible(decl4))
@@ -402,8 +402,8 @@ func TestSchemaGeneration(t *testing.T) {
 		"\tAmount\tint\n" +
 		"}\n" +
 		"\n" +
-		"func (table *Customers) Indexes(indexes *Indexes) {\n" +
-		"\tindexes.Add(\"name_index\", true, \"first\", \"last\"),\n" +
+		"func (table *Customers) Indexes(indexes *hood.Indexes) {\n" +
+		"\tindexes.AddUnique(\"name_index\", \"first\", \"last\")\n" +
 		"}"
 	if x := hd.schema.GoDeclaration(); x != decl5 {
 		t.Fatalf("invalid schema\n%s\n\n%s", makeWhitespaceVisible(x), makeWhitespaceVisible(decl5))
@@ -418,8 +418,8 @@ func TestSchemaGeneration(t *testing.T) {
 		"\tAmount\tstring\n" +
 		"}\n" +
 		"\n" +
-		"func (table *Customers) Indexes(indexes *Indexes) {\n" +
-		"\tindexes.Add(\"name_index\", true, \"first\", \"last\"),\n" +
+		"func (table *Customers) Indexes(indexes *hood.Indexes) {\n" +
+		"\tindexes.AddUnique(\"name_index\", \"first\", \"last\")\n" +
 		"}"
 	if x := hd.schema.GoDeclaration(); x != decl6 {
 		t.Fatalf("invalid schema\n%s\n\n%s", makeWhitespaceVisible(x), makeWhitespaceVisible(decl6))
@@ -433,8 +433,8 @@ func TestSchemaGeneration(t *testing.T) {
 		"\tAmount\tstring\n" +
 		"}\n" +
 		"\n" +
-		"func (table *Customers) Indexes(indexes *Indexes) {\n" +
-		"\tindexes.Add(\"name_index\", true, \"first\", \"last\"),\n" +
+		"func (table *Customers) Indexes(indexes *hood.Indexes) {\n" +
+		"\tindexes.AddUnique(\"name_index\", \"first\", \"last\")\n" +
 		"}"
 	if x := hd.schema.GoDeclaration(); x != decl7 {
 		t.Fatalf("invalid schema\n%s\n\n%s", makeWhitespaceVisible(x), makeWhitespaceVisible(decl7))
@@ -445,9 +445,9 @@ func TestSchemaGeneration(t *testing.T) {
 		"\tAmount\tstring\n" +
 		"}\n" +
 		"\n" +
-		"func (table *Customers) Indexes(indexes *Indexes) {\n" +
-		"\tindexes.Add(\"name_index\", true, \"first\", \"last\"),\n" +
-		"\tindexes.Add(\"amount_index\", false, \"amount\"),\n" +
+		"func (table *Customers) Indexes(indexes *hood.Indexes) {\n" +
+		"\tindexes.AddUnique(\"name_index\", \"first\", \"last\")\n" +
+		"\tindexes.Add(\"amount_index\", \"amount\")\n" +
 		"}"
 	if x := hd.schema.GoDeclaration(); x != decl8 {
 		t.Fatalf("invalid schema\n%s\n\n%s", makeWhitespaceVisible(x), makeWhitespaceVisible(decl8))
@@ -458,8 +458,8 @@ func TestSchemaGeneration(t *testing.T) {
 		"\tAmount\tstring\n" +
 		"}\n" +
 		"\n" +
-		"func (table *Customers) Indexes(indexes *Indexes) {\n" +
-		"\tindexes.Add(\"amount_index\", false, \"amount\"),\n" +
+		"func (table *Customers) Indexes(indexes *hood.Indexes) {\n" +
+		"\tindexes.Add(\"amount_index\", \"amount\")\n" +
 		"}"
 	if x := hd.schema.GoDeclaration(); x != decl9 {
 		t.Fatalf("invalid schema\n%s\n\n%s", makeWhitespaceVisible(x), makeWhitespaceVisible(decl9))
