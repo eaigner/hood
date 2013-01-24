@@ -48,6 +48,9 @@ type (
 		Unique  bool
 	}
 
+	// Indexes represents an array of indexes.
+	Indexes []*Index
+
 	// Created denotes a timestamp field that is automatically set on insert.
 	Created struct {
 		time.Time
@@ -63,7 +66,7 @@ type (
 		Pk      *ModelField
 		Table   string
 		Fields  []*ModelField
-		Indexes []*Index
+		Indexes Indexes
 	}
 
 	// ModelField represents a schema field of a parsed model.
@@ -88,9 +91,9 @@ type (
 	// Path denotes a combined sql identifier such as 'table.column'
 	Path string
 
-	// Indexed returns the indexes for a table.
+	// Indexed defines the indexes for a table. You can invoke Add on the passed instance.
 	Indexed interface {
-		Indexes() []*Index
+		Indexes(indexes *Indexes)
 	}
 
 	// TODO: implement aggregate function types
@@ -142,9 +145,9 @@ const (
 
 type Join int
 
-// NewIndex creates a new index instance.
-func NewIndex(name string, unique bool, columns ...string) *Index {
-	return &Index{Name: name, Columns: columns, Unique: unique}
+// Add appends an index to the array
+func (ix *Indexes) Add(name string, unique bool, columns ...string) {
+	*ix = append(*ix, &Index{Name: name, Columns: columns, Unique: unique})
 }
 
 // Quote quotes the path using the given dialects Quote method
@@ -334,7 +337,7 @@ func validateRegexp(s, reg, field string) error {
 
 func (index *Index) GoDeclaration() string {
 	return fmt.Sprintf(
-		"\thood.NewIndex(\"%s\", %t, \"%s\"),",
+		"indexes.Add(\"%s\", %t, \"%s\")",
 		index.Name,
 		index.Unique,
 		strings.Join(index.Columns, "\", \""),
@@ -360,13 +363,12 @@ func (model *Model) GoDeclaration() string {
 	a = append(a, "}")
 	if len(model.Indexes) > 0 {
 		a = append(a,
-			fmt.Sprintf("\nfunc (table *%s) Indexes() []%T {", tableName, &Index{}),
-			fmt.Sprintf("\treturn []%T{", &Index{}),
+			fmt.Sprintf("\nfunc (table *%s) Indexes(indexes *Indexes) {", tableName),
 		)
 		for _, i := range model.Indexes {
 			a = append(a, "\t"+i.GoDeclaration())
 		}
-		a = append(a, "\t}", "}")
+		a = append(a, "}")
 	}
 	return strings.Join(a, "\n")
 }
@@ -1135,11 +1137,12 @@ func (hood *Hood) RemoveColumns(table, columns interface{}) error {
 }
 
 // CreateIndex creates the specified index on table.
-func (hood *Hood) CreateIndex(table interface{}, index *Index) error {
+func (hood *Hood) CreateIndex(table interface{}, name string, unique bool, columns ...string) error {
 	if !hood.dryRun && !hood.IsTransaction() {
 		panic("CreateIndex can only be invoked inside a transaction")
 	}
 	tn := tableName(table)
+	index := &Index{Name: name, Columns: columns, Unique: unique}
 	for _, s := range hood.schema {
 		if s.Table == tn {
 			s.Indexes = append(s.Indexes, index)
@@ -1240,9 +1243,7 @@ func addFields(m *Model, t reflect.Type, v reflect.Value) {
 
 func addIndexes(m *Model, f interface{}) {
 	if t, ok := f.(Indexed); ok {
-		for _, idx := range t.Indexes() {
-			m.Indexes = append(m.Indexes, idx)
-		}
+		t.Indexes(&m.Indexes)
 	}
 }
 
@@ -1256,7 +1257,7 @@ func interfaceToModel(f interface{}) (*Model, error) {
 		Pk:      nil,
 		Table:   interfaceToSnake(f),
 		Fields:  []*ModelField{},
-		Indexes: []*Index{},
+		Indexes: Indexes{},
 	}
 	addFields(m, t, v)
 	addIndexes(m, f)

@@ -623,10 +623,8 @@ type CreateTableTestModel struct {
 	Amount int
 }
 
-func (table *CreateTableTestModel) Indexes() []*Index {
-	return []*Index{
-		NewIndex("create_table_test_model_index", true, "first", "last"),
-	}
+func (table *CreateTableTestModel) Indexes(indexes *Indexes) {
+	indexes.Add("create_table_test_model_index", true, "first", "last")
 }
 
 func DoTestCreateTable(t *testing.T, info dialectInfo) {

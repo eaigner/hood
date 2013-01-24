@@ -213,11 +213,9 @@ type indexedTable struct {
 	ColTime       time.Time
 }
 
-func (table *indexedTable) Indexes() []*Index {
-	return []*Index{
-		NewIndex("my_index", false, "col_primary", "col_time"),
-		NewIndex("my_unique_index", true, "col_var_char", "col_time"),
-	}
+func (table *indexedTable) Indexes(indexes *Indexes) {
+	indexes.Add("my_index", false, "col_primary", "col_time")
+	indexes.Add("my_unique_index", true, "col_var_char", "col_time")
 }
 
 func TestInterfaceToModel(t *testing.T) {
@@ -320,10 +318,8 @@ type TestSchemaGenerationUserTable struct {
 	Last  string
 }
 
-func (table *TestSchemaGenerationUserTable) Indexes() []*Index {
-	return []*Index{
-		NewIndex("name_index", true, "first", "last"),
-	}
+func (table *TestSchemaGenerationUserTable) Indexes(indexes *Indexes) {
+	indexes.Add("name_index", true, "first", "last")
 }
 
 func TestSchemaGeneration(t *testing.T) {
@@ -339,10 +335,8 @@ func TestSchemaGeneration(t *testing.T) {
 		"\tLast\tstring\n" +
 		"}\n" +
 		"\n" +
-		"func (table *TestSchemaGenerationUserTable) Indexes() []*hood.Index {\n" +
-		"\treturn []*hood.Index{\n" +
-		"\t\thood.NewIndex(\"name_index\", true, \"first\", \"last\"),\n" +
-		"\t}\n" +
+		"func (table *TestSchemaGenerationUserTable) Indexes(indexes *Indexes) {\n" +
+		"\tindexes.Add(\"name_index\", true, \"first\", \"last\"),\n" +
 		"}"
 	if x := hd.schema.GoDeclaration(); x != decl1 {
 		t.Fatalf("invalid schema\n%s\n---\n%s", x, decl1)
@@ -357,10 +351,8 @@ func TestSchemaGeneration(t *testing.T) {
 		"\tLast\tstring\n" +
 		"}\n" +
 		"\n" +
-		"func (table *TestSchemaGenerationUserTable) Indexes() []*hood.Index {\n" +
-		"\treturn []*hood.Index{\n" +
-		"\t\thood.NewIndex(\"name_index\", true, \"first\", \"last\"),\n" +
-		"\t}\n" +
+		"func (table *TestSchemaGenerationUserTable) Indexes(indexes *Indexes) {\n" +
+		"\tindexes.Add(\"name_index\", true, \"first\", \"last\"),\n" +
 		"}\n" +
 		"\n" +
 		"type DropMe struct {\n" +
@@ -380,10 +372,8 @@ func TestSchemaGeneration(t *testing.T) {
 		"\tLast\tstring\n" +
 		"}\n" +
 		"\n" +
-		"func (table *Customers) Indexes() []*hood.Index {\n" +
-		"\treturn []*hood.Index{\n" +
-		"\t\thood.NewIndex(\"name_index\", true, \"first\", \"last\"),\n" +
-		"\t}\n" +
+		"func (table *Customers) Indexes(indexes *Indexes) {\n" +
+		"\tindexes.Add(\"name_index\", true, \"first\", \"last\"),\n" +
 		"}"
 	if x := hd.schema.GoDeclaration(); x != decl3 {
 		t.Fatalf("invalid schema\n%s\n\n%s", makeWhitespaceVisible(x), makeWhitespaceVisible(decl3))
@@ -398,10 +388,8 @@ func TestSchemaGeneration(t *testing.T) {
 		"\tBalance\tint\n" +
 		"}\n" +
 		"\n" +
-		"func (table *Customers) Indexes() []*hood.Index {\n" +
-		"\treturn []*hood.Index{\n" +
-		"\t\thood.NewIndex(\"name_index\", true, \"first\", \"last\"),\n" +
-		"\t}\n" +
+		"func (table *Customers) Indexes(indexes *Indexes) {\n" +
+		"\tindexes.Add(\"name_index\", true, \"first\", \"last\"),\n" +
 		"}"
 	if x := hd.schema.GoDeclaration(); x != decl4 {
 		t.Fatalf("invalid schema\n%s\n\n%s", makeWhitespaceVisible(x), makeWhitespaceVisible(decl4))
@@ -414,10 +402,8 @@ func TestSchemaGeneration(t *testing.T) {
 		"\tAmount\tint\n" +
 		"}\n" +
 		"\n" +
-		"func (table *Customers) Indexes() []*hood.Index {\n" +
-		"\treturn []*hood.Index{\n" +
-		"\t\thood.NewIndex(\"name_index\", true, \"first\", \"last\"),\n" +
-		"\t}\n" +
+		"func (table *Customers) Indexes(indexes *Indexes) {\n" +
+		"\tindexes.Add(\"name_index\", true, \"first\", \"last\"),\n" +
 		"}"
 	if x := hd.schema.GoDeclaration(); x != decl5 {
 		t.Fatalf("invalid schema\n%s\n\n%s", makeWhitespaceVisible(x), makeWhitespaceVisible(decl5))
@@ -432,10 +418,8 @@ func TestSchemaGeneration(t *testing.T) {
 		"\tAmount\tstring\n" +
 		"}\n" +
 		"\n" +
-		"func (table *Customers) Indexes() []*hood.Index {\n" +
-		"\treturn []*hood.Index{\n" +
-		"\t\thood.NewIndex(\"name_index\", true, \"first\", \"last\"),\n" +
-		"\t}\n" +
+		"func (table *Customers) Indexes(indexes *Indexes) {\n" +
+		"\tindexes.Add(\"name_index\", true, \"first\", \"last\"),\n" +
 		"}"
 	if x := hd.schema.GoDeclaration(); x != decl6 {
 		t.Fatalf("invalid schema\n%s\n\n%s", makeWhitespaceVisible(x), makeWhitespaceVisible(decl6))
@@ -449,25 +433,21 @@ func TestSchemaGeneration(t *testing.T) {
 		"\tAmount\tstring\n" +
 		"}\n" +
 		"\n" +
-		"func (table *Customers) Indexes() []*hood.Index {\n" +
-		"\treturn []*hood.Index{\n" +
-		"\t\thood.NewIndex(\"name_index\", true, \"first\", \"last\"),\n" +
-		"\t}\n" +
+		"func (table *Customers) Indexes(indexes *Indexes) {\n" +
+		"\tindexes.Add(\"name_index\", true, \"first\", \"last\"),\n" +
 		"}"
 	if x := hd.schema.GoDeclaration(); x != decl7 {
 		t.Fatalf("invalid schema\n%s\n\n%s", makeWhitespaceVisible(x), makeWhitespaceVisible(decl7))
 	}
-	hd.CreateIndex("customers", NewIndex("amount_index", false, "amount"))
+	hd.CreateIndex("customers", "amount_index", false, "amount")
 	decl8 := "type Customers struct {\n" +
 		"\tId\thood.Id\n" +
 		"\tAmount\tstring\n" +
 		"}\n" +
 		"\n" +
-		"func (table *Customers) Indexes() []*hood.Index {\n" +
-		"\treturn []*hood.Index{\n" +
-		"\t\thood.NewIndex(\"name_index\", true, \"first\", \"last\"),\n" +
-		"\t\thood.NewIndex(\"amount_index\", false, \"amount\"),\n" +
-		"\t}\n" +
+		"func (table *Customers) Indexes(indexes *Indexes) {\n" +
+		"\tindexes.Add(\"name_index\", true, \"first\", \"last\"),\n" +
+		"\tindexes.Add(\"amount_index\", false, \"amount\"),\n" +
 		"}"
 	if x := hd.schema.GoDeclaration(); x != decl8 {
 		t.Fatalf("invalid schema\n%s\n\n%s", makeWhitespaceVisible(x), makeWhitespaceVisible(decl8))
@@ -478,10 +458,8 @@ func TestSchemaGeneration(t *testing.T) {
 		"\tAmount\tstring\n" +
 		"}\n" +
 		"\n" +
-		"func (table *Customers) Indexes() []*hood.Index {\n" +
-		"\treturn []*hood.Index{\n" +
-		"\t\thood.NewIndex(\"amount_index\", false, \"amount\"),\n" +
-		"\t}\n" +
+		"func (table *Customers) Indexes(indexes *Indexes) {\n" +
+		"\tindexes.Add(\"amount_index\", false, \"amount\"),\n" +
 		"}"
 	if x := hd.schema.GoDeclaration(); x != decl9 {
 		t.Fatalf("invalid schema\n%s\n\n%s", makeWhitespaceVisible(x), makeWhitespaceVisible(decl9))
