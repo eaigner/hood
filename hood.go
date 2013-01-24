@@ -363,7 +363,7 @@ func (model *Model) GoDeclaration() string {
 	a = append(a, "}")
 	if len(model.Indexes) > 0 {
 		a = append(a,
-			fmt.Sprintf("\nfunc (table *%s) Indexes(indexes *Indexes) {", tableName),
+			fmt.Sprintf("\nfunc (table *%s) Indexes(indexes *hood.Indexes) {", tableName),
 		)
 		for _, i := range model.Indexes {
 			a = append(a, "\t"+i.GoDeclaration())
