@@ -488,7 +488,8 @@ func (hood *Hood) updateTxError(e error) error {
 	return e
 }
 
-// Commit commits a started transaction.
+// Commit commits a started transaction and will report the first error that
+// occurred inside the transaction.
 func (hood *Hood) Commit() error {
 	if v, ok := hood.qo.(*sql.Tx); ok {
 		err := v.Commit()
