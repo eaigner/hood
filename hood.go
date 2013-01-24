@@ -482,7 +482,6 @@ func (hood *Hood) updateTxError(e error) error {
 		}
 		// don't shadow the first error
 		if hood.firstTxError == nil {
-			fmt.Println("SET ERR", e)
 			hood.firstTxError = e
 		}
 	}
