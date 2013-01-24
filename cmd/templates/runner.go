@@ -76,9 +76,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	hd.Log = true
+	hd.Log = verbose
 	// Check migration table
-	err = hd.CreateTableIfNotExists(&Migrations{})
+	tx := hd.Begin()
+	tx.CreateTableIfNotExists(&Migrations{})
+	err = tx.Commit()
 	if err != nil {
 		panic(err)
 	}
@@ -96,7 +98,6 @@ func main() {
 		if up {
 			if ts > info.Current {
 				tx := hd.Begin()
-				tx.Log = verbose
 				method := ups[ts]
 				method.Func.Call([]reflect.Value{v, reflect.ValueOf(tx)})
 				info.Current = ts
@@ -112,7 +113,6 @@ func main() {
 		} else {
 			if info.Current == ts {
 				tx := hd.Begin()
-				tx.Log = verbose
 				method := downs[ts]
 				method.Func.Call([]reflect.Value{v, reflect.ValueOf(tx)})
 				if i > 0 {
