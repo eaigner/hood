@@ -90,11 +90,9 @@ type Person struct {
 // Indexes are defined via the Indexed interface to avoid
 // polluting the table fields.
 
-func (table *Person) Indexes() []*hood.Index {
-  return []*hood.Index {
-    hood.NewIndex("tag_index", false, "tag"), // params: indexName, unique, columns...
-    hood.NewIndex("name_index", true, "first_name", "last_name"),
-  }
+func (table *Person) Indexes(indexes *hood.Indexes) {
+  indexes.Add("tag_index", false, "tag") // params: indexName, unique, columns...
+  indexes.Add("name_index", true, "first_name", "last_name")
 }
 ```
 
@@ -165,7 +163,7 @@ func (m *M) CreateUserTable_1357605106_Up(hd *hood.Hood) {
 
 ```go
 func (m *M) AddUserNameIndex_1357605116_Up(hd *hood.Hood) {
-  hd.CreateIndex("users", NewIndex("name_index", true, "first", "last"))
+  hd.CreateIndex("users", "name_index", true, "first", "last")
 }
 ```
 
@@ -199,10 +197,8 @@ type Users struct {
   Last  string
 }
 
-func (table *Users) Indexes() []*Index {
-  return []*Index{
-    NewIndex("name_index", true, "first", "last"),
-  }
+func (table *Users) Indexes(indexes *hood.Indexes) {
+  indexes.Add("name_index", true, "first", "last")
 }
 ```
 
