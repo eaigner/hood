@@ -18,23 +18,24 @@ import (
 type (
 	// Hood is an ORM handle.
 	Hood struct {
-		Db          *sql.DB
-		Dialect     Dialect
-		Log         bool
-		qo          qo     // the query object
-		schema      Schema // keeping track of the schema
-		dryRun      bool   // if actual sql is executed or not
-		selectPaths []Path
-		selectTable string
-		where       []interface{}
-		markerPos   int
-		limit       int
-		offset      int
-		orderBy     Path
-		joins       []*join
-		groupBy     Path
-		havingCond  string
-		havingArgs  []interface{}
+		Db           *sql.DB
+		Dialect      Dialect
+		Log          bool
+		qo           qo     // the query object
+		schema       Schema // keeping track of the schema
+		dryRun       bool   // if actual sql is executed or not
+		selectPaths  []Path
+		selectTable  string
+		where        []interface{}
+		markerPos    int
+		limit        int
+		offset       int
+		orderBy      Path
+		joins        []*join
+		groupBy      Path
+		havingCond   string
+		havingArgs   []interface{}
+		firstTxError error
 	}
 
 	// Id represents a auto-incrementing integer primary key type.
@@ -388,7 +389,6 @@ func New(database *sql.DB, dialect Dialect) *Hood {
 		qo:      database,
 	}
 	hood.Reset()
-
 	return hood
 }
 
@@ -460,21 +460,41 @@ func (hood *Hood) Reset() {
 // Begin starts a new transaction and returns a copy of Hood. You have to call
 // subsequent methods on the newly returned object.
 func (hood *Hood) Begin() *Hood {
+	if hood.IsTransaction() {
+		panic("cannot start nested transaction")
+	}
 	c := new(Hood)
 	*c = *hood
 	q, err := hood.Db.Begin()
 	if err != nil {
 		panic(err)
 	}
+	c.firstTxError = nil
 	c.qo = q
 
 	return c
 }
 
+func (hood *Hood) updateTxError(e error) error {
+	if e != nil {
+		if hood.Log {
+			fmt.Printf("ERROR: %v\n", e)
+		}
+		// don't shadow the first error
+		if hood.firstTxError == nil {
+			fmt.Println("SET ERR", e)
+			hood.firstTxError = e
+		}
+	}
+	return e
+}
+
 // Commit commits a started transaction.
 func (hood *Hood) Commit() error {
 	if v, ok := hood.qo.(*sql.Tx); ok {
-		return v.Commit()
+		err := v.Commit()
+		hood.updateTxError(err)
+		return hood.firstTxError
 	}
 	return nil
 }
@@ -624,17 +644,17 @@ func (hood *Hood) FindSql(out interface{}, query string, args ...interface{}) er
 	}
 	stmt, err := hood.qo.Prepare(query)
 	if err != nil {
-		return err
+		return hood.updateTxError(err)
 	}
 	defer stmt.Close()
 	rows, err := stmt.Query(args...)
 	if err != nil {
-		return err
+		return hood.updateTxError(err)
 	}
 	defer rows.Close()
 	cols, err := rows.Columns()
 	if err != nil {
-		return err
+		return hood.updateTxError(err)
 	}
 	for rows.Next() {
 		containers := make([]interface{}, 0, len(cols))
@@ -675,7 +695,7 @@ func (hood *Hood) Exec(query string, args ...interface{}) (sql.Result, error) {
 	}
 	stmt, err := hood.qo.Prepare(query + ";")
 	if err != nil {
-		return nil, err
+		return nil, hood.updateTxError(err)
 	}
 	defer stmt.Close()
 	if hood.Log {
@@ -683,7 +703,7 @@ func (hood *Hood) Exec(query string, args ...interface{}) (sql.Result, error) {
 	}
 	result, err := stmt.Exec(hood.convertSpecialTypes(args)...)
 	if err != nil {
-		return nil, err
+		return nil, hood.updateTxError(err)
 	}
 	return result, nil
 }
@@ -908,6 +928,9 @@ func (hood *Hood) CreateTableIfNotExists(table interface{}) error {
 }
 
 func (hood *Hood) createTable(table interface{}, ifNotExists bool) error {
+	if !hood.dryRun && !hood.IsTransaction() {
+		panic("CreateTable can only be invoked inside a transaction")
+	}
 	model, err := interfaceToModel(table)
 	if err != nil {
 		return err
@@ -916,16 +939,15 @@ func (hood *Hood) createTable(table interface{}, ifNotExists bool) error {
 	if hood.dryRun {
 		return nil
 	}
-	tx := hood.Begin()
 	if ifNotExists {
-		tx.Dialect.CreateTableIfNotExists(tx, model)
+		hood.Dialect.CreateTableIfNotExists(hood, model)
 	} else {
-		tx.Dialect.CreateTable(tx, model)
+		hood.Dialect.CreateTable(hood, model)
 	}
 	for _, i := range model.Indexes {
-		tx.Dialect.CreateIndex(tx, i.Name, model.Table, i.Unique, i.Columns...)
+		hood.Dialect.CreateIndex(hood, i.Name, model.Table, i.Unique, i.Columns...)
 	}
-	return tx.Commit()
+	return hood.firstTxError
 }
 
 // DropTable drops the table matching the provided table name.
@@ -971,6 +993,9 @@ func (hood *Hood) RenameTable(from, to interface{}) error {
 
 // AddColumns adds the columns in the specified schema to the table.
 func (hood *Hood) AddColumns(table, columns interface{}) error {
+	if !hood.dryRun && !hood.IsTransaction() {
+		panic("AddColumns can only be invoked inside a transaction")
+	}
 	m, err := interfaceToModel(columns)
 	if err != nil {
 		return err
@@ -986,14 +1011,13 @@ func (hood *Hood) AddColumns(table, columns interface{}) error {
 	if hood.dryRun {
 		return nil
 	}
-	tx := hood.Begin()
 	for _, column := range m.Fields {
-		err = hood.Dialect.AddColumn(tx, tableName(table), column.Name, column.Value, column.Size())
+		err = hood.Dialect.AddColumn(hood, tableName(table), column.Name, column.Value, column.Size())
 		if err != nil {
 			return err
 		}
 	}
-	return tx.Commit()
+	return hood.firstTxError
 }
 
 // RenameColumn renames the column in the specified table.
@@ -1015,6 +1039,9 @@ func (hood *Hood) RenameColumn(table interface{}, from, to string) error {
 
 // ChangeColumn changes the data type of the specified column.
 func (hood *Hood) ChangeColumns(table, column interface{}) error {
+	if !hood.dryRun && !hood.IsTransaction() {
+		panic("ChangeColumns can only be invoked inside a transaction")
+	}
 	m, err := interfaceToModel(column)
 	if err != nil {
 		return err
@@ -1037,18 +1064,20 @@ func (hood *Hood) ChangeColumns(table, column interface{}) error {
 	if hood.dryRun {
 		return nil
 	}
-	tx := hood.Begin()
 	for _, column := range m.Fields {
-		err = hood.Dialect.ChangeColumn(tx, tableName(table), column.Name, column.Value, column.Size())
+		err = hood.Dialect.ChangeColumn(hood, tableName(table), column.Name, column.Value, column.Size())
 		if err != nil {
 			return err
 		}
 	}
-	return tx.Commit()
+	return hood.firstTxError
 }
 
 // RemoveColumns removes the specified columns from the table.
 func (hood *Hood) RemoveColumns(table, columns interface{}) error {
+	if !hood.dryRun && !hood.IsTransaction() {
+		panic("RemoveColumns can only be invoked inside a transaction")
+	}
 	m, err := interfaceToModel(columns)
 	if err != nil {
 		return err
@@ -1074,18 +1103,20 @@ func (hood *Hood) RemoveColumns(table, columns interface{}) error {
 	if hood.dryRun {
 		return nil
 	}
-	tx := hood.Begin()
 	for _, column := range m.Fields {
-		err = hood.Dialect.DropColumn(tx, tableName(table), column.Name)
+		err = hood.Dialect.DropColumn(hood, tableName(table), column.Name)
 		if err != nil {
 			return err
 		}
 	}
-	return tx.Commit()
+	return hood.firstTxError
 }
 
 // CreateIndex creates the specified index on table.
 func (hood *Hood) CreateIndex(table interface{}, index *Index) error {
+	if !hood.dryRun && !hood.IsTransaction() {
+		panic("CreateIndex can only be invoked inside a transaction")
+	}
 	tn := tableName(table)
 	for _, s := range hood.schema {
 		if s.Table == tn {
@@ -1095,12 +1126,11 @@ func (hood *Hood) CreateIndex(table interface{}, index *Index) error {
 	if hood.dryRun {
 		return nil
 	}
-	tx := hood.Begin()
-	err := hood.Dialect.CreateIndex(tx, index.Name, tn, index.Unique, index.Columns...)
+	err := hood.Dialect.CreateIndex(hood, index.Name, tn, index.Unique, index.Columns...)
 	if err != nil {
 		return err
 	}
-	return tx.Commit()
+	return hood.firstTxError
 }
 
 // DropIndex drops the specified index from table.

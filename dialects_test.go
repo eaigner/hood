@@ -133,12 +133,14 @@ func DoTestTransaction(t *testing.T, info dialectInfo) {
 	}
 
 	hd.DropTable(&table)
-	err := hd.CreateTable(&table)
+	tx := hd.Begin()
+	tx.CreateTable(&table)
+	err := tx.Commit()
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
 
-	tx := hd.Begin()
+	tx = hd.Begin()
 	if _, ok := hd.qo.(*sql.DB); !ok {
 		t.Fatal("wrong type")
 	}
@@ -216,7 +218,9 @@ func DoTestSaveAndDelete(t *testing.T, info dialectInfo) {
 
 	hd.DropTable(&model1)
 
-	err := hd.CreateTable(&model1)
+	tx := hd.Begin()
+	tx.CreateTable(&model1)
+	err := tx.Commit()
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -374,7 +378,9 @@ func DoTestSaveDeleteAllAndHooks(t *testing.T, info dialectInfo) {
 	}
 
 	sdAllHooks = make([]string, 0, 20)
-	err := hd.CreateTable(&sdAllModel{})
+	tx := hd.Begin()
+	tx.CreateTable(&sdAllModel{})
+	err := tx.Commit()
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -489,7 +495,9 @@ func DoTestFind(t *testing.T, info dialectInfo) {
 
 	hd.DropTable(&model1)
 
-	err := hd.CreateTable(&model1)
+	tx := hd.Begin()
+	tx.CreateTable(&model1)
+	err := tx.Commit()
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -610,7 +618,7 @@ func TestCreateTable(t *testing.T) {
 
 type CreateTableTestModel struct {
 	Prim   Id
-	First  string `sql:"notnull"`
+	First  string `sql:"size(64),notnull"`
 	Last   string `sql:"size(128),default('defaultValue')"`
 	Amount int
 }
@@ -629,7 +637,9 @@ func DoTestCreateTable(t *testing.T, info dialectInfo) {
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
-	err = hd.CreateTable(table)
+	tx := hd.Begin()
+	tx.CreateTable(table)
+	err = tx.Commit()
 	if err != nil {
 		t.Fatal("error not nil", err)
 	}
@@ -905,7 +915,9 @@ func DoTestNullValues(t *testing.T, info dialectInfo) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	err = hd.CreateTable(&nullModel{})
+	tx := hd.Begin()
+	tx.CreateTable(&nullModel{})
+	err = tx.Commit()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -923,6 +935,33 @@ func DoTestNullValues(t *testing.T, info dialectInfo) {
 	}
 	if x := out[0].A; x != "" {
 		t.Fatal("A should be empty (NULL)", x)
+	}
+}
+
+func TestCommitLastError(t *testing.T) {
+	for _, info := range toRun {
+		DoTestCommitLastError(t, info)
+	}
+}
+
+func DoTestCommitLastError(t *testing.T, info dialectInfo) {
+	t.Logf("Dialect %T\n", info.dialect)
+	type commitClash struct {
+		Id Id
+	}
+	hd := info.setupDbFunc(t)
+	tx := hd.Begin()
+	if !tx.IsTransaction() {
+		t.Fatal("should be a transaction")
+	}
+	tx.CreateTable(&commitClash{})
+	tx.CreateTable(&commitClash{})
+	err := tx.Commit()
+	if tx.firstTxError == nil {
+		t.Fatal("tx error should be set")
+	}
+	if err == nil {
+		t.Fatal("should return error")
 	}
 }
 
