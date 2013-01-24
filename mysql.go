@@ -43,6 +43,9 @@ func (d *mysql) SqlType(f interface{}, size int) string {
 	case float32, float64:
 		return "double"
 	case []byte:
+		if size > 0 && size < 65532 {
+			return fmt.Sprintf("varbinary(%d)", size)
+		}
 		return "longblob"
 	case string:
 		if size > 0 && size < 65532 {
