@@ -119,6 +119,8 @@ var migrationTemplate = template.Must(template.New("migration").Parse(migrationT
 var initTmpl = `package main
 
 type M struct{}
+
+func main() {}
 `
 
 var confTmpl = `{
@@ -163,6 +165,11 @@ func dbMigrate(up bool) string {
 	defer os.RemoveAll(tmpDir)
 	files := []string{}
 	for _, file := range info {
+		// skip the init.go
+		if file.Name() == "init.go" {
+			continue
+		}
+		// copy all migration files
 		dstFile := path.Join(tmpDir, file.Name())
 		_, err = copyFile(
 			dstFile,
