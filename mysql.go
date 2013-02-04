@@ -6,6 +6,10 @@ import (
 	"time"
 )
 
+func init() {
+	RegisterDialect("mymysql", NewMysql())
+}
+
 type mysql struct {
 	base
 }
