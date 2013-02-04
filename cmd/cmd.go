@@ -99,6 +99,13 @@ func createMigration(name string) string {
 	if err != nil {
 		panic(err)
 	}
+
+	// write init file
+	initName := path.Join(kDbDir, kMgrDir, "init.go")
+	err = ioutil.WriteFile(initName, []byte(initTmpl), 0644)
+	if err != nil {
+		panic(err)
+	}
 	return fmt.Sprintf("created migration '%s'", fileName)
 }
 
@@ -108,6 +115,11 @@ type Migration struct {
 }
 
 var migrationTemplate = template.Must(template.New("migration").Parse(migrationTmpl))
+
+var initTmpl = `package main
+
+type M struct{}
+`
 
 var confTmpl = `{
   "development": {
