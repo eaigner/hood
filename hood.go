@@ -949,6 +949,18 @@ func (hood *Hood) DeleteAll(f interface{}) ([]Id, error) {
 	})
 }
 
+// DeleteFrom deletes the rows matched by the previous Where clause. table can
+// either be a table struct or a string.
+//
+// Example:
+//
+//    hd.Where("amount", "=", 0).DeleteFrom("stock")
+//
+func (hood *Hood) DeleteFrom(table interface{}) error {
+	defer hood.Reset()
+	return hood.Dialect.DeleteFrom(hood, tableName(table))
+}
+
 // CreateTable creates a new table based on the provided schema.
 func (hood *Hood) CreateTable(table interface{}) error {
 	return hood.createTable(table, false)

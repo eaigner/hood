@@ -34,6 +34,7 @@ var allDialectInfos = []dialectInfo{
 		`INSERT INTO "sql_gen_model" ("first", "last", "amount") VALUES ($1, $2, $3) RETURNING "prim"`,
 		`UPDATE "sql_gen_model" SET "first" = $1, "last" = $2, "amount" = $3 WHERE "prim" = $4`,
 		`DELETE FROM "sql_gen_model" WHERE "prim" = $1`,
+		`DELETE FROM "sql_del_from" WHERE "a" = $1 AND "b" > $2 OR "c" < $3`,
 		`SELECT * FROM "sql_gen_model"`,
 		`SELECT "col1", "col2" FROM "sql_gen_model" INNER JOIN "orders" ON "sql_gen_model"."id1" = "orders"."id2" WHERE "user"."id" = "order"."id" AND "a" > $1 OR "b" < $2 AND "c" = $3 OR "d" = $4 GROUP BY "user"."name" HAVING SUM(price) < $5 ORDER BY "user"."first_name" LIMIT $6 OFFSET $7`,
 		`DROP TABLE "drop_table"`,
@@ -56,6 +57,7 @@ var allDialectInfos = []dialectInfo{
 		"INSERT INTO `sql_gen_model` (`first`, `last`, `amount`) VALUES (?, ?, ?)",
 		"UPDATE `sql_gen_model` SET `first` = ?, `last` = ?, `amount` = ? WHERE `prim` = ?",
 		"DELETE FROM `sql_gen_model` WHERE `prim` = ?",
+		"DELETE FROM `sql_del_from` WHERE `a` = ? AND `b` > ? OR `c` < ?",
 		"SELECT * FROM `sql_gen_model`",
 		"SELECT `col1`, `col2` FROM `sql_gen_model` INNER JOIN `orders` ON `sql_gen_model`.`id1` = `orders`.`id2` WHERE `user`.`id` = `order`.`id` AND `a` > ? OR `b` < ? AND `c` = ? OR `d` = ? GROUP BY `user`.`name` HAVING SUM(price) < ? ORDER BY `user`.`first_name` LIMIT ? OFFSET ?",
 		"DROP TABLE `drop_table`",
@@ -80,6 +82,7 @@ type dialectInfo struct {
 	insertSql                       string
 	updateSql                       string
 	deleteSql                       string
+	deleteFromSql                   string
 	wcQuerySql                      string
 	querySql                        string
 	dropTableSql                    string
@@ -744,6 +747,29 @@ func DoTestDeleteSQL(t *testing.T, info dialectInfo) {
 		t.Log(sql)
 		t.Log(x)
 		t.Fatal("invalid sql")
+	}
+}
+
+func TestDeleteFromSQL(t *testing.T) {
+	for _, info := range toRun {
+		DoTestDeleteFromSQL(t, info)
+	}
+}
+
+func DoTestDeleteFromSQL(t *testing.T, info dialectInfo) {
+	t.Logf("Dialect %T\n", info.dialect)
+	hd := info.setupDbFunc(t)
+	hd.Where("a", "=", 2).And("b", ">", 3).Or("c", "<", 4)
+
+	sql, args := info.dialect.DeleteFromSql(hd, "sql_del_from")
+	if x := info.deleteFromSql; x != sql {
+		t.Log(sql)
+		t.Log(x)
+		t.Fatal("invalid sql")
+	}
+	if len(args) != 3 {
+		t.Log(args)
+		t.Fatal("invalid args")
 	}
 }
 

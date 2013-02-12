@@ -58,6 +58,12 @@ type Dialect interface {
 	// DeleteSql returns the sql for deleting the row matching model's primary key.
 	DeleteSql(model *Model) (string, []interface{})
 
+	// DeleteFrom deletes the matching rows in the specified table
+	DeleteFrom(hood *Hood, table string) error
+
+	// DeleteFromSql returns the sql for DeleteFrom
+	DeleteFromSql(hood *Hood, table string) (string, []interface{})
+
 	// CreateTable creates the table specified in model.
 	CreateTable(hood *Hood, model *Model) error
 

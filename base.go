@@ -86,6 +86,37 @@ func (d *base) ConvertHoodType(f interface{}) interface{} {
 	return f
 }
 
+func (d *base) appendWhere(query *[]string, args *[]interface{}, hood *Hood) {
+	if x := hood.where; len(x) > 0 {
+		for _, v := range x {
+			// TODO: could be prettier!
+			var c *clause
+			switch p := v.(type) {
+			case *whereClause:
+				*query = append(*query, "WHERE")
+				c = (*clause)(p)
+			case *andClause:
+				*query = append(*query, "AND")
+				c = (*clause)(p)
+			case *orClause:
+				*query = append(*query, "OR")
+				c = (*clause)(p)
+			}
+			if c != nil {
+				*query = append(*query, c.a.Quote(d.Dialect), c.op)
+				if path, ok := c.b.(Path); ok {
+					*query = append(*query, path.Quote(d.Dialect))
+				} else {
+					*query = append(*query, "?")
+					*args = append(*args, c.b)
+				}
+			} else {
+				panic(fmt.Sprintf("invalid where clause %T", v))
+			}
+		}
+	}
+}
+
 func (d *base) QuerySql(hood *Hood) (string, []interface{}) {
 	query := make([]string, 0, 20)
 	args := make([]interface{}, 0, 20)
@@ -118,34 +149,7 @@ func (d *base) QuerySql(hood *Hood) (string, []interface{}) {
 			j.b.Quote(d.Dialect),
 		))
 	}
-	if x := hood.where; len(x) > 0 {
-		for _, v := range x {
-			// TODO: could be prettier!
-			var c *clause
-			switch p := v.(type) {
-			case *whereClause:
-				query = append(query, "WHERE")
-				c = (*clause)(p)
-			case *andClause:
-				query = append(query, "AND")
-				c = (*clause)(p)
-			case *orClause:
-				query = append(query, "OR")
-				c = (*clause)(p)
-			}
-			if c != nil {
-				query = append(query, c.a.Quote(d.Dialect), c.op)
-				if path, ok := c.b.(Path); ok {
-					query = append(query, path.Quote(d.Dialect))
-				} else {
-					query = append(query, "?")
-					args = append(args, c.b)
-				}
-			} else {
-				panic(fmt.Sprintf("invalid where clause %T", v))
-			}
-		}
-	}
+	d.appendWhere(&query, &args, hood)
 	if x := hood.groupBy; x != "" {
 		query = append(query, fmt.Sprintf("GROUP BY %v", x.Quote(d.Dialect)))
 	}
@@ -237,6 +241,25 @@ func (d *base) DeleteSql(model *Model) (string, []interface{}) {
 		d.Dialect.Quote(model.Pk.Name),
 		d.Dialect.NextMarker(&n),
 	), []interface{}{model.Pk.Value}
+}
+
+func (d *base) DeleteFrom(hood *Hood, table string) error {
+	sql, args := d.Dialect.DeleteFromSql(hood, table)
+	_, err := hood.Exec(sql, args...)
+	return err
+}
+
+func (d *base) DeleteFromSql(hood *Hood, table string) (string, []interface{}) {
+	if len(hood.where) == 0 {
+		panic("no where clause specified")
+	}
+	query := []string{
+		fmt.Sprintf("DELETE FROM %s", d.Dialect.Quote(table)),
+	}
+	args := []interface{}{}
+	d.appendWhere(&query, &args, hood)
+
+	return hood.substituteMarkers(strings.Join(query, " ")), args
 }
 
 func (d *base) CreateTable(hood *Hood, model *Model) error {
