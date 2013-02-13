@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"reflect"
 	"regexp"
@@ -486,10 +487,16 @@ func (hood *Hood) Begin() *Hood {
 	return c
 }
 
+func (hood *Hood) logSql(sql string, args ...interface{}) {
+	if hood.Log {
+		log.Printf("\x1b[35mSQL: %s ARGS: %v\x1b[0m\n", sql, args)
+	}
+}
+
 func (hood *Hood) updateTxError(e error) error {
 	if e != nil {
 		if hood.Log {
-			fmt.Printf("ERROR: %v\n", e)
+			log.Println("ERROR:", e)
 		}
 		// don't shadow the first error
 		if hood.firstTxError == nil {
@@ -671,10 +678,7 @@ func (hood *Hood) FindSql(out interface{}, query string, args ...interface{}) er
 	if x := sliceType.Kind(); x != reflect.Struct {
 		panic(panicMsg)
 	}
-	if hood.Log {
-		fmt.Println(query)
-		fmt.Println(args)
-	}
+	hood.logSql(query, args...)
 	stmt, err := hood.qo.Prepare(query)
 	if err != nil {
 		return hood.updateTxError(err)
@@ -723,17 +727,12 @@ func (hood *Hood) FindSql(out interface{}, query string, args ...interface{}) er
 func (hood *Hood) Exec(query string, args ...interface{}) (sql.Result, error) {
 	defer hood.Reset()
 	query = hood.substituteMarkers(query)
-	if hood.Log {
-		fmt.Println(query)
-	}
+	hood.logSql(query, args...)
 	stmt, err := hood.qo.Prepare(query + ";")
 	if err != nil {
 		return nil, hood.updateTxError(err)
 	}
 	defer stmt.Close()
-	if hood.Log {
-		fmt.Println(args...)
-	}
 	result, err := stmt.Exec(hood.convertSpecialTypes(args)...)
 	if err != nil {
 		return nil, hood.updateTxError(err)
@@ -745,10 +744,7 @@ func (hood *Hood) Exec(query string, args ...interface{}) (sql.Result, error) {
 // QueryRow always return a non-nil value. Errors are deferred until Row's Scan
 // method is called.
 func (hood *Hood) QueryRow(query string, args ...interface{}) *sql.Row {
-	if hood.Log {
-		fmt.Println(query)
-		fmt.Println(args...)
-	}
+	hood.logSql(query, args...)
 	return hood.qo.QueryRow(query, hood.convertSpecialTypes(args)...)
 	// TODO: switch to this implementation, as soon as
 	//
