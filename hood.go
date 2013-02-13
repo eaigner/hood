@@ -489,7 +489,16 @@ func (hood *Hood) Begin() *Hood {
 
 func (hood *Hood) logSql(sql string, args ...interface{}) {
 	if hood.Log {
-		log.Printf("\x1b[35mSQL: %s ARGS: %v\x1b[0m\n", sql, args)
+		a := make([]interface{}, 0, len(args))
+		for _, v := range args {
+			switch t := v.(type) {
+			case []uint8:
+				a = append(a, fmt.Sprintf("<[]byte#%d>", len(t)))
+			default:
+				a = append(a, v)
+			}
+		}
+		log.Printf("\x1b[35mSQL: %s ARGS: %v\x1b[0m\n", sql, a)
 	}
 }
 
