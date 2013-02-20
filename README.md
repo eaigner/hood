@@ -175,9 +175,7 @@ and roll back with
 
 	hood db:rollback
 
-If you want to run a environment configuration other than `development`, you have to set an environment variable first like this:
-
-	export HOOD_ENV=production
+For a complete list of commands invoke `hood -help`
 
 A `schema.go` file is **automatically generated** in the `db` directory. This file reflects the
 current state of the database! In our example, it will look like this:
