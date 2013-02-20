@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -21,14 +22,26 @@ func main() {
 		"package main",
 	}
 	for _, f := range fi {
+		// Read template
 		name := strings.Split(f.Name(), ".")
 		b, err := ioutil.ReadFile(tplDir + "/" + f.Name())
 		if err != nil {
 			panic(err)
 		}
-		s := fmt.Sprintf("var %sTmpl = `%s`", name[0], string(b))
+
+		// Quote template
+		var buf bytes.Buffer
+		strings.Map(func(r rune) rune {
+			buf.WriteString(fmt.Sprintf("\\x%02x", r))
+			return r
+		}, string(b))
+
+		// Write template
+		s := fmt.Sprintf("var %sTemplate = \"%s\"", name[0], buf.String())
 		a = append(a, s)
 	}
+
+	// Write concatenated templates file
 	err = ioutil.WriteFile("cmd/templates.go", []byte(strings.Join(a, "\r\n\r\n")), 0644)
 	if err != nil {
 		panic(err)
