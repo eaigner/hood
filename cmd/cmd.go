@@ -264,10 +264,6 @@ func runMigrations(steps int32) {
 		"-source", strconv.Quote(source),
 		"-schema", strconv.Quote(schemaFile),
 		"-steps", fmt.Sprintf("%d", steps),
-		// fmt.Sprintf("-driver=\"%s\"", driver),
-		// fmt.Sprintf("-source=\"%s\"", source),
-		// fmt.Sprintf("-schema=%s", path.Join(workingDir, schemaFile)),
-		// fmt.Sprintf("-steps=%d", steps),
 	)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
