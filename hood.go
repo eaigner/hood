@@ -471,14 +471,21 @@ func (hood *Hood) Reset() {
 	hood.havingArgs = make([]interface{}, 0, 20)
 }
 
+// Copy copies the hood instance for safe context manipulation.
+func (hood *Hood) Copy() *Hood {
+	c := new(Hood)
+	*c = *hood
+
+	return c
+}
+
 // Begin starts a new transaction and returns a copy of Hood. You have to call
 // subsequent methods on the newly returned object.
 func (hood *Hood) Begin() *Hood {
 	if hood.IsTransaction() {
 		panic("cannot start nested transaction")
 	}
-	c := new(Hood)
-	*c = *hood
+	c := hood.Copy()
 	q, err := hood.Db.Begin()
 	if err != nil {
 		panic(err)
