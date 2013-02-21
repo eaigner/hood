@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -37,6 +38,7 @@ type (
 		havingCond   string
 		havingArgs   []interface{}
 		firstTxError error
+		mutex        sync.Mutex
 	}
 
 	// Id represents a auto-incrementing integer primary key type.
@@ -674,7 +676,10 @@ func (hood *Hood) Find(out interface{}) error {
 // FindSql performs a find using the specified custom sql query and arguments and
 // writes the results to the specified out interface{}.
 func (hood *Hood) FindSql(out interface{}, query string, args ...interface{}) error {
+	hood.mutex.Lock()
+	defer hood.mutex.Unlock()
 	defer hood.Reset()
+
 	panicMsg := errors.New("expected pointer to struct slice *[]struct")
 	if x := reflect.TypeOf(out).Kind(); x != reflect.Ptr {
 		panic(panicMsg)
@@ -734,7 +739,10 @@ func (hood *Hood) FindSql(out interface{}, query string, args ...interface{}) er
 
 // Exec executes a raw sql query.
 func (hood *Hood) Exec(query string, args ...interface{}) (sql.Result, error) {
+	hood.mutex.Lock()
+	defer hood.mutex.Unlock()
 	defer hood.Reset()
+
 	query = hood.substituteMarkers(query)
 	hood.logSql(query, args...)
 	stmt, err := hood.qo.Prepare(query + ";")
@@ -753,6 +761,9 @@ func (hood *Hood) Exec(query string, args ...interface{}) (sql.Result, error) {
 // QueryRow always return a non-nil value. Errors are deferred until Row's Scan
 // method is called.
 func (hood *Hood) QueryRow(query string, args ...interface{}) *sql.Row {
+	hood.mutex.Lock()
+	defer hood.mutex.Unlock()
+
 	hood.logSql(query, args...)
 	return hood.qo.QueryRow(query, hood.convertSpecialTypes(args)...)
 	// TODO: switch to this implementation, as soon as
