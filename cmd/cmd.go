@@ -46,52 +46,7 @@ func init() {
 
 	// Get driver and source from config, if flags were not set
 	if driver == "" || source == "" {
-		// Read file
-		wd, err := os.Getwd()
-		if err != nil {
-			panic(err)
-		}
-		f, err := os.Open(path.Join(wd, configFile))
-		if err != nil {
-			panic(err)
-		}
-		defer f.Close()
-
-		// Parse JSON
-		var v map[string]interface{}
-		err = json.NewDecoder(f).Decode(&v)
-		if err != nil {
-			panic(err)
-		}
-
-		// Append environment to key path
-		fqKeyPath := environment
-		if len(keyPath) > 0 {
-			fqKeyPath += "." + keyPath
-		}
-
-		// Get driver and source fields
-		root := v
-		for _, key := range strings.Split(fqKeyPath, ".") {
-			if node, ok := root[key].(map[string]interface{}); ok {
-				root = node
-			}
-		}
-
-		if node, ok := root["driver"].(string); ok {
-			driver = node
-		}
-		if node, ok := root["source"].(string); ok {
-			source = node
-		}
-	}
-
-	// Set driver and source
-	if driver == "" {
-		panic("driver not set")
-	}
-	if source == "" {
-		panic("source not set")
+		readConf()
 	}
 
 	// Get working dir
@@ -102,6 +57,48 @@ func init() {
 
 	workingDir = wd
 	command = flag.Arg(0)
+}
+
+func readConf() {
+	// Read file
+	wd, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	f, err := os.Open(path.Join(wd, configFile))
+	if err != nil {
+		return
+		// panic(err)
+	}
+	defer f.Close()
+
+	// Parse JSON
+	var v map[string]interface{}
+	err = json.NewDecoder(f).Decode(&v)
+	if err != nil {
+		panic(err)
+	}
+
+	// Append environment to key path
+	fqKeyPath := environment
+	if len(keyPath) > 0 {
+		fqKeyPath += "." + keyPath
+	}
+
+	// Get driver and source fields
+	root := v
+	for _, key := range strings.Split(fqKeyPath, ".") {
+		if node, ok := root[key].(map[string]interface{}); ok {
+			root = node
+		}
+	}
+
+	if node, ok := root["driver"].(string); ok {
+		driver = node
+	}
+	if node, ok := root["source"].(string); ok {
+		source = node
+	}
 }
 
 func main() {
@@ -136,7 +133,12 @@ func main() {
 }
 
 func cmdCreateConfig() {
-	err := ioutil.WriteFile(path.Join(workingDir, configFile), []byte(confTmpl), 0666)
+	p := path.Join(workingDir, configFile)
+	err := os.MkdirAll(path.Dir(p), 0777)
+	if err != nil {
+		panic(err)
+	}
+	err = ioutil.WriteFile(p, []byte(confTmpl), 0666)
 	if err != nil {
 		panic(err)
 	}
@@ -149,12 +151,19 @@ func cmdCreateMigration(name string) {
 	}
 	// Write template
 	ts := time.Now().Unix()
-	file := path.Join(workingDir, migrationsDir, fmt.Sprintf("%d_%s.go", ts, name))
-	f, err := os.OpenFile(file, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
+
+	p := path.Join(workingDir, migrationsDir, fmt.Sprintf("%d_%s.go", ts, name))
+	err := os.MkdirAll(path.Dir(p), 0777)
+	if err != nil {
+		panic(err)
+	}
+
+	f, err := os.OpenFile(p, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		panic(err)
 	}
 	defer f.Close()
+
 	err = migrationTemplate.Execute(f, &struct {
 		Timestamp int64
 		Name      string
@@ -162,17 +171,18 @@ func cmdCreateMigration(name string) {
 		Timestamp: ts,
 		Name:      name,
 	})
+
 	if err != nil {
 		panic(err)
 	}
 
 	// Write init.go file
-	file = path.Join(workingDir, migrationsDir, "init.go")
-	err = ioutil.WriteFile(file, []byte(initTmpl), 0644)
+	p = path.Join(workingDir, migrationsDir, "init.go")
+	err = ioutil.WriteFile(p, []byte(initTmpl), 0666)
 	if err != nil {
 		panic(err)
 	}
-	log.Printf("created migration '%s'", file)
+	log.Printf("created migration '%s'", p)
 }
 
 var initTmpl = `package main
