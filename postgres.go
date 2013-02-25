@@ -21,16 +21,12 @@ func NewPostgres() Dialect {
 	return d
 }
 
-func (d *postgres) Now() time.Time {
-	return time.Now().UTC()
-}
-
 func (d *postgres) SqlType(f interface{}, size int) string {
 	switch f.(type) {
 	case Id:
 		return "bigserial"
 	case time.Time, Created, Updated:
-		return "timestamp"
+		return "timestamp with time zone"
 	case bool:
 		return "boolean"
 	case int, int8, int16, int32, uint, uint8, uint16, uint32:

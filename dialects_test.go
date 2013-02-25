@@ -578,7 +578,7 @@ func DoTestFind(t *testing.T, info dialectInfo) {
 		if x := v.N; string(x) != "bytes!" {
 			t.Fatal("invalid value", x)
 		}
-		if x := v.P; now.Equal(x) {
+		if x := v.P; now.Unix() != x.Unix() {
 			t.Fatal("invalid value", x, now)
 		}
 	}
@@ -1022,7 +1022,7 @@ func TestSqlTypeForPgDialect(t *testing.T) {
 	if x := d.SqlType("b", 128); x != "varchar(128)" {
 		t.Fatal("wrong type", x)
 	}
-	if x := d.SqlType(time.Now(), 0); x != "timestamp" {
+	if x := d.SqlType(time.Now(), 0); x != "timestamp with time zone" {
 		t.Fatal("wrong type", x)
 	}
 }

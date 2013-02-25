@@ -21,10 +21,6 @@ func (d *base) Quote(s string) string {
 	return fmt.Sprintf(`"%s"`, s)
 }
 
-func (d *base) Now() time.Time {
-	return time.Now()
-}
-
 func (d *base) ParseBool(value reflect.Value) bool {
 	return value.Bool()
 }
