@@ -118,6 +118,7 @@ type (
 
 	qo interface {
 		Prepare(query string) (*sql.Stmt, error)
+		Query(query string, args ...interface{}) (*sql.Rows, error)
 		QueryRow(query string, args ...interface{}) *sql.Row
 	}
 
@@ -762,6 +763,15 @@ func (hood *Hood) Exec(query string, args ...interface{}) (sql.Result, error) {
 		return nil, hood.updateTxError(err)
 	}
 	return result, nil
+}
+
+// Query executes a query that returns rows, typically a SELECT
+func (hood *Hood) Query(query string, args ...interface{}) (*sql.Rows, error) {
+	hood.mutex.Lock()
+	defer hood.mutex.Unlock()
+
+	hood.logSql(query, args...)
+	return hood.qo.Query(query, hood.convertSpecialTypes(args)...)
 }
 
 // QueryRow executes a query that is expected to return at most one row.
