@@ -155,6 +155,10 @@ func (d *base) QuerySql(hood *Hood) (string, []interface{}) {
 	}
 	if x := hood.orderBy; x != "" {
 		query = append(query, fmt.Sprintf("ORDER BY %v", x.Quote(d.Dialect)))
+
+		if x := hood.order; x != "" {
+			query = append(query, fmt.Sprintf("%v", x))
+		}
 	}
 	if x := hood.limit; x > 0 {
 		query = append(query, "LIMIT ?")

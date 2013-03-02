@@ -33,6 +33,7 @@ type (
 		limit        int
 		offset       int
 		orderBy      Path
+		order        string
 		joins        []*join
 		groupBy      Path
 		havingCond   string
@@ -466,6 +467,7 @@ func (hood *Hood) Reset() {
 	hood.limit = 0
 	hood.offset = 0
 	hood.orderBy = ""
+	hood.order = ""
 	hood.joins = []*join{}
 	hood.groupBy = ""
 	hood.havingCond = ""
@@ -641,6 +643,16 @@ func (hood *Hood) Offset(offset int) *Hood {
 // OrderBy adds an ORDER BY clause to the query.
 func (hood *Hood) OrderBy(path Path) *Hood {
 	hood.orderBy = path
+	return hood
+}
+
+func (hood *Hood) Asc() *Hood {
+	hood.order = "ASC"
+	return hood
+}
+
+func (hood *Hood) Desc() *Hood {
+	hood.order = "DESC"
 	return hood
 }
 
