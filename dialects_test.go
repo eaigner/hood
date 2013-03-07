@@ -37,6 +37,8 @@ var allDialectInfos = []dialectInfo{
 		`DELETE FROM "sql_del_from" WHERE "a" = $1 AND "b" > $2 OR "c" < $3`,
 		`SELECT * FROM "sql_gen_model"`,
 		`SELECT "col1", "col2" FROM "sql_gen_model" INNER JOIN "orders" ON "sql_gen_model"."id1" = "orders"."id2" WHERE "user"."id" = "order"."id" AND "a" > $1 OR "b" < $2 AND "c" = $3 OR "d" = $4 GROUP BY "user"."name" HAVING SUM(price) < $5 ORDER BY "user"."first_name" LIMIT $6 OFFSET $7`,
+		`SELECT "col1", "col2" FROM "sql_gen_model" INNER JOIN "orders" ON "sql_gen_model"."id1" = "orders"."id2" WHERE "user"."id" = "order"."id" AND "a" > $1 OR "b" < $2 AND "c" = $3 OR "d" = $4 GROUP BY "user"."name" HAVING SUM(price) < $5 ORDER BY "user"."first_name" ASC LIMIT $6 OFFSET $7`,
+		`SELECT "col1", "col2" FROM "sql_gen_model" INNER JOIN "orders" ON "sql_gen_model"."id1" = "orders"."id2" WHERE "user"."id" = "order"."id" AND "a" > $1 OR "b" < $2 AND "c" = $3 OR "d" = $4 GROUP BY "user"."name" HAVING SUM(price) < $5 ORDER BY "user"."first_name" DESC LIMIT $6 OFFSET $7`,
 		`DROP TABLE "drop_table"`,
 		`DROP TABLE IF EXISTS "drop_table"`,
 		`ALTER TABLE "table_a" RENAME TO "table_b"`,
@@ -60,6 +62,8 @@ var allDialectInfos = []dialectInfo{
 		"DELETE FROM `sql_del_from` WHERE `a` = ? AND `b` > ? OR `c` < ?",
 		"SELECT * FROM `sql_gen_model`",
 		"SELECT `col1`, `col2` FROM `sql_gen_model` INNER JOIN `orders` ON `sql_gen_model`.`id1` = `orders`.`id2` WHERE `user`.`id` = `order`.`id` AND `a` > ? OR `b` < ? AND `c` = ? OR `d` = ? GROUP BY `user`.`name` HAVING SUM(price) < ? ORDER BY `user`.`first_name` LIMIT ? OFFSET ?",
+		"SELECT `col1`, `col2` FROM `sql_gen_model` INNER JOIN `orders` ON `sql_gen_model`.`id1` = `orders`.`id2` WHERE `user`.`id` = `order`.`id` AND `a` > ? OR `b` < ? AND `c` = ? OR `d` = ? GROUP BY `user`.`name` HAVING SUM(price) < ? ORDER BY `user`.`first_name` ASC LIMIT ? OFFSET ?",
+		"SELECT `col1`, `col2` FROM `sql_gen_model` INNER JOIN `orders` ON `sql_gen_model`.`id1` = `orders`.`id2` WHERE `user`.`id` = `order`.`id` AND `a` > ? OR `b` < ? AND `c` = ? OR `d` = ? GROUP BY `user`.`name` HAVING SUM(price) < ? ORDER BY `user`.`first_name` DESC LIMIT ? OFFSET ?",
 		"DROP TABLE `drop_table`",
 		"DROP TABLE IF EXISTS `drop_table`",
 		"ALTER TABLE `table_a` RENAME TO `table_b`",
@@ -85,6 +89,8 @@ type dialectInfo struct {
 	deleteFromSql                   string
 	wcQuerySql                      string
 	querySql                        string
+	querySqlAsc                     string
+	querySqlDesc                    string
 	dropTableSql                    string
 	dropTableIfExistsSql            string
 	renameTableSql                  string
@@ -803,12 +809,29 @@ func DoTestQuerySQL(t *testing.T, info dialectInfo) {
 	hood.OrderBy("user.first_name")
 	hood.Offset(3)
 	hood.Limit(10)
-	query, _ = hood.Dialect.QuerySql(hood)
+
+	hoodDesc := hood.Copy()
+	hoodAsc := hood.Copy()
+
 	// TODO: verify 2nd argument ARGS
+	// Without ASC/DESC
+	query, _ = hood.Dialect.QuerySql(hood)
 	if x := info.querySql; x != query {
-		t.Log(query)
-		t.Log(x)
-		t.Fatal("invalid query")
+		t.Fatalf("invalid query:\n%s\n---should be---\n%s\n", x, query)
+	}
+
+	// With DESC
+	hoodDesc.Desc()
+	query, _ = hoodDesc.Dialect.QuerySql(hoodDesc)
+	if x := info.querySqlDesc; x != query {
+		t.Fatalf("invalid query:\n%s\n---should be---\n%s\n", x, query)
+	}
+
+	// With ASC
+	hoodAsc.Asc()
+	query, _ = hoodAsc.Dialect.QuerySql(hoodAsc)
+	if x := info.querySqlAsc; x != query {
+		t.Fatalf("invalid query:\n%s\n---should be---\n%s\n", x, query)
 	}
 }
 
