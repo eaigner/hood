@@ -241,6 +241,11 @@ func runMigrations(steps int32) {
 			continue
 		}
 
+		// Skip non-go files
+		if !strings.HasSuffix(file.Name(), ".go") {
+			continue
+		}
+
 		// Copy
 		dstFile := path.Join(tmpDir, file.Name())
 		_, err = copyFile(
