@@ -15,7 +15,7 @@ import (
 // INFO IN THE TO_RUN ARRAY!
 
 import (
-	_ "github.com/bmizerany/pq"
+	_ "github.com/lib/pq"
 	_ "github.com/ziutek/mymysql/godrv"
 )
 

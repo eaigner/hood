@@ -2,7 +2,7 @@ package hood
 
 import (
 	"fmt"
-	_ "github.com/bmizerany/pq"
+	_ "github.com/lib/pq"
 	"strings"
 	"time"
 )
