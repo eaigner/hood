@@ -32,7 +32,7 @@ Dialects currently implemented
 - **Postgres** using [github.com/lib/pq](https://github.com/lib/pq)
 - **MySQL** using [github.com/ziutek/mymysql](https://github.com/ziutek/mymysql) (by [coocood](https://github.com/coocood))
 
-Adding a dialect is simple. Just create a new file named `<dialect_name>.go` and the corresponding struct type, and mixin the `Base` dialect. Then implement the methods that are specific to the new dialect (for an example see `postgres.go`).
+Adding a dialect is simple. Just create a new file named `<dialect_name>.go` and the corresponding struct type, and mixin the `Base` dialect. Then implement the methods that are specific to the new dialect (for an example see [`postgres.go`](https://github.com/eaigner/hood/blob/master/postgres.go)).
 
 ## Documentation
 
